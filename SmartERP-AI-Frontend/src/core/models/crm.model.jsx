@@ -1,0 +1,4 @@
+// Data model / type shape for the CRM module
+// Define PropTypes/JSDoc typedefs here as the API contract solidifies.
+
+export const crmModel = {}
