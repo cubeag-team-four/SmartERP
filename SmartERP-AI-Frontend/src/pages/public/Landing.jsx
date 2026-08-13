@@ -1,9 +1,7 @@
-import React from 'react'
+import Hero from '../../components/home/Hero'
 
 const Landing = () => {
-  return (
-    <div>Landing</div>
-  )
+  return <Hero />
 }
 
 export default Landing
