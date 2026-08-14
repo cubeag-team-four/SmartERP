@@ -1,5 +1,6 @@
 import React from "react";
 
+// Security feature cards
 const securityFeatures = [
   {
     number: "01",
@@ -51,6 +52,7 @@ const securityFeatures = [
   },
 ];
 
+// Access control matrix data
 const accessMatrix = [
   {
     role: "Super Admin",
@@ -70,17 +72,15 @@ const accessMatrix = [
   },
 ];
 
+// Permission checkbox component
 function PermissionIcon({ enabled }) {
   return (
     <div
-      className={`
-        flex h-[19px] w-[19px] items-center justify-center rounded-[4px] border
-        ${
-          enabled
-            ? "border-[#485541] bg-[#1c251b]"
-            : "border-[#242824] bg-[#121512]"
-        }
-      `}
+      className={`flex h-[19px] w-[19px] items-center justify-center rounded-[4px] border ${
+        enabled
+          ? "border-[#485541] bg-[#1c251b]"
+          : "border-[#242824] bg-[#121512]"
+      }`}
     >
       {enabled ? (
         <svg
@@ -99,39 +99,67 @@ function PermissionIcon({ enabled }) {
           />
         </svg>
       ) : (
-        <span className="h-px w-[7px] bg-[#151713]" />
+        <span className="h-px w-[7px] bg-[#343934]" />
       )}
     </div>
   );
 }
 
+// Main Security & Control page
 const SecurityandControl = () => {
   return (
-    <main className="
-      min-h-screen
-      bg-[#0d100d]
-      text-[#eeeDE7]
-      bg-[radial-gradient(circle,_rgba(180,190,175,0.12)_0.7px,_transparent_0.7px)]
-      bg-[length:20px_18px]
-    ">
-
-      <section className="relative mx-auto min-h-screen w-full max-w-[1320px] px-8 py-[74px] sm:px-8 md:px-10 lg:px-12 xl:px-[38px]">
+    <main
+      className="
+        min-h-screen
+        bg-[#1A1A1A]
+        bg-[radial-gradient(circle,_rgba(180,190,175,0.12)_0.7px,_transparent_0.7px)]
+        bg-[length:20px_18px]
+        text-[#eeeDE7]
+      "
+    >
+      <section
+        className="
+          relative mx-auto min-h-screen w-full max-w-[1320px]
+          px-8 py-[74px]
+          sm:px-8
+          md:px-10
+          lg:px-12
+          xl:px-[38px]
+        "
+      >
         {/* TOP LABEL */}
         <div className="mb-11 flex items-center gap-3">
           <span className="h-px w-7 bg-[#485442]" />
 
-          <span className="font-mono text-[8px] font-light uppercase tracking-[0.17em] text-[#87917e]">
+          <span className="font-mono text-[11px] font-light uppercase tracking-[0.17em] text-[#87917e]">
             10 — SECURITY &amp; CONTROL
           </span>
         </div>
 
-        {/* MAIN GRID */}
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[58%_42%] lg:gap-5">
+        {/* MAIN CONTENT GRID */}
+        <div
+          className="
+            grid grid-cols-1 gap-12
+            lg:grid-cols-[58%_42%] lg:gap-5
+          "
+        >
           {/* LEFT COLUMN */}
           <div className="min-w-0">
-            {/* HERO */}
+            {/* HERO CONTENT */}
             <div className="max-w-[650px]">
-              <h1 className="font-serif text-[52px] leading-[0.88] tracking-[-0.025em] text-[#efeee8] sm:text-[60px] md:text-[64px] lg:text-[57px] xl:text-[63px]">
+              <h1
+                className="
+                  font-serif
+                  text-[52px]
+                  leading-[0.88]
+                  tracking-[-0.025em]
+                  text-[#efeee8]
+                  sm:text-[60px]
+                  md:text-[64px]
+                  lg:text-[57px]
+                  xl:text-[63px]
+                "
+              >
                 Enterprise Control
                 <br />
                 Without Enterprise
@@ -139,7 +167,19 @@ const SecurityandControl = () => {
                 <span className="italic text-[#aaa6b9]">Complexity.</span>
               </h1>
 
-              <p className="mt-9 max-w-[420px] font-mono text-[10px] font-light leading-[1.95] tracking-[0.01em] text-[#858981] sm:text-[11px]">
+              {/* HERO DESCRIPTION */}
+              <p
+                className="
+                  mt-8 max-w-[420px]
+                  font-mono
+                  text-[14px]
+                  font-light
+                  leading-[1.95]
+                  tracking-[0.01em]
+                  text-[#858981]
+                  sm:text-[15px]
+                "
+              >
                 Security at every layer — not bolted on at the end.
                 <br />
                 Fine-grained permissions, complete audit trails and
@@ -151,36 +191,70 @@ const SecurityandControl = () => {
             </div>
 
             {/* ACCESS CONTROL MATRIX */}
-            <div className="mt-11 w-full max-w-[670px] overflow-hidden rounded-[14px] border border-[#242824] bg-[#0d110d]">
-              {/* Matrix title */}
+            <div
+              className="
+                mt-11 w-full max-w-[670px]
+                overflow-hidden
+                rounded-[14px]
+                border border-[#242824]
+                bg-[#0d110d]
+              "
+            >
+              {/* MATRIX TITLE */}
               <div className="px-5 pt-5 sm:px-6">
-                <p className="font-mono text-[7px] font-normal uppercase tracking-[0.18em] text-[#a1aa98]">
+                <p
+                  className="
+                    font-mono
+                    text-[9px]
+                    font-normal
+                    uppercase
+                    tracking-[0.19em]
+                    text-[#a1aa98]
+                  "
+                >
                   ACCESS CONTROL MATRIX
                 </p>
               </div>
 
-              {/* Table */}
+              {/* MATRIX TABLE */}
               <div className="px-5 pb-5 pt-4 sm:px-6">
-                {/* Table headings */}
-                <div className="grid grid-cols-[1.4fr_repeat(4,1fr)] items-center border-b border-[#20241f] pb-3">
+                {/* TABLE HEADINGS */}
+                <div
+                  className="
+                    grid grid-cols-[1.4fr_repeat(4,1fr)]
+                    items-center
+                    border-b border-[#20241f]
+                    pb-3
+                  "
+                >
                   <div />
 
                   {["VIEW", "CREATE", "EDIT", "DELETE"].map((heading) => (
                     <div
                       key={heading}
-                      className="text-center font-mono text-[7px] font-light uppercase tracking-[0.16em] text-[#626961]"
+                      className="
+                        text-center
+                        font-mono
+                        text-[8px]
+                        font-light
+                        uppercase
+                        tracking-[0.2em]
+                        text-[#626961]
+                      "
                     >
                       {heading}
                     </div>
                   ))}
                 </div>
 
-                {/* Table rows */}
+                {/* TABLE ROWS */}
                 {accessMatrix.map((row, index) => (
                   <div
                     key={row.role}
                     className={`
-                      grid grid-cols-[1.4fr_repeat(4,1fr)] items-center py-[9px]
+                      grid grid-cols-[1.4fr_repeat(4,1fr)]
+                      items-center
+                      py-[9px]
                       ${
                         index !== accessMatrix.length - 1
                           ? "border-b border-[#1d211d]"
@@ -188,10 +262,20 @@ const SecurityandControl = () => {
                       }
                     `}
                   >
-                    <div className="font-mono text-[8px] font-light tracking-[0.03em] text-[#8b9088]">
+                    {/* ROLE */}
+                    <div
+                      className="
+                        font-mono
+                        text-[9px]
+                        font-light
+                        tracking-[0.035em]
+                        text-[#8b9088]
+                      "
+                    >
                       {row.role}
                     </div>
 
+                    {/* PERMISSIONS */}
                     {row.permissions.map((permission, permissionIndex) => (
                       <div
                         key={`${row.role}-${permissionIndex}`}
@@ -206,41 +290,68 @@ const SecurityandControl = () => {
             </div>
           </div>
 
-          {/* RIGHT COLUMN */}
+          {/* RIGHT COLUMN — SECURITY FEATURES */}
           <div className="w-full lg:pl-2 xl:pl-5">
-            <div className="flex flex-col gap-5 px-5 py-5">
+            <div className="flex flex-col gap-1 px-2 py-5">
               {securityFeatures.map((feature) => (
                 <article
                   key={feature.number}
                   className="
                     group
                     rounded-[15px]
-                    border
-                    border-[#242824]
+                    border border-[#242824]
                     bg-[#0d110d]
-                    px-5
-                    py-5
-                    transition-all
-                    duration-300
+                    px-5 py-5
+                    transition-all duration-300
                     hover:border-[#9BAFBA]
                     hover:bg-[#20221E]
-                    sm:px-6
-                    sm:py-[17px]
+                    sm:px-4
+                    sm:py-[16px]
                   "
                 >
+                  {/* FEATURE CONTENT */}
                   <div className="grid grid-cols-[30px_1fr] gap-3">
-                    {/* NUMBER */}
-                    <span className="pt-[2px] font-mono text-[7px] font-light tracking-[0.05em] text-[#555c54]">
+                    {/* FEATURE NUMBER */}
+                    <span
+                      className="
+                        pt-[2px]
+                        font-mono
+                        text-[9px]
+                        font-light
+                        tracking-[0.06em]
+                        text-[#555c54]
+                      "
+                    >
                       {feature.number}
                     </span>
 
-                    {/* CONTENT */}
+                    {/* FEATURE TEXT */}
                     <div>
-                      <h2 className="font-serif text-[17px] leading-[1.05] tracking-[0.005em] text-[#e4e3de] sm:text-[18px]">
+                      <h2
+                        className="
+                          font-serif
+                          text-[18px]
+                          leading-[1.05]
+                          tracking-[0.007em]
+                          text-[#e4e3de]
+                        "
+                      >
                         {feature.title}
                       </h2>
 
-                      <p className="mt-[9px] max-w-[500px] font-mono text-[8px] font-light leading-[1.69] tracking-[0.026em] text-[#70766f] sm:text-[10px]">
+                      <p
+                        className="
+                          mt-[9px]
+                          max-w-[500px]
+                          font-mono
+                          text-[8px]
+                          font-light
+                          leading-[1.69]
+                          tracking-[0.026em]
+                          text-[#70766f]
+                          sm:text-[11px]
+                        "
+                      >
                         {feature.description}
                       </p>
                     </div>
