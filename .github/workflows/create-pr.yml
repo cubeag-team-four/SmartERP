@@ -14,8 +14,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create --base company-development --head development --title "Merge development into company-development" --body "Automated pull request from development to company-development." || echo "Pull request already exists."
+          gh pr create \
+            --base company-development \
+            --head development \
+            --title "Merge development into company-development" \
+            --body "Automated pull request from development to company-development."
