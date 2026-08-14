@@ -1,0 +1,21 @@
+name: Create PR to Company Development
+
+on:
+  push:
+    branches:
+      - development
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create --base company-development --head development --title "Merge development into company-development" --body "Automated pull request from development to company-development." || echo "Pull request already exists."
