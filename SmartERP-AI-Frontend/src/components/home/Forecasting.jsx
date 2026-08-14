@@ -131,8 +131,25 @@ const Forecasting = () => {
   const chartData = createChartData(current.values);
 
   return (
+    
     <section className="min-h-screen bg-[#0d100d] px-3 py-3 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
-      <div className="mx-auto min-h-[calc(100vh-24px)] max-w-[1360px] rounded-[30px] bg-[#f7f7f2] px-6 py-12 sm:px-10 md:px-14 lg:px-16 lg:py-20">
+      <div
+        className="
+        mx-auto
+        min-h-[calc(100vh-24px)]
+        max-w-[1360px]
+        rounded-[30px]
+        bg-[#f7f7f2]
+        bg-[radial-gradient(circle,_rgba(90,95,85,0.075)_0.95px,_transparent_1.5px)]
+        bg-[length:20px_18px]
+        px-6
+        py-12
+        sm:px-10
+        md:px-14
+        lg:px-16
+        lg:py-20
+      "
+      >
         
         {/* HEADER */}
         <div className="mb-10 grid grid-cols-1 gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
@@ -143,7 +160,7 @@ const Forecasting = () => {
               <span className="h-px w-7 bg-[#cbd1c4]" />
 
               <span className="font-mono-dm text-[9px] uppercase tracking-[0.15em] text-[#384134]">
-                08 — AI FORECASTING
+                09 — AI FORECASTING
               </span>
             </div>
 
@@ -372,7 +389,7 @@ const Forecasting = () => {
                 90-Day Projection
               </span>
 
-              <span className="font-fraunces font-[600] text-[20px] tracking-[-0.02em] text-[#151713]">
+              <span className="font-serif font-[600] text-[20px] tracking-[-0.02em] text-[#151713]">
                 {current.projection}
               </span>
             </div>
@@ -383,7 +400,7 @@ const Forecasting = () => {
                 Growth vs Prior
               </span>
 
-              <span className="font-fraunces font-[600] text-[20px] tracking-[-0.02em] text-[#171814]">
+              <span className="font-serif font-[600] text-[20px] tracking-[-0.02em] text-[#171814]">
                 +12.4%
               </span>
             </div>
@@ -394,7 +411,7 @@ const Forecasting = () => {
                 Forecast Model
               </span>
 
-              <span className="font-fraunces font-[600] text-[20px] tracking-[-0.02em] text-[#171814]">
+              <span className="font-serif font-[600] text-[20px] tracking-[-0.02em] text-[#171814]">
                 ARIMA + ML
               </span>
             </div>
@@ -405,7 +422,7 @@ const Forecasting = () => {
                 Updated
               </span>
 
-              <span className="font-fraunces font-[600] text-[20px] tracking-[-0.02em] text-[#171814]">
+              <span className="font-serif font-[600] text-[20px] tracking-[-0.02em] text-[#171814]">
                 Real-time
               </span>
             </div>
