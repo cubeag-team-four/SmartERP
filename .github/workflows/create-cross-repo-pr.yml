@@ -1,0 +1,37 @@
+name: Create PR to Company Development
+
+on:
+  push:
+    branches:
+      - development
+
+permissions:
+  contents: read
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
+        run: |
+          PR_EXISTS=$(gh pr list \
+            --repo cubeage-tech/SmartERP \
+            --base development \
+            --head cubeag-team-four:development \
+            --state open \
+            --json number \
+            --jq 'length')
+
+          if [ "$PR_EXISTS" -eq 0 ]; then
+            gh pr create \
+              --repo cubeage-tech/SmartERP \
+              --base development \
+              --head cubeag-team-four:development \
+              --title "Development → Company Development" \
+              --body "Automatically created PR from cubeag-team-four/SmartERP development to cubeage-tech/SmartERP development."
+          else
+            echo "An open PR already exists. No new PR created."
+          fi
