@@ -1,4 +1,4 @@
-import ConectedWorkflow from "../../components/home/Conectedworkflow";
+import ConnectedWorkflow from "../../components/home/Connectedworkflow";
 import Ecosystem from "../../components/home/Ecosystem";
 import Forecasting from "../../components/home/Forecasting";
 import Hero from "../../components/home/Hero";
@@ -16,10 +16,10 @@ const Home = () => {
     <div>
       <Hero />
       <Problem />
-      <Productpreview />
-      <Modules />
-      <Industries />
-      <ConectedWorkflow />
+     <Productpreview />
+    <ConnectedWorkflow />
+    <Modules />
+    <Industries />
       <Ecosystem />
       <Forecasting />
       <Layer />
