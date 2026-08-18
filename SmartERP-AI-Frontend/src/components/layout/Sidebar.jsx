@@ -1,6 +1,7 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 import useAuthStore from '../../store/slices/auth.store'
+import { formatRole } from '../../utils/formatRole'
 
 const NAV = {
   superAdmin: [
@@ -115,7 +116,7 @@ const Sidebar = () => {
       {user && (
         <div className="px-4 py-3 border-t border-gray-700 text-xs text-gray-400">
           {user.name || user.email}
-          <div className="text-gray-500 capitalize">{user.role}</div>
+          <div className="text-gray-500">{formatRole(user.role)}</div>
         </div>
       )}
     </aside>
