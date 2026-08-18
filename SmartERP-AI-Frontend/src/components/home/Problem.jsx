@@ -8,8 +8,8 @@ const problems = [
       "Finance, sales, inventory and operations live across disconnected tools — creating gaps, delays and conflicting numbers that cost real money.",
     stat: "73%",
     statDescription: "OF BUSINESSES\nUSE DISCONNECTED TOOLS",
-  },
-  {
+  }, 
+  { 
     number: "02",
     title: "Manual Processes",
     description:
