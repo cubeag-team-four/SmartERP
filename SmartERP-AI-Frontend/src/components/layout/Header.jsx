@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import useAuthStore from '../../store/slices/auth.store'
+import { formatRole } from '../../utils/formatRole'
 
 const Header = () => {
   const { user, logout } = useAuthStore()
@@ -14,7 +15,12 @@ const Header = () => {
       <div className="flex items-center gap-4">
         {user ? (
           <>
-            <span className="text-sm text-gray-600">{user.name || user.email}</span>
+            <span className="text-sm text-gray-600">
+              {user.name || user.email}
+              <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                {formatRole(user.role)}
+              </span>
+            </span>
             <button
               onClick={logout}
               className="text-sm text-red-500 hover:text-red-700 transition-colors"
