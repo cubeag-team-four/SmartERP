@@ -72,7 +72,7 @@ export const ROUTES = {
   SUPER_ADMIN_SALES_QUOTATIONS:             `${BASE.SUPER_ADMIN}/sales/quotations`,
   SUPER_ADMIN_SALES_ORDERS:                 `${BASE.SUPER_ADMIN}/sales/orders`,
   SUPER_ADMIN_SALES_INVOICES:               `${BASE.SUPER_ADMIN}/sales/invoices`,
-  SUPER_ADMIN_SALES_PAYMENTS:               `${BASE.SUPER_ADMIN}/sales/payments`,
+  SUPER_ADMIN_SALES_ANALYTICS:               `${BASE.SUPER_ADMIN}/sales/Analytics`,
   SUPER_ADMIN_SALES_CUSTOMER_REPORTS:       `${BASE.SUPER_ADMIN}/sales/customer-reports`,
 
   // Purchase

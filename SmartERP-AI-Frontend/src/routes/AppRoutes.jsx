@@ -8,6 +8,7 @@ import AuthLayout      from '../layouts/AuthLayout'
 import PublicLayout    from '../layouts/PublicLayout'
 import ProtectedRoute  from './ProtectedRoute'
 import RoleRedirect    from './RoleRedirect'
+import Dashboard from "../pages/modules/companyManagement/Dashboard";
 
 /* ========================================================================== */
 /*  AUTH pages (eager — tiny, needed immediately)                              */
@@ -83,7 +84,7 @@ const SalesOverview        = lazy(() => import('../pages/modules/sales/Overview'
 const Quotations           = lazy(() => import('../pages/modules/sales/Quotations'))
 const SalesOrders          = lazy(() => import('../pages/modules/sales/SalesOrders'))
 const Invoices             = lazy(() => import('../pages/modules/sales/Invoices'))
-const PaymentsAndAging     = lazy(() => import('../pages/modules/sales/PaymentsAndAging'))
+const Analytics            = lazy(() => import('../pages/modules/sales/Analytics'))
 const CustomerReports      = lazy(() => import('../pages/modules/sales/CustomerReports'))
 
 // Purchase
@@ -246,8 +247,8 @@ const AppRoutes = () => {
             <Route path={ROUTES.SUPER_ADMIN_PLATFORM_SETTINGS} element={<PlatformSettings />} />
 
             {/* Company */}
-            <Route path={ROUTES.SUPER_ADMIN_COMPANY}                    element={<CompanyDashboard />} />
-            <Route path={ROUTES.SUPER_ADMIN_COMPANY_OVERVIEW}           element={<CompanyOverview />} />
+            <Route path={ROUTES.SUPER_ADMIN_COMPANY}                    element={<Dashboard/>} />
+            <Route path={ROUTES.SUPER_ADMIN_COMPANY_OVERVIEW}           element={<Dashboard/>} />
             <Route path={ROUTES.SUPER_ADMIN_COMPANY_PROFILE}            element={<CompanyProfile />} />
             <Route path={ROUTES.SUPER_ADMIN_COMPANY_BRANCHES}           element={<Branches />} />
             <Route path={ROUTES.SUPER_ADMIN_COMPANY_DEPARTMENTS}        element={<Departments />} />
@@ -276,7 +277,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.SUPER_ADMIN_SALES_QUOTATIONS}       element={<Quotations />} />
             <Route path={ROUTES.SUPER_ADMIN_SALES_ORDERS}           element={<SalesOrders />} />
             <Route path={ROUTES.SUPER_ADMIN_SALES_INVOICES}         element={<Invoices />} />
-            <Route path={ROUTES.SUPER_ADMIN_SALES_PAYMENTS}         element={<PaymentsAndAging />} />
+            <Route path={ROUTES.SUPER_ADMIN_SALES_ANALYTICS}         element={<Analytics />} />
             <Route path={ROUTES.SUPER_ADMIN_SALES_CUSTOMER_REPORTS} element={<CustomerReports />} />
 
             {/* Purchase */}
@@ -414,7 +415,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.ADMIN_SALES_QUOTATIONS}       element={<Quotations />} />
             <Route path={ROUTES.ADMIN_SALES_ORDERS}           element={<SalesOrders />} />
             <Route path={ROUTES.ADMIN_SALES_INVOICES}         element={<Invoices />} />
-            <Route path={ROUTES.ADMIN_SALES_PAYMENTS}         element={<PaymentsAndAging />} />
+            <Route path={ROUTES.ADMIN_SALES_ANALYTICS}         element={<Analytics />} />
             <Route path={ROUTES.ADMIN_SALES_CUSTOMER_REPORTS} element={<CustomerReports />} />
 
             {/* Purchase */}
