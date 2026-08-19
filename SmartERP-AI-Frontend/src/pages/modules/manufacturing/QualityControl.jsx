@@ -127,7 +127,7 @@ function RecentRejections() {
 
 const QualityControl = () => {
   return (
-    <main className="min-h-screen bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+    <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
       {/* Quality Content */}
       <section className="grid grid-cols-1 gap-4 sm:gap-[20px] xl:grid-cols-2">
         <QualityOverview />

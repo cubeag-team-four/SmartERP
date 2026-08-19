@@ -96,7 +96,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("work-orders");
 
   return (
-    <main className="min-h-screen bg-[#f7f6f2] text-[#171815]">
+    <main className="bg-[#f7f6f2] text-[#171815]">
       {/* Dashboard Header */}
       <section className="px-4 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
