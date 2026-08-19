@@ -83,7 +83,7 @@ const SalesOverview        = lazy(() => import('../pages/modules/sales/Overview'
 const Quotations           = lazy(() => import('../pages/modules/sales/Quotations'))
 const SalesOrders          = lazy(() => import('../pages/modules/sales/SalesOrders'))
 const Invoices             = lazy(() => import('../pages/modules/sales/Invoices'))
-const PaymentsAndAging     = lazy(() => import('../pages/modules/sales/PaymentsAndAging'))
+const Analytics            = lazy(() => import('../pages/modules/sales/Analytics'))
 const CustomerReports      = lazy(() => import('../pages/modules/sales/CustomerReports'))
 
 // Purchase
@@ -276,7 +276,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.SUPER_ADMIN_SALES_QUOTATIONS}       element={<Quotations />} />
             <Route path={ROUTES.SUPER_ADMIN_SALES_ORDERS}           element={<SalesOrders />} />
             <Route path={ROUTES.SUPER_ADMIN_SALES_INVOICES}         element={<Invoices />} />
-            <Route path={ROUTES.SUPER_ADMIN_SALES_PAYMENTS}         element={<PaymentsAndAging />} />
+            <Route path={ROUTES.SUPER_ADMIN_SALES_ANALYTICS}         element={<Analytics />} />
             <Route path={ROUTES.SUPER_ADMIN_SALES_CUSTOMER_REPORTS} element={<CustomerReports />} />
 
             {/* Purchase */}
@@ -414,7 +414,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.ADMIN_SALES_QUOTATIONS}       element={<Quotations />} />
             <Route path={ROUTES.ADMIN_SALES_ORDERS}           element={<SalesOrders />} />
             <Route path={ROUTES.ADMIN_SALES_INVOICES}         element={<Invoices />} />
-            <Route path={ROUTES.ADMIN_SALES_PAYMENTS}         element={<PaymentsAndAging />} />
+            <Route path={ROUTES.ADMIN_SALES_ANALYTICS}         element={<Analytics />} />
             <Route path={ROUTES.ADMIN_SALES_CUSTOMER_REPORTS} element={<CustomerReports />} />
 
             {/* Purchase */}
