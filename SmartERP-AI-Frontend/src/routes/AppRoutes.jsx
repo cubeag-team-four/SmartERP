@@ -46,6 +46,7 @@ import TenantDetails     from '../pages/superAdmin/TenantDetails'
 import SubscriptionPlans from '../pages/superAdmin/SubscriptionPlans'
 import PlatformSettings  from '../pages/superAdmin/PlatformSettings'
 import PlatformUsers     from '../pages/superAdmin/PlatformUsers'
+import CashFlow from '../pages/modules/finance/CashFlow'
 
 /* ========================================================================== */
 /*  LAZY — shared business modules (one chunk per module)                      */
@@ -114,13 +115,13 @@ const QualityControl         = lazy(() => import('../pages/modules/manufacturing
 
 // Finance & Accounts
 const FinanceDashboard     = lazy(() => import('../pages/modules/finance/Dashboard'))
-const FinanceOverview      = lazy(() => import('../pages/modules/finance/Overview'))
+const FinanceOverview      = lazy(() => import('../pages/modules/finance/ProfitLoss'))
 const GeneralLedger        = lazy(() => import('../pages/modules/finance/GeneralLedger'))
 const JournalEntries       = lazy(() => import('../pages/modules/finance/JournalEntries'))
 const ExpenseTracking      = lazy(() => import('../pages/modules/finance/ExpenseTracking'))
-const IncomeTracking       = lazy(() => import('../pages/modules/finance/IncomeTracking'))
+const Alerts               = lazy(() => import('../pages/modules/finance/Alerts'))
 const TaxManagement        = lazy(() => import('../pages/modules/finance/TaxManagement'))
-const GstReports           = lazy(() => import('../pages/modules/finance/GstReports'))
+const GstReports           = lazy(() => import('../pages/modules/finance/CashFlow'))
 const BalanceSheet         = lazy(() => import('../pages/modules/finance/BalanceSheet'))
 
 // HR & Payroll
@@ -311,9 +312,9 @@ const AppRoutes = () => {
             <Route path={ROUTES.SUPER_ADMIN_FINANCE_LEDGER}       element={<GeneralLedger />} />
             <Route path={ROUTES.SUPER_ADMIN_FINANCE_JOURNAL}      element={<JournalEntries />} />
             <Route path={ROUTES.SUPER_ADMIN_FINANCE_EXPENSES}     element={<ExpenseTracking />} />
-            <Route path={ROUTES.SUPER_ADMIN_FINANCE_INCOME}       element={<IncomeTracking />} />
+            <Route path={ROUTES.SUPER_ADMIN_FINANCE_ALERTS}       element={<Alerts />} />
             <Route path={ROUTES.SUPER_ADMIN_FINANCE_TAX}          element={<TaxManagement />} />
-            <Route path={ROUTES.SUPER_ADMIN_FINANCE_GST}          element={<GstReports />} />
+            <Route path={ROUTES.SUPER_ADMIN_FINANCE_GST}          element={<CashFlow />} />
             <Route path={ROUTES.SUPER_ADMIN_FINANCE_BALANCE_SHEET} element={<BalanceSheet />} />
 
             {/* HR */}
@@ -449,9 +450,9 @@ const AppRoutes = () => {
             <Route path={ROUTES.ADMIN_FINANCE_LEDGER}       element={<GeneralLedger />} />
             <Route path={ROUTES.ADMIN_FINANCE_JOURNAL}      element={<JournalEntries />} />
             <Route path={ROUTES.ADMIN_FINANCE_EXPENSES}     element={<ExpenseTracking />} />
-            <Route path={ROUTES.ADMIN_FINANCE_INCOME}       element={<IncomeTracking />} />
+            <Route path={ROUTES.ADMIN_FINANCE_ALERTS}       element={<Alerts />} />
             <Route path={ROUTES.ADMIN_FINANCE_TAX}          element={<TaxManagement />} />
-            <Route path={ROUTES.ADMIN_FINANCE_GST}          element={<GstReports />} />
+            <Route path={ROUTES.ADMIN_FINANCE_GST}          element={<CashFlow />} />
             <Route path={ROUTES.ADMIN_FINANCE_BALANCE_SHEET} element={<BalanceSheet />} />
 
             {/* HR */}
@@ -524,9 +525,9 @@ const AppRoutes = () => {
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE_LEDGER}         element={<GeneralLedger />} />
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE_JOURNAL}        element={<JournalEntries />} />
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE_EXPENSES}       element={<ExpenseTracking />} />
-            <Route path={ROUTES.FINANCE_MANAGER_FINANCE_INCOME}         element={<IncomeTracking />} />
+            <Route path={ROUTES.FINANCE_MANAGER_FINANCE_ALERTS}         element={<Alerts />} />
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE_TAX}            element={<TaxManagement />} />
-            <Route path={ROUTES.FINANCE_MANAGER_FINANCE_GST}            element={<GstReports />} />
+            <Route path={ROUTES.FINANCE_MANAGER_FINANCE_GST}            element={<CashFlow />} />
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE_BALANCE_SHEET}  element={<BalanceSheet />} />
             <Route path={ROUTES.FINANCE_MANAGER_REPORTS}                element={<ReportsDashboard />} />
             <Route path={ROUTES.FINANCE_MANAGER_AI}                     element={<BusinessAssistant />} />
