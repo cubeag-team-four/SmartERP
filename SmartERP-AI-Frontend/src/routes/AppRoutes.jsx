@@ -245,7 +245,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.SUPER_ADMIN_PLATFORM_SETTINGS} element={<PlatformSettings />} />
 
             {/* Company */}
-            <Route path={ROUTES.SUPER_ADMIN_COMPANY}                    element={<CompanyDashboard />} />
+            <Route path={ROUTES.SUPER_ADMIN_COMPANY}                    element={<CompanyOverview />} />
             <Route path={ROUTES.SUPER_ADMIN_COMPANY_OVERVIEW}           element={<CompanyOverview />} />
             <Route path={ROUTES.SUPER_ADMIN_COMPANY_PROFILE}            element={<CompanyProfile />} />
             <Route path={ROUTES.SUPER_ADMIN_COMPANY_BRANCHES}           element={<Branches />} />
