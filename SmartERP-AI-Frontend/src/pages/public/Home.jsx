@@ -16,16 +16,16 @@ const Home = () => {
     <div>
       <Hero />
       <Problem />
+      <Ecosystem />
+      <Modules />
+      <Layer />
      <Productpreview />
     <ConnectedWorkflow />
-    <Modules />
+    <RolebaseExperiance />
+    <Forecasting />
+    <SecurityandControl />
     <Industries />
-      <Ecosystem />
-      <Forecasting />
-      <Layer />
-      <RolebaseExperiance />
-      <SecurityandControl />
-      <Pricing />
+    <Pricing />
     </div>
   );
 };
