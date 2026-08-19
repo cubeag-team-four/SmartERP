@@ -160,10 +160,15 @@ const Overview = () => {
 
       <style>{`
 
-        .overview-content {
-          width: 100%;
-          box-sizing: border-box;
-        }
+       .overview-content {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  /* Dashboard controls the common left/right page margin */
+  padding: 0 0 40px;
+  margin: 0;
+}
 
         /* ---------- CONTENT GRID ---------- */
 
@@ -174,6 +179,7 @@ const Overview = () => {
             minmax(350px, 0.98fr);
           gap: 16px;
           width: 100%;
+          margin-top: 18px;
         }
 
 
@@ -181,6 +187,7 @@ const Overview = () => {
 
         .organisation-card {
           height: 480px;
+          width: 100%;
           background: #fff;
           border: 1px solid #e1dfd8;
           border-radius: 15px;

@@ -61,14 +61,12 @@ const Dashboard = () => {
 
       <div className="company-dashboard-header">
 
-        <div>
+        <div className="company-title-section">
           <div className="company-eyebrow">
             ADMINISTRATION
           </div>
 
-          <h1>
-            Company Management
-          </h1>
+          <h1>Company Management</h1>
         </div>
 
         <div className="company-actions">
@@ -82,6 +80,7 @@ const Dashboard = () => {
         </div>
 
       </div>
+
 
       {/* ================= COMPANY SUMMARY ================= */}
 
@@ -98,9 +97,7 @@ const Dashboard = () => {
 
           <div className="company-info">
 
-            <h2>
-              Acme Manufacturing Ltd
-            </h2>
+            <h2>Acme Manufacturing Ltd</h2>
 
             <div className="company-identifiers">
               <span>GST: 27AADCA3129H1ZX</span>
@@ -113,6 +110,7 @@ const Dashboard = () => {
           </div>
 
         </div>
+
 
         <div className="company-stats">
 
@@ -144,6 +142,7 @@ const Dashboard = () => {
 
       </section>
 
+
       {/* ================= 8 COMMON TABS ================= */}
 
       <div className="company-tabs">
@@ -162,37 +161,70 @@ const Dashboard = () => {
 
       </div>
 
+
       {/* ================= ACTIVE TAB CONTENT ================= */}
 
       <div className="company-tab-content">
         {renderTabContent()}
       </div>
 
+
       {/* ================= CSS ================= */}
 
       <style>{`
 
+        /* =========================================
+           MAIN DASHBOARD
+        ========================================= */
+
         .company-dashboard {
           width: 100%;
+          min-height: 100%;
           background: #f5f4ef;
+
+          /* COMMON LEFT + RIGHT PAGE MARGIN */
+          padding: 0 24px 40px;
+
+          box-sizing: border-box;
         }
 
-        /* HEADER */
+
+        /* =========================================
+           COMPANY MANAGEMENT HEADER
+        ========================================= */
 
         .company-dashboard-header {
-          height: 76px;
+          min-height: 76px;
 
           display: flex;
           align-items: center;
           justify-content: space-between;
+
+          /* SPACE ABOVE AND BELOW HEADING */
+          padding: 18px 0 14px;
+
+          box-sizing: border-box;
         }
 
-        .company-eyebrow {
-          font-size: 9px;
-          letter-spacing: 1.5px;
-          color: #99988f;
-          margin-bottom: 5px;
+
+        .company-title-section {
+          display: flex;
+          flex-direction: column;
         }
+
+
+        .company-eyebrow {
+          font-family: monospace;
+
+          font-size: 9px;
+
+          letter-spacing: 1.5px;
+
+          color: #99988f;
+
+          margin-bottom: 6px;
+        }
+
 
         .company-dashboard-header h1 {
           margin: 0;
@@ -203,14 +235,27 @@ const Dashboard = () => {
             serif;
 
           font-size: 28px;
+
+          line-height: 1.1;
+
           font-weight: 400;
+
           color: #10130f;
         }
 
+
+        /* =========================================
+           HEADER BUTTONS
+        ========================================= */
+
         .company-actions {
           display: flex;
+
+          align-items: center;
+
           gap: 9px;
         }
+
 
         .export-btn,
         .add-btn {
@@ -223,7 +268,10 @@ const Dashboard = () => {
           font-size: 10px;
 
           cursor: pointer;
+
+          box-sizing: border-box;
         }
+
 
         .export-btn {
           background: #fff;
@@ -233,6 +281,7 @@ const Dashboard = () => {
           color: #20221e;
         }
 
+
         .add-btn {
           background: #111410;
 
@@ -241,10 +290,18 @@ const Dashboard = () => {
           color: #fff;
         }
 
-        /* COMPANY SUMMARY */
+
+        /* =========================================
+           COMPANY SUMMARY
+        ========================================= */
 
         .company-summary {
           min-height: 108px;
+
+          width: 100%;
+
+          /* GAP BETWEEN HEADING AND ACME CARD */
+          margin-top: 8px;
 
           background: #fff;
 
@@ -259,7 +316,14 @@ const Dashboard = () => {
           justify-content: space-between;
 
           padding: 20px;
+
+          box-sizing: border-box;
         }
+
+
+        /* =========================================
+           COMPANY LEFT SIDE
+        ========================================= */
 
         .company-left {
           display: flex;
@@ -267,11 +331,17 @@ const Dashboard = () => {
           align-items: center;
 
           gap: 23px;
+
+          min-width: 0;
         }
+
 
         .company-logo {
           width: 65px;
+
           height: 65px;
+
+          flex-shrink: 0;
 
           border-radius: 15px;
 
@@ -288,22 +358,35 @@ const Dashboard = () => {
           gap: 4px;
 
           align-content: center;
+
           justify-content: center;
         }
 
+
         .company-logo span {
+          width: 13px;
+
+          height: 13px;
+
           border-radius: 3px;
 
           background: #4e574b;
         }
 
+
         .company-logo span:first-child {
           background: #a1b294;
         }
 
+
         .company-logo span:nth-child(3) {
           background: #343a31;
         }
+
+
+        /* =========================================
+           COMPANY INFORMATION
+        ========================================= */
 
         .company-info h2 {
           margin: 0 0 6px;
@@ -315,11 +398,18 @@ const Dashboard = () => {
 
           font-size: 20px;
 
+          line-height: 1.2;
+
           font-weight: 400;
+
+          color: #10130f;
         }
+
 
         .company-identifiers {
           display: flex;
+
+          align-items: center;
 
           gap: 8px;
 
@@ -328,7 +418,14 @@ const Dashboard = () => {
           font-family: monospace;
 
           font-size: 9px;
+
+          white-space: nowrap;
         }
+
+
+        /* =========================================
+           COMPANY STATS
+        ========================================= */
 
         .company-stats {
           display: flex;
@@ -336,13 +433,17 @@ const Dashboard = () => {
           align-items: center;
 
           gap: 55px;
+
+          flex-shrink: 0;
         }
+
 
         .stat {
           min-width: 60px;
 
           text-align: center;
         }
+
 
         .stat strong {
           display: block;
@@ -354,8 +455,13 @@ const Dashboard = () => {
 
           font-size: 21px;
 
+          line-height: 1.2;
+
           font-weight: 400;
+
+          color: #10130f;
         }
+
 
         .stat span {
           display: block;
@@ -369,6 +475,7 @@ const Dashboard = () => {
           color: #a09d96;
         }
 
+
         .status {
           font-family: monospace;
 
@@ -381,40 +488,59 @@ const Dashboard = () => {
           padding: 7px 12px;
 
           border-radius: 12px;
+
+          white-space: nowrap;
         }
 
-        /* TABS */
+
+        /* =========================================
+           TABS
+        ========================================= */
 
         .company-tabs {
-          height: 79px;
+          height: 88px;
 
           display: flex;
 
           align-items: center;
 
-          gap: 3px;
+          gap: 6px;
 
           padding-left: 3px;
+
+          margin-top: 4px;
 
           overflow-x: auto;
 
           white-space: nowrap;
+
+          box-sizing: border-box;
+
+          scrollbar-width: none;
         }
 
-        .company-tab {
-          height: 34px;
 
-          border: 0;
+        .company-tabs::-webkit-scrollbar {
+          display: none;
+        }
+
+
+        .company-tab {
+          height: 48px;
+
+          min-width: 92px;
+
+          border: 1px solid transparent;
 
           background: transparent;
 
-          border-radius: 9px;
+          border-radius: 10px;
 
-          padding: 0 17px;
+          padding: 0 24px;
 
           font-family: monospace;
 
-          font-size: 8px;
+          font-size: 10px;
 
           letter-spacing: 1px;
 
@@ -423,7 +549,28 @@ const Dashboard = () => {
           cursor: pointer;
 
           flex-shrink: 0;
+
+          white-space: nowrap;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          box-sizing: border-box;
+
+          transition:
+            background 0.15s ease,
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
         }
+
+
+        .company-tab:hover {
+          color: #151713;
+        }
+
 
         .company-tab.active {
           background: #fff;
@@ -437,13 +584,32 @@ const Dashboard = () => {
             rgba(0, 0, 0, 0.07);
         }
 
-        /* CONTENT */
+
+        /* =========================================
+           TAB CONTENT
+        ========================================= */
 
         .company-tab-content {
           width: 100%;
+
+          box-sizing: border-box;
         }
 
-        @media (max-width: 900px) {
+
+        /* =========================================
+           RESPONSIVE
+        ========================================= */
+
+        @media (max-width: 1200px) {
+
+          .company-stats {
+            gap: 30px;
+          }
+
+        }
+
+
+        @media (max-width: 1000px) {
 
           .company-summary {
             flex-direction: column;
@@ -453,6 +619,7 @@ const Dashboard = () => {
             gap: 20px;
           }
 
+
           .company-stats {
             width: 100%;
 
@@ -461,6 +628,74 @@ const Dashboard = () => {
             flex-wrap: wrap;
 
             gap: 20px;
+          }
+
+        }
+
+
+        @media (max-width: 900px) {
+
+          .company-dashboard {
+            padding-left: 18px;
+
+            padding-right: 18px;
+          }
+
+
+          .company-dashboard-header {
+            align-items: flex-start;
+          }
+
+
+          .company-dashboard-header h1 {
+            font-size: 25px;
+          }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+          .company-dashboard {
+            padding-left: 12px;
+
+            padding-right: 12px;
+          }
+
+
+          .company-dashboard-header {
+            flex-direction: column;
+
+            gap: 15px;
+
+            align-items: flex-start;
+          }
+
+
+          .company-actions {
+            width: 100%;
+          }
+
+
+          .company-summary {
+            padding: 16px;
+          }
+
+
+          .company-left {
+            width: 100%;
+          }
+
+
+          .company-identifiers {
+            white-space: normal;
+
+            flex-wrap: wrap;
+          }
+
+
+          .company-stats {
+            justify-content: flex-start;
           }
 
         }

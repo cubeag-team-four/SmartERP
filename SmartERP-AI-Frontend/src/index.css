@@ -5,14 +5,27 @@
 :root {
   --sans: 'DM Sans', system-ui, sans-serif;
   --serif: 'DM Serif Display', Georgia, serif;
+
   font: 16px/145% var(--sans);
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
 body {
   margin: 0;
   padding: 0;
+  font-family: var(--sans);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--serif);
 }
 
 #root {
