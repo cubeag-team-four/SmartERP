@@ -345,7 +345,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.SUPER_ADMIN_DOCUMENTS_SEARCH}         element={<DocumentSearch />} />
 
             {/* Reports */}
-            <Route path={ROUTES.SUPER_ADMIN_REPORTS}           element={<ReportsDashboard />} />
+            <Route path={ROUTES.SUPER_ADMIN_REPORTS}           element={<ReportsDashboard/>} />
             <Route path={ROUTES.SUPER_ADMIN_REPORTS_OVERVIEW}  element={<ReportsOverview />} />
             <Route path={ROUTES.SUPER_ADMIN_REPORTS_SALES}     element={<SalesReports />} />
             <Route path={ROUTES.SUPER_ADMIN_REPORTS_PURCHASE}  element={<PurchaseReports />} />
