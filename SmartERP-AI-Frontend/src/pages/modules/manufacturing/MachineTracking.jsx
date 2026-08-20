@@ -140,7 +140,7 @@ function MachineCard({ machine }) {
 
 const MachineTracking = () => {
   return (
-    <main className="min-h-screen bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+    <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
       {/* Machines Grid */}
       <section className="grid grid-cols-1 gap-3.5 sm:gap-4 lg:grid-cols-2 lg:gap-[20px] xl:grid-cols-3">
         {machines.map((machine) => (

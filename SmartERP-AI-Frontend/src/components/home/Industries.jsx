@@ -269,16 +269,16 @@ const Industries = () => {
             rounded-b-[36px]
             bg-[#f7f6f1]
             px-6
-            pb-16
+            pb-12
             pt-20
             sm:w-[calc(100%-48px)]
             sm:px-10
-            sm:pb-20
+            sm:pb-12
             sm:pt-24
             md:px-14
-            lg:px-[4%]
-            lg:pb-24
-            lg:pt-20
+            lg:px-[2%]
+            lg:pb-23
+            lg:pt-16
           "
         >
           {/* DOT TEXTURE */}
@@ -334,7 +334,7 @@ const Industries = () => {
                 {/* HEADING */}
                 <h1
                   className="
-                    max-w-[600px]
+                    max-w-[500px]
                     font-[Georgia,_serif]
                     text-[58px]
                     leading-[0.95]
@@ -357,20 +357,20 @@ const Industries = () => {
               </div>
 
               {/* RIGHT — DESCRIPTION */}
-              <div className="flex lg:justify-end">
+              <div className="flex flex-col lg:pr-[10px]">
                 <p
                   className="
-                    max-w-[620px]
+                    max-w-[680px]
                     font-mono-dm
                     text-[15px]
-                    font-dark
+                    font-gray-800
                     leading-[1.8]
                     tracking-[0.05em]
-                    text-[#81837d]/90
-                    sm:text-[15px]
-                    lg:max-w-[750px]
-                    lg:pt-[185px]
-                    lg:pr-[38px]
+                    text-[#81837d]
+                    sm:text-[14px]
+                    lg:max-w-[680px]
+                    lg:pt-[155px]
+                    lg:pr-[39px]
                   "
                 >
                   SmartERP AI is built for the complexities of real
@@ -385,11 +385,11 @@ const Industries = () => {
             {/* DIVIDER */}
             <div
               className="
-                mt-16
+                mt-14
                 h-px
                 bg-[#deded7]
                 sm:mt-20
-                lg:mt-[68px]
+                lg:mt-[44px]
               "
             />
 

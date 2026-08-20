@@ -39,7 +39,7 @@ const BillOfMaterials = () => {
   const [hoveredRow, setHoveredRow] = useState(null);
 
   return (
-    <main className="min-h-screen bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+    <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
       {/* BOM Container */}
       <section className="overflow-hidden rounded-[18px] border border-[#e4e2dd] bg-white sm:rounded-[20px]">
         {/* Header */}
