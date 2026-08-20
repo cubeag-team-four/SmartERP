@@ -182,8 +182,11 @@ const Dashboard = () => {
           min-height: 100%;
           background: #f5f4ef;
 
-          /* COMMON LEFT + RIGHT PAGE MARGIN */
-          padding: 0 24px 40px;
+          /* COMMON PAGE MARGIN */
+          padding-top: 0;
+          padding-left: 24px;
+          padding-right: 150px;
+          padding-bottom: 40px;
 
           box-sizing: border-box;
         }
