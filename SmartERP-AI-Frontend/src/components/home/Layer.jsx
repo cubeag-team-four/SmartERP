@@ -79,7 +79,7 @@ const Layer = () => {
         }
 
         .layer-container {
-          width: calc(100% - 230px);
+          width: calc(100% - 190px);
           max-width: 1548px;
           margin: 0 auto;
         }
@@ -628,9 +628,9 @@ const Layer = () => {
 
         /* ---------------- RESPONSIVE ---------------- */
 
-        @media (max-width: 1200px) {
+        @media (max-width: 900px) {
           .layer-container {
-            width: calc(100% - 70px);
+            width: calc(100% - 60px);
           }
 
           .layer-header {
