@@ -1,13 +1,56 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Quotations  from './Quotations'
 import SalesOrders from './SalesOrders'
 import Invoices    from './Invoices'
 import Analytics   from './Analytics'
+import SalesService from '../../../core/services/modules/sales.service'
+import { formatCurrency } from '../../../core/utils/formatCurrency'
 
 const TABS = ['QUOTATIONS', 'ORDERS', 'INVOICES', 'ANALYTICS']
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('QUOTATIONS')
+  const [kpi, setKpi]             = useState(null)
+
+  useEffect(() => {
+    SalesService.getDashboard()
+      .then((res) => setKpi(res.data))
+      .catch(() => {})
+  }, [])
+
+  const cards = kpi
+    ? [
+        {
+          value:    formatCurrency(kpi.revenueMtd, kpi.currency),
+          label:    'REVENUE MTD',
+          sub:      `${kpi.revenueChangePercent >= 0 ? '↑' : '↓'} ${Math.abs(kpi.revenueChangePercent)}% vs last month`,
+          subColor: kpi.revenueChangePercent >= 0 ? 'text-green-600' : 'text-red-500',
+        },
+        {
+          value:    formatCurrency(kpi.outstanding, kpi.currency),
+          label:    'OUTSTANDING',
+          sub:      `${kpi.pendingInvoices} invoices pending`,
+          subColor: 'text-gray-400',
+        },
+        {
+          value:    formatCurrency(kpi.ordersYtdAmount, kpi.currency),
+          label:    'ORDERS YTD',
+          sub:      `${kpi.orderCountYtd} orders`,
+          subColor: 'text-gray-400',
+        },
+        {
+          value:    `${kpi.onTimeDeliveryPercent}%`,
+          label:    'ON-TIME DELIVERY',
+          sub:      `${kpi.onTimeDeliveryChange >= 0 ? '↑' : '↓'} ${Math.abs(kpi.onTimeDeliveryChange)}pp this month`,
+          subColor: kpi.onTimeDeliveryChange >= 0 ? 'text-green-600' : 'text-red-500',
+        },
+      ]
+    : [
+        { value: '—', label: 'REVENUE MTD',      sub: '',  subColor: 'text-gray-400' },
+        { value: '—', label: 'OUTSTANDING',       sub: '',  subColor: 'text-gray-400' },
+        { value: '—', label: 'ORDERS YTD',        sub: '',  subColor: 'text-gray-400' },
+        { value: '—', label: 'ON-TIME DELIVERY',  sub: '',  subColor: 'text-gray-400' },
+      ]
 
   return (
     <div className="min-h-screen p-6 md:p-8" style={{ backgroundColor: '#f5f4f0' }}>
@@ -33,12 +76,7 @@ const Dashboard = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { value: '₹1.42 Cr', label: 'REVENUE MTD',      sub: '↑ 18% vs July',        subColor: 'text-green-600' },
-          { value: '₹3.14 Cr', label: 'OUTSTANDING',      sub: '12 invoices pending',   subColor: 'text-gray-400'  },
-          { value: '₹8.9 Cr',  label: 'ORDERS YTD',       sub: '412 orders',            subColor: 'text-gray-400'  },
-          { value: '92%',       label: 'ON-TIME DELIVERY', sub: '↑ 4pp this month',      subColor: 'text-green-600' },
-        ].map((card) => (
+        {cards.map((card) => (
           <div key={card.label} className="bg-white rounded-2xl border border-gray-100 px-6 py-5">
             <p className="text-3xl font-serif text-gray-900 tracking-tight">{card.value}</p>
             <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mt-1 mb-1">{card.label}</p>

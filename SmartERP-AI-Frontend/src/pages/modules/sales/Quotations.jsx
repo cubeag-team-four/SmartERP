@@ -1,18 +1,14 @@
-import React, { useState } from 'react'
-
-const quotationsData = [
-  { id: 'QT-2026-0184', customer: 'Bajaj Auto Ltd',     date: '08 Aug 2026', validUntil: '22 Aug 2026', items: 6,  amount: '₹8,42,500',  status: 'SENT'      },
-  { id: 'QT-2026-0183', customer: 'Hero MotoCorp',      date: '07 Aug 2026', validUntil: '21 Aug 2026', items: 12, amount: '₹14,10,000', status: 'ACCEPTED'  },
-  { id: 'QT-2026-0182', customer: 'L&T Infrastructure', date: '05 Aug 2026', validUntil: '19 Aug 2026', items: 4,  amount: '₹3,25,000',  status: 'DRAFT'     },
-  { id: 'QT-2026-0181', customer: 'Godrej Industries',  date: '03 Aug 2026', validUntil: '17 Aug 2026', items: 18, amount: '₹22,60,000', status: 'ACCEPTED'  },
-  { id: 'QT-2026-0180', customer: 'Wipro Ltd',          date: '01 Aug 2026', validUntil: '15 Aug 2026', items: 7,  amount: '₹5,80,000',  status: 'CANCELLED' },
-]
+import React, { useEffect, useState } from 'react'
+import SalesService from '../../../core/services/modules/sales.service'
 
 const statusStyles = {
   SENT:      'bg-blue-50 text-blue-600',
   ACCEPTED:  'bg-green-50 text-green-700',
   DRAFT:     'bg-gray-100 text-gray-500',
   CANCELLED: 'bg-red-50 text-red-500',
+  REJECTED:  'bg-red-50 text-red-500',
+  EXPIRED:   'bg-orange-50 text-orange-600',
+  CONVERTED: 'bg-purple-50 text-purple-600',
 }
 
 const StatusBadge = ({ status }) => (
@@ -28,7 +24,18 @@ const TH = ({ children, right }) => (
 )
 
 const Quotations = () => {
-  const [hoveredRow, setHoveredRow] = useState(null)
+  const [data, setData]         = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [hoveredRow, setHovered] = useState(null)
+
+  useEffect(() => {
+    SalesService.getQuotations()
+      .then((res) => setData(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <div className="py-12 text-center text-sm text-gray-400">Loading…</div>
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -46,19 +53,19 @@ const Quotations = () => {
           </tr>
         </thead>
         <tbody>
-          {quotationsData.map((q) => (
+          {data.map((q) => (
             <tr
               key={q.id}
               className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors"
-              onMouseEnter={() => setHoveredRow(q.id)}
-              onMouseLeave={() => setHoveredRow(null)}
+              onMouseEnter={() => setHovered(q.id)}
+              onMouseLeave={() => setHovered(null)}
             >
-              <td className="py-4 px-4 text-xs text-gray-400 font-mono">{q.id}</td>
-              <td className="py-4 px-4 text-sm font-semibold text-gray-800">{q.customer}</td>
-              <td className="py-4 px-4 text-sm text-gray-500">{q.date}</td>
+              <td className="py-4 px-4 text-xs text-gray-400 font-mono">{q.quotationNumber}</td>
+              <td className="py-4 px-4 text-sm font-semibold text-gray-800">{q.customerName}</td>
+              <td className="py-4 px-4 text-sm text-gray-500">{q.quotationDate}</td>
               <td className="py-4 px-4 text-sm text-gray-500">{q.validUntil}</td>
-              <td className="py-4 px-4 text-sm text-gray-500 text-right">{q.items}</td>
-              <td className="py-4 px-4 text-sm font-semibold text-gray-800 text-right">{q.amount}</td>
+              <td className="py-4 px-4 text-sm text-gray-500 text-right">{q.items?.length ?? 0}</td>
+              <td className="py-4 px-4 text-sm font-semibold text-gray-800 text-right">{q.totalAmount}</td>
               <td className="py-4 px-4"><StatusBadge status={q.status} /></td>
               <td className="py-4 px-4 text-right">
                 <button
@@ -69,6 +76,11 @@ const Quotations = () => {
               </td>
             </tr>
           ))}
+          {data.length === 0 && (
+            <tr>
+              <td colSpan={8} className="py-10 text-center text-sm text-gray-400">No quotations found</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
