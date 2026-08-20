@@ -1,5 +1,2 @@
 package com.cubeage.erp.projects.event;
-
-import java.time.Instant;
-
-public record TaskAssignedEvent(Long taskId, Long assigneeId, Instant occurredAt) { }
+public record TaskAssignedEvent(Long tenantId, Long projectId, Long taskId, Long assignedToUserId, String taskTitle) {}

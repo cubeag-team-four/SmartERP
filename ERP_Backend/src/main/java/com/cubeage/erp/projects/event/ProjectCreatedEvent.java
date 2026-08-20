@@ -1,5 +1,2 @@
 package com.cubeage.erp.projects.event;
-
-import java.time.Instant;
-
-public record ProjectCreatedEvent(Long projectId, Long tenantId, Instant occurredAt) { }
+public record ProjectCreatedEvent(Long tenantId, Long projectId, String projectCode, String projectName) {}

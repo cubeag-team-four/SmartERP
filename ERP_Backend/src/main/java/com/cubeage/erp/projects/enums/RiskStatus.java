@@ -1,3 +1,2 @@
 package com.cubeage.erp.projects.enums;
-
-public enum RiskStatus { OPEN, MITIGATING, ACCEPTED, RESOLVED, CLOSED }
+public enum RiskStatus { OPEN, MITIGATING, RESOLVED, ACCEPTED, CLOSED }

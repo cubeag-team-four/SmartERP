@@ -1,4 +1,6 @@
 package com.cubeage.erp.projects.service;
-
-/** Application boundary for generated project insights. */
-public interface ProjectAiService { }
+import com.cubeage.erp.projects.dto.response.AiInsightResponse; import java.util.List;
+public interface ProjectAiService {
+ List<AiInsightResponse> analyze(Long tenantId,Long projectId);
+ List<AiInsightResponse> insights(Long tenantId,Long projectId);
+}

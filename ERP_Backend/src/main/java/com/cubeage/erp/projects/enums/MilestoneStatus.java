@@ -1,3 +1,2 @@
 package com.cubeage.erp.projects.enums;
-
-public enum MilestoneStatus { PENDING, IN_PROGRESS, COMPLETED, OVERDUE, CANCELLED }
+public enum MilestoneStatus { PLANNED, IN_PROGRESS, AT_RISK, COMPLETED, MISSED }

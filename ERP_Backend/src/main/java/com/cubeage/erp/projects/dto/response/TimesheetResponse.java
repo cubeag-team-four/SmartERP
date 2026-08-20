@@ -1,21 +1,3 @@
-package com.cubeage.erp.projects.dto.response;
-
-import com.cubeage.erp.projects.enums.TimesheetStatus;
-import lombok.*;
-import java.math.BigDecimal;
-import java.time.*;
-
-@Data @Builder @NoArgsConstructor @AllArgsConstructor
-public class TimesheetResponse {
-    private Long id;
-    private Long projectId;
-    private Long taskId;
-    private Long userId;
-    private LocalDate workDate;
-    private BigDecimal hours;
-    private String notes;
-    private TimesheetStatus status;
-    private Long decidedBy;
-    private LocalDateTime decidedAt;
-    private String decisionComment;
-}
+package com.cubeage.erp.projects.dto.response; import java.math.BigDecimal; import java.time.LocalDate;
+public record TimesheetResponse(Long id,Long projectId,Long taskId,Long userId,String userName,LocalDate workDate,
+ BigDecimal hours,String description,String status,Long approvedByUserId,String approvedByName) {}
