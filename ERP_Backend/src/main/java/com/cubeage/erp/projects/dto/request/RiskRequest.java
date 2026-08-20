@@ -1,19 +1,5 @@
 package com.cubeage.erp.projects.dto.request;
-
-import com.cubeage.erp.projects.enums.*;
-import jakarta.validation.constraints.*;
-import lombok.Data;
-import java.time.LocalDate;
-
-@Data
-public class RiskRequest {
-    @NotNull private Long projectId;
-    @NotBlank @Size(max = 200) private String title;
-    @Size(max = 4000) private String description;
-    @NotNull private RiskType type;
-    @NotNull private RiskLevel level;
-    private RiskStatus status;
-    @Size(max = 4000) private String mitigationPlan;
-    private Long ownerId;
-    private LocalDate targetResolutionDate;
-}
+import com.cubeage.erp.projects.enums.*; import jakarta.validation.constraints.*;
+public record RiskRequest(Long taskId,@NotBlank String title,String description,@NotNull RiskType type,
+ @NotNull RiskLevel level,@Min(0) @Max(100) int probabilityPercent,@Min(1) @Max(5) int impactScore,
+ String mitigationPlan,Long ownerUserId,String ownerName) {}

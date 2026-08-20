@@ -1,16 +1,3 @@
-package com.cubeage.erp.projects.dto.response;
-
-import lombok.*;
-import java.math.BigDecimal;
-import java.util.Map;
-
-@Data @Builder @NoArgsConstructor @AllArgsConstructor
-public class BudgetSummaryResponse {
-    private Long projectId;
-    private BigDecimal budgetAmount;
-    private BigDecimal spentAmount;
-    private BigDecimal remainingAmount;
-    private BigDecimal utilizationPercent;
-    private String currency;
-    private Map<String, BigDecimal> costByType;
-}
+package com.cubeage.erp.projects.dto.response; import java.math.BigDecimal; import java.util.Map;
+public record BudgetSummaryResponse(Long projectId,BigDecimal plannedBudget,BigDecimal actualBudget,BigDecimal variance,
+ BigDecimal utilizationPercent,boolean overBudgetThreshold,Map<String,BigDecimal> plannedByType,Map<String,BigDecimal> actualByType) {}

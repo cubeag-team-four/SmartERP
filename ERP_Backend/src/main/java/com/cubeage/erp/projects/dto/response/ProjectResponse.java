@@ -1,24 +1,6 @@
 package com.cubeage.erp.projects.dto.response;
-
-import com.cubeage.erp.projects.enums.*;
-import lombok.*;
-import java.math.BigDecimal;
-import java.time.*;
-
-@Data @Builder @NoArgsConstructor @AllArgsConstructor
-public class ProjectResponse {
-    private Long id;
-    private String code;
-    private String name;
-    private String description;
-    private ProjectStatus status;
-    private ProjectPriority priority;
-    private LocalDate startDate;
-    private LocalDate endDate;
-    private Long managerId;
-    private BigDecimal plannedBudget;
-    private String currency;
-    private Integer progressPercent;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-}
+import java.math.BigDecimal; import java.time.*;
+public record ProjectResponse(Long id,String projectCode,String name,String description,Long customerId,String customerName,
+ Long managerUserId,String managerName,Long branchId,Long departmentId,Long costCenterId,LocalDate startDate,LocalDate endDate,
+ String status,String priority,BigDecimal plannedBudget,BigDecimal actualBudget,BigDecimal budgetAlertThresholdPercent,
+ Integer progressPercent,LocalDateTime createdAt) {}

@@ -2,7 +2,6 @@ package com.cubeage.erp.sales.mapper;
 import com.cubeage.erp.sales.dto.response.*;
 import com.cubeage.erp.sales.entity.*;
 import org.springframework.stereotype.Component;
-import java.util.List;
 @Component
 public class SalesMapper {
  public QuotationResponse quotation(Quotation q){return new QuotationResponse(q.getId(),q.getQuotationNumber(),q.getCustomerId(),q.getCustomerName(),q.getStatus(),q.getQuotationDate(),q.getValidUntil(),q.getSubtotal(),q.getTaxAmount(),q.getTotalAmount(),q.getNotes(),q.getItems().size(),q.getItems().stream().map(i->line(i.getId(),i.getProductId(),i.getDescription(),i.getQuantity(),i.getUnitPrice(),i.getTaxRate(),i.getLineTotal())).toList(),q.getCreatedAt(),q.getUpdatedAt());}

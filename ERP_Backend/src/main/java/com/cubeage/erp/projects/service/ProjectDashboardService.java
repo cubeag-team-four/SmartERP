@@ -1,4 +1,3 @@
 package com.cubeage.erp.projects.service;
-
-/** Application boundary for project dashboards and Gantt views. */
-public interface ProjectDashboardService { }
+import com.cubeage.erp.projects.dto.response.ProjectDashboardResponse;
+public interface ProjectDashboardService { ProjectDashboardResponse dashboard(Long tenantId); }

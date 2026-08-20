@@ -1,16 +1,4 @@
 package com.cubeage.erp.projects.dto.request;
-
-import jakarta.validation.constraints.*;
-import lombok.Data;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-
-@Data
-public class CreateTimesheetRequest {
-    @NotNull private Long projectId;
-    private Long taskId;
-    @NotNull private Long userId;
-    @NotNull private LocalDate workDate;
-    @NotNull @DecimalMin("0.25") @DecimalMax("24.0") private BigDecimal hours;
-    @Size(max = 2000) private String notes;
-}
+import jakarta.validation.constraints.*; import java.math.BigDecimal; import java.time.LocalDate;
+public record CreateTimesheetRequest(@NotNull Long projectId,@NotNull Long taskId,@NotNull LocalDate workDate,
+ @NotNull @DecimalMin("0.01") @DecimalMax("24.00") BigDecimal hours,String description) {}
