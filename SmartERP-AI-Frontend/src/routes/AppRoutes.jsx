@@ -165,8 +165,8 @@ const DocumentSearch       = lazy(() => import('../pages/modules/documents/Docum
 const SettingsDashboard          = lazy(() => import('../pages/modules/settings/Dashboard'))
 const SettingsOverview           = lazy(() => import('../pages/modules/settings/Overview'))
 const GeneralSettings            = lazy(() => import('../pages/modules/settings/GeneralSettings'))
-const UserManagement             = lazy(() => import('../pages/modules/settings/UserManagement'))
-const SettingsRoles              = lazy(() => import('../pages/modules/settings/RolesPermissions'))
+const BillingSettings             = lazy(() => import('../pages/modules/settings/BillingSettings'))
+const ModuleSettings             = lazy(() => import('../pages/modules/settings/ModuleSettings'))
 const NotificationSettings       = lazy(() => import('../pages/modules/settings/NotificationSettings'))
 const IntegrationSettings        = lazy(() => import('../pages/modules/settings/IntegrationSettings'))
 const ApprovalWorkflowSettings   = lazy(() => import('../pages/modules/settings/ApprovalWorkflowSettings'))
@@ -357,8 +357,8 @@ const AppRoutes = () => {
             {/* Settings */}
             <Route path={ROUTES.SUPER_ADMIN_SETTINGS}               element={<SettingsDashboard />} />
             <Route path={ROUTES.SUPER_ADMIN_SETTINGS_GENERAL}       element={<GeneralSettings />} />
-            <Route path={ROUTES.SUPER_ADMIN_SETTINGS_USERS}         element={<UserManagement />} />
-            <Route path={ROUTES.SUPER_ADMIN_SETTINGS_ROLES}         element={<SettingsRoles />} />
+            <Route path={ROUTES.SUPER_ADMIN_SETTINGS_BILLING}         element={<BillingSettings />} />
+            <Route path={ROUTES.SUPER_ADMIN_SETTINGS_MODULES}         element={<ModuleSettings />} />
             <Route path={ROUTES.SUPER_ADMIN_SETTINGS_NOTIFICATIONS} element={<NotificationSettings />} />
             <Route path={ROUTES.SUPER_ADMIN_SETTINGS_INTEGRATIONS}  element={<IntegrationSettings />} />
             <Route path={ROUTES.SUPER_ADMIN_SETTINGS_APPROVALS}     element={<ApprovalWorkflowSettings />} />
@@ -495,8 +495,8 @@ const AppRoutes = () => {
             {/* Settings */}
             <Route path={ROUTES.ADMIN_SETTINGS}               element={<SettingsDashboard />} />
             <Route path={ROUTES.ADMIN_SETTINGS_GENERAL}       element={<GeneralSettings />} />
-            <Route path={ROUTES.ADMIN_SETTINGS_USERS}         element={<UserManagement />} />
-            <Route path={ROUTES.ADMIN_SETTINGS_ROLES}         element={<SettingsRoles />} />
+            <Route path={ROUTES.ADMIN_SETTINGS_BILLING}         element={<BillingSettings />} />
+            <Route path={ROUTES.ADMIN_SETTINGS_MODULES}         element={<ModuleSettings />} />
             <Route path={ROUTES.ADMIN_SETTINGS_NOTIFICATIONS} element={<NotificationSettings />} />
             <Route path={ROUTES.ADMIN_SETTINGS_INTEGRATIONS}  element={<IntegrationSettings />} />
             <Route path={ROUTES.ADMIN_SETTINGS_APPROVALS}     element={<ApprovalWorkflowSettings />} />
