@@ -184,8 +184,8 @@ const Dashboard = () => {
 
           /* COMMON PAGE MARGIN */
           padding-top: 0;
-          padding-left: 24px;
-          padding-right: 150px;
+          padding-left: 35px;
+          padding-right: 35px;
           padding-bottom: 40px;
 
           box-sizing: border-box;
