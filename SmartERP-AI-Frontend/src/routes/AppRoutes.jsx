@@ -191,6 +191,9 @@ const EmployeeTasks         = lazy(() => import('../pages/modules/projects/Tasks
 const EmployeeDocuments     = lazy(() => import('../pages/modules/documents/Dashboard'))
 const EmployeeNotifications = lazy(() => import('../pages/modules/settings/NotificationSettings'))
 
+// Navnotification — shared notification page for all roles
+import Navnotification from '../components/layout/Navnotification'
+
 /* ========================================================================== */
 /*  Loader                                                                     */
 /* ========================================================================== */
@@ -374,13 +377,15 @@ const AppRoutes = () => {
             <Route path={ROUTES.SUPER_ADMIN_AI_FRAUD_DETECTION}        element={<FraudDetection />} />
             <Route path={ROUTES.SUPER_ADMIN_AI_CHATBOT}                element={<SupportChatbot />} />
             <Route path={ROUTES.SUPER_ADMIN_AI_REPORT_GENERATOR}       element={<ReportGenerator />} />
+
+            {/* Notifications */}
+            <Route path={ROUTES.SUPER_ADMIN_NOTIFICATIONS} element={<Navnotification />} />
           </Route>
         </Route>
 
         {/* ════════════════════════════════════════════════════════════════
             ADMIN
-        ════════════════════════════════════════════════════════════════ */}
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+        ════════════════════════════════════════════════════════════════ */}        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
 
@@ -512,6 +517,9 @@ const AppRoutes = () => {
             <Route path={ROUTES.ADMIN_AI_FRAUD_DETECTION}     element={<FraudDetection />} />
             <Route path={ROUTES.ADMIN_AI_CHATBOT}             element={<SupportChatbot />} />
             <Route path={ROUTES.ADMIN_AI_REPORT_GENERATOR}    element={<ReportGenerator />} />
+
+            {/* Notifications */}
+            <Route path={ROUTES.ADMIN_NOTIFICATIONS} element={<Navnotification />} />
           </Route>
         </Route>
 
@@ -533,6 +541,9 @@ const AppRoutes = () => {
             <Route path={ROUTES.FINANCE_MANAGER_REPORTS}                element={<ReportsDashboard />} />
             <Route path={ROUTES.FINANCE_MANAGER_AI}                     element={<BusinessAssistant />} />
             <Route path={ROUTES.FINANCE_MANAGER_SETTINGS}               element={<SettingsDashboard />} />
+
+            {/* Notifications */}
+            <Route path={ROUTES.FINANCE_MANAGER_NOTIFICATIONS} element={<Navnotification />} />
           </Route>
         </Route>
 
@@ -553,6 +564,9 @@ const AppRoutes = () => {
             <Route path={ROUTES.SALES_MANAGER_REPORTS}           element={<ReportsDashboard />} />
             <Route path={ROUTES.SALES_MANAGER_AI}                element={<BusinessAssistant />} />
             <Route path={ROUTES.SALES_MANAGER_SETTINGS}          element={<SettingsDashboard />} />
+
+            {/* Notifications */}
+            <Route path={ROUTES.SALES_MANAGER_NOTIFICATIONS} element={<Navnotification />} />
           </Route>
         </Route>
 
@@ -572,6 +586,9 @@ const AppRoutes = () => {
             <Route path={ROUTES.HR_MANAGER_REPORTS}        element={<ReportsDashboard />} />
             <Route path={ROUTES.HR_MANAGER_AI}             element={<BusinessAssistant />} />
             <Route path={ROUTES.HR_MANAGER_SETTINGS}       element={<SettingsDashboard />} />
+
+            {/* Notifications */}
+            <Route path={ROUTES.HR_MANAGER_NOTIFICATIONS} element={<Navnotification />} />
           </Route>
         </Route>
 
@@ -592,6 +609,9 @@ const AppRoutes = () => {
             <Route path={ROUTES.OPERATIONS_MANAGER_REPORTS}                  element={<ReportsDashboard />} />
             <Route path={ROUTES.OPERATIONS_MANAGER_AI}                       element={<BusinessAssistant />} />
             <Route path={ROUTES.OPERATIONS_MANAGER_SETTINGS}                 element={<SettingsDashboard />} />
+
+            {/* Notifications */}
+            <Route path={ROUTES.OPERATIONS_MANAGER_NOTIFICATIONS} element={<Navnotification />} />
           </Route>
         </Route>
 
@@ -607,7 +627,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.EMPLOYEE_PAYROLL}       element={<EmployeePayroll />} />
             <Route path={ROUTES.EMPLOYEE_TASKS}         element={<EmployeeTasks />} />
             <Route path={ROUTES.EMPLOYEE_DOCUMENTS}     element={<EmployeeDocuments />} />
-            <Route path={ROUTES.EMPLOYEE_NOTIFICATIONS} element={<EmployeeNotifications />} />
+            <Route path={ROUTES.EMPLOYEE_NOTIFICATIONS} element={<Navnotification />} />
           </Route>
         </Route>
 

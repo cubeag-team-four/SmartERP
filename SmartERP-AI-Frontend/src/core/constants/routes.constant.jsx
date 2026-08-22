@@ -150,6 +150,9 @@ export const ROUTES = {
   SUPER_ADMIN_REPORTS_HR:                   `${BASE.SUPER_ADMIN}/reports/hr`,
   SUPER_ADMIN_REPORTS_PROJECTS:             `${BASE.SUPER_ADMIN}/reports/projects`,
 
+  // Notifications
+  SUPER_ADMIN_NOTIFICATIONS:                `${BASE.SUPER_ADMIN}/notifications`,
+
   // Settings
   SUPER_ADMIN_SETTINGS:                     `${BASE.SUPER_ADMIN}/settings`,
   SUPER_ADMIN_SETTINGS_GENERAL:             `${BASE.SUPER_ADMIN}/settings/general`,
@@ -287,6 +290,9 @@ export const ROUTES = {
   ADMIN_REPORTS_HR:                         `${BASE.ADMIN}/reports/hr`,
   ADMIN_REPORTS_PROJECTS:                   `${BASE.ADMIN}/reports/projects`,
 
+  // Notifications
+  ADMIN_NOTIFICATIONS:                      `${BASE.ADMIN}/notifications`,
+
   // Settings
   ADMIN_SETTINGS:                           `${BASE.ADMIN}/settings`,
   ADMIN_SETTINGS_GENERAL:                   `${BASE.ADMIN}/settings/general`,
@@ -326,6 +332,7 @@ export const ROUTES = {
   FINANCE_MANAGER_REPORTS:                  `${BASE.FINANCE_MANAGER}/reports`,
   FINANCE_MANAGER_AI:                       `${BASE.FINANCE_MANAGER}/ai`,
   FINANCE_MANAGER_SETTINGS:                 `${BASE.FINANCE_MANAGER}/settings`,
+  FINANCE_MANAGER_NOTIFICATIONS:            `${BASE.FINANCE_MANAGER}/notifications`,
 
   // ══════════════════════════════════════════════════════════════════════════════
   // SALES MANAGER
@@ -343,6 +350,7 @@ export const ROUTES = {
   SALES_MANAGER_REPORTS:                    `${BASE.SALES_MANAGER}/reports`,
   SALES_MANAGER_AI:                         `${BASE.SALES_MANAGER}/ai`,
   SALES_MANAGER_SETTINGS:                   `${BASE.SALES_MANAGER}/settings`,
+  SALES_MANAGER_NOTIFICATIONS:              `${BASE.SALES_MANAGER}/notifications`,
 
   // ══════════════════════════════════════════════════════════════════════════════
   // HR MANAGER
@@ -359,6 +367,7 @@ export const ROUTES = {
   HR_MANAGER_REPORTS:                       `${BASE.HR_MANAGER}/reports`,
   HR_MANAGER_AI:                            `${BASE.HR_MANAGER}/ai`,
   HR_MANAGER_SETTINGS:                      `${BASE.HR_MANAGER}/settings`,
+  HR_MANAGER_NOTIFICATIONS:                 `${BASE.HR_MANAGER}/notifications`,
 
   // ══════════════════════════════════════════════════════════════════════════════
   // OPERATIONS MANAGER
@@ -376,6 +385,7 @@ export const ROUTES = {
   OPERATIONS_MANAGER_REPORTS:               `${BASE.OPERATIONS_MANAGER}/reports`,
   OPERATIONS_MANAGER_AI:                    `${BASE.OPERATIONS_MANAGER}/ai`,
   OPERATIONS_MANAGER_SETTINGS:              `${BASE.OPERATIONS_MANAGER}/settings`,
+  OPERATIONS_MANAGER_NOTIFICATIONS:         `${BASE.OPERATIONS_MANAGER}/notifications`,
 
   // ══════════════════════════════════════════════════════════════════════════════
   // EMPLOYEE
