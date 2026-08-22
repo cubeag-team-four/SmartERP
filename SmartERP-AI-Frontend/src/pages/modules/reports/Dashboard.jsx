@@ -536,7 +536,7 @@ const Dashboard = () => {
   width: 100%;
   box-sizing: border-box;
 
-  padding: 10px 150px 75px 22px;
+  padding: 10px 35px 75px 35px;
 
   background: #f5f4ef;
   color: #11140f;
