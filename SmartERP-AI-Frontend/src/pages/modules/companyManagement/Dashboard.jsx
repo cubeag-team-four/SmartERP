@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import Overview from "./Overview";
 import Branches from "./Branches";
@@ -8,6 +8,7 @@ import RolesPermissions from "./RolesPermissions";
 import ApprovalWorkflows from "./ApprovalWorkflows";
 import Holidays from "./Holidays";
 import CompanySettings from "./CompanySettings";
+import CompanyManagementService from "../../../core/services/modules/companyManagement.service";
 
 // ─── Add Company Modal ────────────────────────────────────────────────────────
 const COMPANY_TYPES = ["Private Limited", "Public Limited", "LLP", "Partnership", "Sole Proprietorship", "OPC", "Section 8 / NGO"];
@@ -533,6 +534,61 @@ function AddCompanyModal({ onClose, onSubmit }) {
 const Dashboard = () => {
   const [activeTab,  setActiveTab]  = useState("overview");
   const [showModal,  setShowModal]  = useState(false);
+  const [companies, setCompanies] = useState([]);
+  const [companyId, setCompanyId] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    CompanyManagementService.getAll()
+      .then(({ data }) => {
+        if (!active) return;
+        setCompanies(data);
+        setCompanyId(data[0]?.id ?? null);
+        if (!data.length) setLoading(false);
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setError(requestError.response?.data?.detail || "Unable to load companies.");
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!companyId) return;
+    let active = true;
+    setLoading(true);
+    CompanyManagementService.getDashboard(companyId)
+      .then(({ data }) => {
+        if (active) {
+          setDashboard(data);
+          setError("");
+        }
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.response?.data?.detail || "Unable to load the company dashboard.");
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [companyId]);
+
+  const createCompany = async (form) => {
+    try {
+      const payload = { ...form, gstNumber: form.taxGst, logo: undefined, status: form.status.toUpperCase() };
+      const { data } = await CompanyManagementService.create(payload);
+      setCompanies((current) => [...current, data]);
+      setCompanyId(data.id);
+      setShowModal(false);
+      setError("");
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Unable to create the company.");
+    }
+  };
+
+  const company = dashboard?.company || companies.find((item) => item.id === companyId);
 
   const tabs = [
     { id: "overview", label: "OVERVIEW" },
@@ -548,13 +604,13 @@ const Dashboard = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "overview":
-        return <Overview />;
+        return <Overview company={company} dashboard={dashboard} />;
 
       case "branches":
-        return <Branches />;
+        return <Branches companyId={companyId} />;
 
       case "departments":
-        return <Departments />;
+        return <Departments companyId={companyId} companyName={company?.companyName} />;
 
       case "users":
         return <Users />;
@@ -563,16 +619,16 @@ const Dashboard = () => {
         return <RolesPermissions />;
 
       case "approval":
-        return <ApprovalWorkflows />;
+        return <ApprovalWorkflows companyId={companyId} />;
 
       case "holidays":
-        return <Holidays />;
+        return <Holidays companyId={companyId} dashboard={dashboard} />;
 
       case "settings":
-        return <CompanySettings />;
+        return <CompanySettings companyId={companyId} />;
 
       default:
-        return <Overview />;
+        return <Overview company={company} dashboard={dashboard} />;
     }
   };
 
@@ -607,12 +663,12 @@ const Dashboard = () => {
       {showModal && (
         <AddCompanyModal
           onClose={() => setShowModal(false)}
-          onSubmit={(data) => {
-            console.log("New company:", data);
-            setShowModal(false);
-          }}
+          onSubmit={createCompany}
         />
       )}
+
+      {error && <div className="company-api-message">{error}</div>}
+      {loading && <div className="company-api-message">Loading company data...</div>}
 
 
       {/* ================= COMPANY SUMMARY ================= */}
@@ -630,14 +686,14 @@ const Dashboard = () => {
 
           <div className="company-info">
 
-            <h2>Acme Manufacturing Ltd</h2>
+            <h2>{company?.companyName || "No company configured"}</h2>
 
             <div className="company-identifiers">
-              <span>GST: 27AADCA3129H1ZX</span>
+              <span>GST: {company?.gstNumber || "—"}</span>
               <span>•</span>
-              <span>PAN: AADCA3129H</span>
+              <span>PAN: {company?.pan || "—"}</span>
               <span>•</span>
-              <span>CIN: U28100MH2010PTC204826</span>
+              <span>CIN: {company?.cin || "—"}</span>
             </div>
 
           </div>
@@ -648,27 +704,27 @@ const Dashboard = () => {
         <div className="company-stats">
 
           <div className="stat">
-            <strong>4</strong>
+            <strong>{dashboard?.branches ?? 0}</strong>
             <span>BRANCHES</span>
           </div>
 
           <div className="stat">
-            <strong>284</strong>
+            <strong>{dashboard?.employees ?? 0}</strong>
             <span>EMPLOYEES</span>
           </div>
 
           <div className="stat">
-            <strong>7</strong>
+            <strong>{dashboard?.departments ?? 0}</strong>
             <span>DEPARTMENTS</span>
           </div>
 
           <div className="stat">
-            <strong>Business</strong>
+            <strong>{dashboard?.plan || "—"}</strong>
             <span>PLAN</span>
           </div>
 
           <div className="status">
-            ACTIVE
+            {dashboard?.status || company?.status || "INACTIVE"}
           </div>
 
         </div>
@@ -722,6 +778,16 @@ const Dashboard = () => {
           padding-bottom: 40px;
 
           box-sizing: border-box;
+        }
+
+        .company-api-message {
+          margin: 0 0 12px;
+          padding: 10px 14px;
+          border: 1px solid #dfd8c9;
+          border-radius: 10px;
+          background: #fffaf0;
+          color: #6b5b3e;
+          font-size: 12px;
         }
 
 

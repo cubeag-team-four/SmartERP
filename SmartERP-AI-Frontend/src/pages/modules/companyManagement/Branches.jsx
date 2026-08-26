@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import CompanyManagementService from "../../../core/services/modules/companyManagement.service";
+import useActiveCompany from "../../../core/hooks/useActiveCompany";
 
 // ─── Dropdown options ─────────────────────────────────────────────────────────
 const COMPANIES    = ["Acme Manufacturing Ltd", "Acme Exports Pvt Ltd"];
@@ -439,8 +441,10 @@ function AddBranchModal({ onClose, onSubmit }) {
 
 // ─── Branches ─────────────────────────────────────────────────────────────────
 
-const Branches = () => {
+const Branches = ({ companyId: providedCompanyId }) => {
+  const { companyId, error: companyError } = useActiveCompany(providedCompanyId);
   const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState("");
   const [branches, setBranches] = useState([
     {
       initials: "HM",
@@ -472,8 +476,47 @@ const Branches = () => {
     },
   ]);
 
+  const mapBranch = (branch) => ({
+    id: branch.id,
+    initials: branch.branchName.split(/\s+/).map((word) => word[0]?.toUpperCase() || "").slice(0, 2).join("") || "BR",
+    name: branch.branchName,
+    type: branch.branchType,
+    head: branch.manager || "—",
+    employees: branch.employees || 0,
+    status: branch.status,
+  });
+
+  useEffect(() => {
+    if (!companyId) {
+      setBranches([]);
+      return;
+    }
+    CompanyManagementService.getBranches(companyId)
+      .then(({ data }) => {
+        setBranches(data.map(mapBranch));
+        setError("");
+      })
+      .catch((requestError) => setError(requestError.response?.data?.detail || "Unable to load branches."));
+  }, [companyId]);
+
+  const createBranch = async (form) => {
+    try {
+      const { data } = await CompanyManagementService.createBranch(companyId, {
+        ...form,
+        status: form.status.toUpperCase(),
+      });
+      setBranches((current) => [...current, mapBranch(data)]);
+      setShowModal(false);
+      setError("");
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Unable to create the branch.");
+    }
+  };
+
   return (
     <div className="branches-content">
+
+      {(error || companyError) && <div className="branches-api-message">{error || companyError}</div>}
 
       {/* ================= BRANCHES CARD ================= */}
 
@@ -501,7 +544,7 @@ const Branches = () => {
               className={`branch-row ${
                 index === 0 ? "first-row" : ""
               }`}
-              key={branch.name}
+              key={branch.id || branch.name}
             >
 
               {/* Branch Icon */}
@@ -537,7 +580,7 @@ const Branches = () => {
 
               {/* Status */}
               <div className="branch-status">
-                ACTIVE
+                {branch.status || "ACTIVE"}
               </div>
 
               {/* Arrow */}
@@ -557,21 +600,7 @@ const Branches = () => {
       {showModal && (
         <AddBranchModal
           onClose={() => setShowModal(false)}
-          onSubmit={(data) => {
-            const initials = data.branchName
-              .split(/\s+/)
-              .map(w => w[0]?.toUpperCase() || "")
-              .slice(0, 2)
-              .join("");
-            setBranches(prev => [...prev, {
-              initials:  initials || "BR",
-              name:      data.branchName,
-              type:      data.branchType || "Branch",
-              head:      data.manager   || "—",
-              employees: 0,
-            }]);
-            setShowModal(false);
-          }}
+          onSubmit={createBranch}
         />
       )}
 
@@ -582,6 +611,11 @@ const Branches = () => {
 
         .branches-content {
           width: 100%;
+        }
+
+        .branches-api-message {
+          margin-bottom: 12px; padding: 10px 14px; border: 1px solid #dfd8c9;
+          border-radius: 10px; background: #fffaf0; color: #6b5b3e; font-size: 12px;
         }
 
         /* =========================================
