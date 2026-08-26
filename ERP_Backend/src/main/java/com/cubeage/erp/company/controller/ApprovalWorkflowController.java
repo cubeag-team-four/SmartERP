@@ -13,32 +13,32 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/company/{companyId}/cost-centers")
+@RequestMapping("/api/v1/company/{companyId}/approval-workflows")
 @RequiredArgsConstructor
 @PreAuthorize("@permissionEvaluator.has(authentication,'COMPANY_MANAGEMENT','VIEW')")
-public class CostCenterController {
+public class ApprovalWorkflowController {
     private final CompanyManagementService service;
 
-    @GetMapping public List<CostCenterResponse> list(@PathVariable Long companyId) {
-        return service.costCenters(SecurityUtils.currentTenantId(), companyId);
+    @GetMapping public List<ApprovalWorkflowResponse> list(@PathVariable Long companyId) {
+        return service.workflows(SecurityUtils.currentTenantId(), companyId);
     }
-    @GetMapping("/{id}") public CostCenterResponse get(@PathVariable Long companyId, @PathVariable Long id) {
-        return service.costCenter(SecurityUtils.currentTenantId(), companyId, id);
+    @GetMapping("/{id}") public ApprovalWorkflowResponse get(@PathVariable Long companyId, @PathVariable Long id) {
+        return service.workflow(SecurityUtils.currentTenantId(), companyId, id);
     }
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("@permissionEvaluator.has(authentication,'COMPANY_MANAGEMENT','CREATE')")
-    public CostCenterResponse create(@PathVariable Long companyId, @Valid @RequestBody CostCenterRequest request) {
-        return service.createCostCenter(SecurityUtils.currentTenantId(), companyId, request);
+    public ApprovalWorkflowResponse create(@PathVariable Long companyId,
+                                           @Valid @RequestBody ApprovalWorkflowRequest request) {
+        return service.createWorkflow(SecurityUtils.currentTenantId(), companyId, request);
     }
     @PutMapping("/{id}") @PreAuthorize("@permissionEvaluator.has(authentication,'COMPANY_MANAGEMENT','EDIT')")
-    public CostCenterResponse update(@PathVariable Long companyId, @PathVariable Long id,
-                                     @Valid @RequestBody CostCenterRequest request) {
-        return service.updateCostCenter(SecurityUtils.currentTenantId(), companyId, id, request);
+    public ApprovalWorkflowResponse update(@PathVariable Long companyId, @PathVariable Long id,
+                                           @Valid @RequestBody ApprovalWorkflowRequest request) {
+        return service.updateWorkflow(SecurityUtils.currentTenantId(), companyId, id, request);
     }
     @DeleteMapping("/{id}") @PreAuthorize("@permissionEvaluator.has(authentication,'COMPANY_MANAGEMENT','DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long companyId, @PathVariable Long id) {
-        service.deleteCostCenter(SecurityUtils.currentTenantId(), companyId, id);
+        service.deleteWorkflow(SecurityUtils.currentTenantId(), companyId, id);
         return ResponseEntity.noContent().build();
     }
-
 }
