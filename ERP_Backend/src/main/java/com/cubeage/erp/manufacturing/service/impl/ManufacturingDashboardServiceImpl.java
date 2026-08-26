@@ -1,6 +1,81 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.manufacturing.dto.response.ManufacturingDashboardResponse;
+import com.cubeage.erp.manufacturing.enums.MachineStatus;
+import com.cubeage.erp.manufacturing.enums.WorkOrderStatus;
+import com.cubeage.erp.manufacturing.repository.MachineRepository;
+import com.cubeage.erp.manufacturing.repository.WorkOrderRepository;
 import com.cubeage.erp.manufacturing.service.ManufacturingDashboardService;
+import com.cubeage.erp.manufacturing.service.QualityService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ManufacturingDashboardServiceImpl implements ManufacturingDashboardService {
+
+    private final WorkOrderRepository workOrderRepository;
+    private final MachineRepository machineRepository;
+    private final QualityService qualityService;
+
+    @Override
+    public ManufacturingDashboardResponse getDashboard(Long tenantId) {
+        // Dynamic Active Work Orders Count
+        long activeWorkOrders = workOrderRepository.countByTenantIdAndStatus(tenantId, WorkOrderStatus.IN_PROGRESS);
+
+        // Dynamic Count of Work Orders completing today
+        long completingToday = workOrderRepository.findByTenantIdAndStatusOrderByCreatedAtDesc(tenantId, WorkOrderStatus.IN_PROGRESS)
+                .stream()
+                .filter(wo -> wo.getDueDate() != null && wo.getDueDate().equals(LocalDate.now()))
+                .count();
+
+        // Dynamic Machine Down / Maintenance Count
+        long downMachines = machineRepository.countByTenantIdAndStatus(tenantId, MachineStatus.MAINTENANCE)
+                + machineRepository.countByTenantIdAndStatus(tenantId, MachineStatus.DOWN);
+
+        // Dynamic OEE Calculation based on average machine utilization
+        double avgUtilization = machineRepository.findByTenantIdOrderByCodeAsc(tenantId)
+                .stream()
+                .mapToInt(m -> m.getUtilization() != null ? m.getUtilization() : 0)
+                .average()
+                .orElse(0.0);
+
+        // Dynamic Quality Pass Rate Summary
+        var qualitySummary = qualityService.getQualityControlSummary(tenantId);
+        double passRate = qualitySummary.passRate() != null ? qualitySummary.passRate() : 0.0;
+
+        List<ManufacturingDashboardResponse.StatCardDto> stats = List.of(
+                new ManufacturingDashboardResponse.StatCardDto(
+                        String.valueOf(activeWorkOrders),
+                        "ACTIVE WOS",
+                        completingToday + " completing today",
+                        "positive"
+                ),
+                new ManufacturingDashboardResponse.StatCardDto(
+                        String.format("%.0f%%", avgUtilization),
+                        "OEE",
+                        "Overall Equipment Effectiveness",
+                        "positive"
+                ),
+                new ManufacturingDashboardResponse.StatCardDto(
+                        String.format("%.1f%%", passRate),
+                        "QUALITY RATE",
+                        String.format("%.1f%% rejection rate", qualitySummary.rejectionRate() != null ? qualitySummary.rejectionRate() : 0.0),
+                        "positive"
+                ),
+                new ManufacturingDashboardResponse.StatCardDto(
+                        String.valueOf(downMachines),
+                        "MACHINE DOWN",
+                        downMachines > 0 ? downMachines + " machine(s) offline" : "All machines operational",
+                        downMachines > 0 ? "danger" : "positive"
+                )
+        );
+
+        return new ManufacturingDashboardResponse(stats);
+    }
 }
