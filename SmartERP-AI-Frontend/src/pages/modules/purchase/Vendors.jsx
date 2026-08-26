@@ -1,6 +1,7 @@
 import React, { useState } from "react";
+import AddVendorModal from "./AddVendorModal";
 
-const vendors = [
+const initialVendors = [
   {
     id: "V-0042",
     vendor: "Tata Steel Ltd",
@@ -72,13 +73,15 @@ function Rating({ value }) {
   const filled = Math.round(Number(value));
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 ">
       <div className="flex items-center gap-[2px]">
         {[1, 2, 3, 4, 5].map((star) => (
           <span
             key={star}
             className={`text-[11px] leading-none ${
-              star <= filled ? "text-[#b2a477]" : "text-[#e4e2dc]"
+              star <= filled
+                ? "text-[#b2a477]"
+                : "text-[#e4e2dc]"
             }`}
           >
             ●
@@ -172,31 +175,92 @@ function VendorRow({
 }
 
 const Vendors = () => {
+  /* =====================================================
+     VENDORS STATE
+  ===================================================== */
+
+  const [vendors, setVendors] = useState(initialVendors);
+
   const [hoveredRow, setHoveredRow] = useState(null);
+
+  const [showAddVendor, setShowAddVendor] = useState(false);
+
+
+  /* =====================================================
+     ADD NEW VENDOR
+  ===================================================== */
+
+  const handleAddVendor = (vendorData) => {
+    const newVendor = {
+      id:
+        vendorData.vendorCode ||
+        `V-${String(43 + vendors.length).padStart(4, "0")}`,
+
+      vendor: vendorData.vendorName || "-",
+
+      contact: vendorData.contactName || "-",
+
+      city: vendorData.city || "-",
+
+      category: vendorData.category || "-",
+
+      creditLimit: vendorData.creditLimit
+        ? `₹${vendorData.creditLimit}`
+        : "₹0",
+
+      rating: vendorData.rating || "0",
+
+      status:
+        vendorData.status?.toUpperCase() || "ACTIVE",
+    };
+
+    /* Add new vendor at the top */
+    setVendors((prevVendors) => [
+      newVendor,
+      ...prevVendors,
+    ]);
+
+    /* Close Add Vendor popup */
+    setShowAddVendor(false);
+  };
+
 
   return (
     <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+
       <section className="overflow-hidden rounded-[18px] border border-[#e4e2dd] bg-white sm:rounded-[20px]">
 
-        {/* Header */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
+
         <div className="flex flex-col gap-3 border-b border-[#e4e2dd] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-[19px]">
+
           <h1 className="font-serif text-[19px] leading-none tracking-[-0.015em] text-[#171815] sm:text-[20px]">
             Vendor Directory
           </h1>
 
           <button
             type="button"
+            onClick={() => setShowAddVendor(true)}
             className="w-full rounded-[15px] bg-[#151714] px-[18px] py-[11px] text-[11px] font-semibold leading-none text-white transition-all duration-200 hover:bg-[#292b27] hover:shadow-sm sm:w-auto"
           >
             + Add Vendor
           </button>
+
         </div>
 
-        {/* Table */}
+
+        {/* =================================================
+            TABLE
+        ================================================= */}
+
         <div className="overflow-x-auto">
+
           <div className="min-w-[1200px]">
 
             {/* Table Header */}
+
             <div
               className={`
                 grid
@@ -208,6 +272,7 @@ const Vendors = () => {
                 py-[4px]
               `}
             >
+
               {headers.map((header) => (
                 <div
                   key={header}
@@ -216,10 +281,16 @@ const Vendors = () => {
                   {header}
                 </div>
               ))}
+
             </div>
 
-            {/* Rows */}
+
+            {/* =================================================
+                VENDOR ROWS
+            ================================================= */}
+
             <div>
+
               {vendors.map((vendor, index) => (
                 <VendorRow
                   key={vendor.id}
@@ -229,11 +300,27 @@ const Vendors = () => {
                   setHoveredRow={setHoveredRow}
                 />
               ))}
+
             </div>
 
           </div>
+
         </div>
+
       </section>
+
+
+      {/* =====================================================
+          ADD VENDOR MODAL
+      ===================================================== */}
+
+      {showAddVendor && (
+        <AddVendorModal
+          onClose={() => setShowAddVendor(false)}
+          onSave={handleAddVendor}
+        />
+      )}
+
     </main>
   );
 };
