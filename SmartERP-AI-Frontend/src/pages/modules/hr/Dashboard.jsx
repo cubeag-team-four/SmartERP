@@ -5,9 +5,11 @@ import Attendance from "./Attendance";
 import LeaveManagement from "./LeaveManagement";
 import Payroll from "./Payroll";
 import PerformanceTracking from "./PerformanceTracking";
+import AddEmployeeModal from "./AddEmployeeModal";
 
 const Dashboard = () => {
     const [activeSection, setActiveSection] = useState("employees");
+    const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
 
     const navigation = [
         {
@@ -147,7 +149,7 @@ const Dashboard = () => {
 
                         <button
                             type="button"
-                            onClick={() => handleSectionChange("employees")}
+                            onClick={() => setAddEmployeeOpen(true)}
                             className="
                                 rounded-[15px]
                                 bg-[#11130f]
@@ -284,6 +286,11 @@ const Dashboard = () => {
                 {renderSection()}
 
             </div>
+
+            <AddEmployeeModal
+                open={addEmployeeOpen}
+                onClose={() => setAddEmployeeOpen(false)}
+            />
 
         </div>
     );

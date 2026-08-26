@@ -4,9 +4,11 @@ import ProfitLoss from "./ProfitLoss";
 import GeneralLedger from "./GeneralLedger";
 import CashFlow from "./CashFlow";
 import Alerts from "./Alerts";
+import JournalEntryModal from "./JournalEntryModal";
 
 const Dashboard = () => {
     const [activeSection, setActiveSection] = useState("pnl");
+    const [journalModalOpen, setJournalModalOpen] = useState(false);
 
     const navigation = [
         {
@@ -116,6 +118,7 @@ const Dashboard = () => {
 
 
                         <button
+                            onClick={() => setJournalModalOpen(true)}
                             className="
                                 rounded-[15px]
                                 bg-[#11130f]
@@ -314,6 +317,11 @@ const Dashboard = () => {
                 {renderSection()}
 
             </div>
+
+            <JournalEntryModal
+                open={journalModalOpen}
+                onClose={() => setJournalModalOpen(false)}
+            />
 
         </div>
     );

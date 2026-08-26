@@ -3,9 +3,11 @@ import ProjectPlanning from "./ProjectPlanning";
 import Tasks from "./Tasks";
 import TimeTracking from "./TimeTracking";
 import BudgetMonitoring from "./BudgetMonitoring";
+import NewProjectModal from "./NewProjectModal";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("projects");
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
 
   const tabs = [
     { id: "projects", label: "PROJECTS", enabled: true },
@@ -70,6 +72,7 @@ const Dashboard = () => {
           <button
             type="button"
             className="projects-new-btn"
+            onClick={() => setNewProjectOpen(true)}
           >
             + New Project
           </button>
@@ -151,6 +154,11 @@ const Dashboard = () => {
       <main className="projects-dashboard-content">
         {renderTabContent()}
       </main>
+
+      <NewProjectModal
+        open={newProjectOpen}
+        onClose={() => setNewProjectOpen(false)}
+      />
 
 
       {/* =====================================================

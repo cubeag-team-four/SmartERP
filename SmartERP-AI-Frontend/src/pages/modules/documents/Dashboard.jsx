@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../../store/slices/auth.store";
 import { ROUTES } from "../../../core/constants/routes.constant";
 import "./documents.css";
+import NewDocumentModal from "./NewDocumentModal";
 
 // ─── Role → upload route ──────────────────────────────────────────────────────
 const UPLOAD_ROUTES = {
@@ -328,6 +329,7 @@ export default function Dashboard() {
   const uploadRoute = UPLOAD_ROUTES[user?.role] || ROUTES.ADMIN_DOCUMENTS_UPLOAD;
 
   const [activeTab, setActiveTab] = useState("all");
+  const [newDocOpen, setNewDocOpen] = useState(false);
 
   return (
     <div className="documents-page">
@@ -342,7 +344,7 @@ export default function Dashboard() {
           <button className="doc-btn doc-btn-light" onClick={() => navigate(uploadRoute)}>
             ↑ Upload
           </button>
-          <button className="doc-btn doc-btn-dark" onClick={() => navigate(uploadRoute)}>
+          <button className="doc-btn doc-btn-dark" onClick={() => setNewDocOpen(true)}>
             + New Document
           </button>
         </div>
@@ -411,6 +413,8 @@ export default function Dashboard() {
       {activeTab === "approvals" && <TabPendingApproval />}
       {activeTab === "uploads"   && <TabMyUploads />}
       {activeTab === "ocr"       && <TabOcrExtractions />}
+
+      <NewDocumentModal open={newDocOpen} onClose={() => setNewDocOpen(false)} />
 
     </div>
   );
