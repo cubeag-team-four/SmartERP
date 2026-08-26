@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import CompanyManagementService from "../../../core/services/modules/companyManagement.service";
+import useActiveCompany from "../../../core/hooks/useActiveCompany";
 
 // ─── Reusable primitives ──────────────────────────────────────────────────────
 
@@ -75,8 +77,12 @@ const NotifRow = ({ label, email, inApp, sms, reminder, onToggle }) => (
 );
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function CompanySettings() {
+export default function CompanySettings({ companyId: providedCompanyId }) {
+  const activeCompany = useActiveCompany(providedCompanyId);
+  const companyId = providedCompanyId || activeCompany.companyId;
   const [activeSection, setActiveSection] = useState("general");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   // ── General state ─────────────────────────────────────────────────────────
   const [general, setGeneral] = useState({
@@ -144,6 +150,48 @@ export default function CompanySettings() {
     maintenanceMode: false, maintenanceMsg: "System is under maintenance. Please try again soon.",
     showInactive: false, purgeAfter: "180",
   });
+
+  useEffect(() => {
+    if (!companyId) return;
+    CompanyManagementService.getSettings(companyId)
+      .then(({ data }) => {
+        setGeneral((current) => ({ ...current, ...data.general }));
+        setLocal((current) => ({ ...current, ...data.localization }));
+        const schedule = data.workSchedule || {};
+        setWork((current) => ({ ...current, ...schedule, workDays: undefined }));
+        if (Array.isArray(schedule.workDays)) {
+          setWorkDays(Object.fromEntries(DAYS.map((day) => [day, schedule.workDays.includes(day)])));
+        }
+        setLeave((current) => ({ ...current, ...data.leaveAndHolidays }));
+        if (data.notifications?.length) setNotifs(data.notifications);
+        setSys((current) => ({ ...current, ...data.systemPreferences }));
+        setMessage("");
+      })
+      .catch((requestError) => setMessage(requestError.response?.data?.detail || "Unable to load company settings."));
+  }, [companyId]);
+
+  const saveSettings = async () => {
+    if (!companyId) return;
+    setSaving(true);
+    try {
+      await CompanyManagementService.updateSettings(companyId, {
+        general,
+        localization: local,
+        workSchedule: {
+          ...work,
+          workDays: Object.entries(workDays).filter(([, enabled]) => enabled).map(([day]) => day),
+        },
+        leaveAndHolidays: leave,
+        notifications: notifs,
+        systemPreferences: sys,
+      });
+      setMessage("Settings saved successfully.");
+    } catch (requestError) {
+      setMessage(requestError.response?.data?.detail || "Unable to save company settings.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // ── Sidebar nav ───────────────────────────────────────────────────────────
   const NAV = [
@@ -651,6 +699,7 @@ export default function CompanySettings() {
 
       {/* ── Content ── */}
       <div className="flex-1 flex flex-col min-w-0">
+        {(message || activeCompany.error) && <div className="mx-6 mt-4 px-4 py-2.5 border border-[#dfd8c9] rounded-xl bg-[#fffaf0] text-[#6b5b3e] text-xs">{message || activeCompany.error}</div>}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {SECTIONS[activeSection]?.()}
         </div>
@@ -660,8 +709,8 @@ export default function CompanySettings() {
           <button className="h-9 px-5 border border-[#e0ddd5] rounded-xl bg-white text-[#20221e] text-[12px] font-medium hover:bg-[#ece9e0] transition">
             Cancel
           </button>
-          <button className="h-9 px-5 bg-[#111410] text-white border-none rounded-xl text-[12px] font-medium flex items-center gap-2 hover:bg-[#1e2419] transition">
-            💾 Save Changes
+          <button onClick={saveSettings} disabled={saving || !companyId} className="h-9 px-5 bg-[#111410] text-white border-none rounded-xl text-[12px] font-medium flex items-center gap-2 hover:bg-[#1e2419] transition disabled:opacity-50">
+            💾 {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>

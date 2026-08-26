@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import CompanyManagementService from "../../../core/services/modules/companyManagement.service";
+import useActiveCompany from "../../../core/hooks/useActiveCompany";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const MOCK_HOLIDAYS = [
@@ -168,7 +170,10 @@ function AddHolidayModal({ onClose, onAdd }) {
 }
 
 // ─── Holidays page ────────────────────────────────────────────────────────────
-export default function Holidays() {
+export default function Holidays({ companyId: providedCompanyId, dashboard: providedDashboard }) {
+  const activeCompany = useActiveCompany(providedCompanyId);
+  const companyId = providedCompanyId || activeCompany.companyId;
+  const dashboard = providedDashboard || activeCompany.dashboard;
   const [holidays,    setHolidays]    = useState(MOCK_HOLIDAYS);
   const [search,      setSearch]      = useState("");
   const [yearFilter,  setYearFilter]  = useState("2026");
@@ -179,6 +184,23 @@ export default function Holidays() {
   const [page,        setPage]        = useState(1);
   const [openMenu,    setOpenMenu]    = useState(null);
   const [showModal,   setShowModal]   = useState(false);
+  const [error,       setError]       = useState("");
+
+  useEffect(() => {
+    if (!companyId) {
+      setHolidays([]);
+      return;
+    }
+    CompanyManagementService.getHolidays(companyId, { year: yearFilter })
+      .then(({ data }) => {
+        setHolidays(data.map((holiday) => ({
+          ...holiday,
+          status: holiday.status.charAt(0) + holiday.status.slice(1).toLowerCase(),
+        })));
+        setError("");
+      })
+      .catch((requestError) => setError(requestError.response?.data?.detail || "Unable to load holidays."));
+  }, [companyId, yearFilter]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const total     = holidays.length;
@@ -201,12 +223,31 @@ export default function Holidays() {
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  const addHoliday = (data) => {
-    setHolidays(p => [...p, { ...data, id: p.length + 1, appliesTo: data.branch }]);
+  const addHoliday = async (form) => {
+    try {
+      const { data } = await CompanyManagementService.createHoliday(companyId, {
+        name: form.name,
+        date: form.date,
+        type: form.type,
+        appliesTo: form.branch,
+        optional: form.optional,
+        status: form.status.toUpperCase(),
+      });
+      setHolidays((current) => [...current, {
+        ...data,
+        status: data.status.charAt(0) + data.status.slice(1).toLowerCase(),
+      }]);
+      setShowModal(false);
+      setError("");
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Unable to create the holiday.");
+    }
   };
 
   return (
     <div className="w-full min-h-screen bg-[#f5f4ef] px-7 pb-12 pt-1">
+
+      {(error || activeCompany.error) && <div className="mb-3 px-4 py-2.5 border border-[#dfd8c9] rounded-xl bg-[#fffaf0] text-[#6b5b3e] text-xs">{error || activeCompany.error}</div>}
 
       {/* ── Breadcrumb ── */}
       <div className="flex items-center gap-2 text-[10px] text-[#a3a6a5] mb-3 tracking-wide">
@@ -242,12 +283,12 @@ export default function Holidays() {
             {[0,1,2,3].map(i => <span key={i} className={`rounded-[3px] ${i===0?"bg-[#a1b294]":i===2?"bg-[#343a31]":"bg-[#4e574b]"}`} />)}
           </div>
           <div>
-            <h2 className="text-[16px] font-semibold text-[#10130f]">Acme Manufacturing Ltd</h2>
-            <p className="text-[10px] text-[#99988f] mt-0.5">GST: 27AADCA3129H1ZX · PAN: AADCA3129H · CIN: U28100MH2010PTC204826</p>
+            <h2 className="text-[16px] font-semibold text-[#10130f]">{dashboard?.company?.companyName || "Company"}</h2>
+            <p className="text-[10px] text-[#99988f] mt-0.5">GST: {dashboard?.company?.gstNumber || "—"} · PAN: {dashboard?.company?.pan || "—"} · CIN: {dashboard?.company?.cin || "—"}</p>
           </div>
         </div>
         <div className="flex items-center gap-10">
-          {[["4","BRANCHES"],["284","EMPLOYEES"],["7","DEPARTMENTS"],["Business","PLAN"]].map(([v,l]) => (
+          {[[dashboard?.branches ?? 0,"BRANCHES"],[dashboard?.employees ?? 0,"EMPLOYEES"],[dashboard?.departments ?? 0,"DEPARTMENTS"],[dashboard?.plan || "—","PLAN"]].map(([v,l]) => (
             <div key={l} className="text-center">
               <div className="text-[18px] font-semibold text-[#10130f]">{v}</div>
               <div className="text-[9px] text-[#a0a09a] tracking-widest mt-0.5">{l}</div>

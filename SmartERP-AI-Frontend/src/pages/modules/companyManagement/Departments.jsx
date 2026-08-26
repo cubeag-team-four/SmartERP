@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import CompanyManagementService from "../../../core/services/modules/companyManagement.service";
+import useActiveCompany from "../../../core/hooks/useActiveCompany";
 
 // ─── Mock data for dropdowns ──────────────────────────────────────────────────
 const COMPANIES = ["Acme Manufacturing Ltd", "Acme Exports Pvt Ltd"];
-const BRANCHES  = ["Mumbai Head Office", "Pune Plant", "Delhi Office", "Bengaluru Branch"];
 const DEPT_TYPES = ["Operations", "Finance", "Human Resources", "Sales & Marketing", "Information Technology", "Procurement", "Legal & Compliance", "R&D", "Customer Support"];
 
 const EMPTY = {
@@ -13,8 +14,12 @@ const EMPTY = {
 };
 
 // ─── Add Department Modal ─────────────────────────────────────────────────────
-function AddDepartmentModal({ onClose, onSubmit }) {
-  const [form,   setForm]   = useState(EMPTY);
+function AddDepartmentModal({ onClose, onSubmit, branchOptions, companyName }) {
+  const [form, setForm] = useState(() => ({
+    ...EMPTY,
+    company: companyName || "",
+    branch: branchOptions[0]?.name || "",
+  }));
   const [errors, setErrors] = useState({});
 
   const set = (f, v) => {
@@ -99,8 +104,8 @@ function AddDepartmentModal({ onClose, onSubmit }) {
             </div>
 
             <div className="adm-grid-2">
-              <Select label="Company" field="company" options={COMPANIES} placeholder="Select company" required />
-              <Select label="Branch"  field="branch"  options={BRANCHES}  placeholder="Select branch"  required />
+              <Select label="Company" field="company" options={companyName ? [companyName] : COMPANIES} placeholder="Select company" required />
+              <Select label="Branch" field="branch" options={branchOptions.map((branch) => branch.name)} placeholder="Select branch" required />
               <Input  label="Department Name" field="name" placeholder="Enter department name" required />
               <Input  label="Department Code" field="code" placeholder="Enter department code" required />
               <Input  label="Department Head" field="head" placeholder="Select or enter department head" icon="👤" />
@@ -419,8 +424,13 @@ function AddDepartmentModal({ onClose, onSubmit }) {
 
 // ─── Departments ──────────────────────────────────────────────────────────────
 
-const Departments = () => {
+const Departments = ({ companyId: providedCompanyId, companyName: providedCompanyName }) => {
+  const activeCompany = useActiveCompany(providedCompanyId);
+  const companyId = providedCompanyId || activeCompany.companyId;
+  const companyName = providedCompanyName || activeCompany.company?.companyName;
   const [showModal, setShowModal] = useState(false);
+  const [branchOptions, setBranchOptions] = useState([]);
+  const [error, setError] = useState("");
   const [departments, setDepartments] = useState([
     {
       department: "Finance & Accounts",
@@ -466,8 +476,55 @@ const Departments = () => {
     },
   ]);
 
+  const mapDepartment = (department) => ({
+    id: department.id,
+    department: department.name,
+    head: department.head || "—",
+    employees: department.employees || 0,
+    costCenter: department.costCenter || "—",
+    status: department.status,
+  });
+
+  useEffect(() => {
+    if (!companyId) {
+      setDepartments([]);
+      setBranchOptions([]);
+      return;
+    }
+    Promise.all([
+      CompanyManagementService.getDepartments(companyId),
+      CompanyManagementService.getBranches(companyId),
+    ])
+      .then(([departmentResponse, branchResponse]) => {
+        setDepartments(departmentResponse.data.map(mapDepartment));
+        setBranchOptions(branchResponse.data.map((branch) => ({ id: branch.id, name: branch.branchName })));
+        setError("");
+      })
+      .catch((requestError) => setError(requestError.response?.data?.detail || "Unable to load departments."));
+  }, [companyId]);
+
+  const createDepartment = async (form) => {
+    const branch = branchOptions.find((item) => item.name === form.branch);
+    try {
+      const { data } = await CompanyManagementService.createDepartment(companyId, {
+        ...form,
+        branchId: branch?.id,
+        type: form.type || "Operations",
+        employees: 0,
+        status: form.status.toUpperCase(),
+      });
+      setDepartments((current) => [...current, mapDepartment(data)]);
+      setShowModal(false);
+      setError("");
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Unable to create the department.");
+    }
+  };
+
   return (
     <div className="departments-content">
+
+      {(error || activeCompany.error) && <div className="departments-api-message">{error || activeCompany.error}</div>}
 
       {/* ================= DEPARTMENTS CARD ================= */}
 
@@ -501,7 +558,7 @@ const Departments = () => {
               className={`department-row ${
                 index === 2 ? "highlighted" : ""
               }`}
-              key={item.department}
+              key={item.id || item.department}
             >
               <div className="department-name">
                 {item.department}
@@ -532,15 +589,9 @@ const Departments = () => {
       {showModal && (
         <AddDepartmentModal
           onClose={() => setShowModal(false)}
-          onSubmit={(data) => {
-            setDepartments(prev => [...prev, {
-              department: data.name,
-              head:        data.head || "—",
-              employees:   0,
-              costCenter:  `CC-00${prev.length + 1}`,
-            }]);
-            setShowModal(false);
-          }}
+          onSubmit={createDepartment}
+          branchOptions={branchOptions}
+          companyName={companyName}
         />
       )}
 
@@ -550,6 +601,11 @@ const Departments = () => {
 
         .departments-content {
           width: 100%;
+        }
+
+        .departments-api-message {
+          margin-bottom: 12px; padding: 10px 14px; border: 1px solid #dfd8c9;
+          border-radius: 10px; background: #fffaf0; color: #6b5b3e; font-size: 12px;
         }
 
         .departments-card {
