@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import ProjectsService from "../../../core/services/modules/projects.service";
+import storageService from "../../../core/services/storage.service";
 import ProjectPlanning from "./ProjectPlanning";
 import Tasks from "./Tasks";
 import TimeTracking from "./TimeTracking";
@@ -8,6 +10,46 @@ import NewProjectModal from "./NewProjectModal";
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("projects");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    ProjectsService.getAll()
+      .then(({ data }) => { setProjects(data); setError(""); })
+      .catch((requestError) => {
+        const responseData = requestError.response?.data;
+        setError(responseData?.detail || responseData?.message || "Unable to load projects.");
+      });
+  }, []);
+
+  const handleProjectCreated = async (form) => {
+    const user = storageService.getUser();
+    try {
+      const { data } = await ProjectsService.create({
+        projectCode: form.projectCode,
+        name: form.projectName,
+        description: form.description || null,
+        customerName: form.client || null,
+        managerUserId: Number.isInteger(Number(user?.id)) ? Number(user.id) : null,
+        managerName: form.projectManager || user.name,
+        startDate: form.startDate,
+        endDate: form.expectedEnd,
+        priority: form.priority.toUpperCase().replaceAll(" ", "_"),
+        plannedBudget: Number(form.totalBudget),
+      });
+      setProjects((current) => [data, ...current]);
+      setNewProjectOpen(false);
+      setError("");
+    } catch (requestError) {
+      const responseData = requestError.response?.data;
+      setError(responseData?.detail || responseData?.message || responseData?.title || "Unable to create the project.");
+    }
+  };
+
+  const projectStats = useMemo(() => ({
+    active: projects.filter((project) => !["COMPLETED", "CANCELLED"].includes(project.status)).length,
+    budget: projects.reduce((total, project) => total + Number(project.plannedBudget || 0), 0),
+  }), [projects]);
 
   const tabs = [
     { id: "projects", label: "PROJECTS", enabled: true },
@@ -19,7 +61,7 @@ const Dashboard = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "projects":
-        return <ProjectPlanning />;
+        return <ProjectPlanning projects={projects} />;
 
       case "tasks":
         return <Tasks />;
@@ -31,7 +73,7 @@ const Dashboard = () => {
         return <BudgetMonitoring />;
 
       default:
-        return <ProjectPlanning />;
+        return <ProjectPlanning projects={projects} />;
     }
   };
 
@@ -88,27 +130,27 @@ const Dashboard = () => {
       <section className="projects-kpi-grid">
 
         <div className="projects-kpi-card">
-          <strong>4</strong>
+            <strong>{projectStats.active}</strong>
           <span>ACTIVE PROJECTS</span>
-          <small>4 due this month</small>
+            <small>{projectStats.active} total loaded</small>
         </div>
 
         <div className="projects-kpi-card">
-          <strong>₹2.4 Cr</strong>
+            <strong>₹{projectStats.budget.toLocaleString("en-IN")}</strong>
           <span>TOTAL BUDGET</span>
-          <small>₹80L spent</small>
+            <small>From saved projects</small>
         </div>
 
         <div className="projects-kpi-card">
-          <strong>6</strong>
+            <strong>0</strong>
           <span>OPEN TASKS</span>
-          <small>2 overdue</small>
+            <small>No task data loaded</small>
         </div>
 
         <div className="projects-kpi-card">
-          <strong>82%</strong>
+            <strong>—</strong>
           <span>ON-TIME RATE</span>
-          <small>↓ 3pp vs last Q</small>
+            <small>No historical data</small>
         </div>
 
       </section>
@@ -152,12 +194,14 @@ const Dashboard = () => {
           ACTIVE CHILD PAGE
       ====================================================== */}
       <main className="projects-dashboard-content">
+        {error && <div className="projects-api-message">{error}</div>}
         {renderTabContent()}
       </main>
 
       <NewProjectModal
         open={newProjectOpen}
         onClose={() => setNewProjectOpen(false)}
+        onCreate={handleProjectCreated}
       />
 
 

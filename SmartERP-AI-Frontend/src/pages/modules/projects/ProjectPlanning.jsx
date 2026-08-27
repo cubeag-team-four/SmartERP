@@ -1,58 +1,6 @@
 import React from "react";
 
-const ProjectPlanning = () => {
-  const projects = [
-    {
-      id: "PRJ-2026-018",
-      status: "ON TRACK",
-      statusClass: "on-track",
-      name: "ERP Phase 2 Rollout",
-      pm: "Arjun Mehta",
-      dates: "01 Apr 2026 → 30 Sep 2026",
-      budget: "₹45L",
-      spent: "₹28L",
-      progress: 62,
-      team: ["AM", "AK", "RV", "DR"],
-    },
-    {
-      id: "PRJ-2026-017",
-      status: "AT RISK",
-      statusClass: "at-risk",
-      client: "Bajaj Auto Ltd",
-      name: "Bajaj Auto — Custom Integration",
-      pm: "Ananya Singh",
-      dates: "01 May 2026 → 15 Aug 2026",
-      budget: "₹18L",
-      spent: "₹17L",
-      progress: 94,
-      team: ["AS", "AK"],
-    },
-    {
-      id: "PRJ-2026-016",
-      status: "ON TRACK",
-      statusClass: "on-track",
-      name: "Factory Floor Automation",
-      pm: "Vikram Joshi",
-      dates: "15 Jun 2026 → 31 Dec 2026",
-      budget: "₹80L",
-      spent: "₹22L",
-      progress: 28,
-      team: ["VJ", "DP"],
-    },
-    {
-      id: "PRJ-2026-015",
-      status: "COMPLETED",
-      statusClass: "completed",
-      client: "Godrej Industries",
-      name: "Godrej Supply Chain Portal",
-      pm: "Rohan Verma",
-      dates: "01 Mar 2026 → 31 Jul 2026",
-      budget: "₹12L",
-      spent: "₹12L",
-      progress: 100,
-      team: ["RV", "AS", "AK"],
-    },
-  ];
+const ProjectPlanning = ({ projects }) => {
 
   return (
     <div className="projects-page">
@@ -62,37 +10,31 @@ const ProjectPlanning = () => {
             <article className="project-card" key={project.id}>
               <div className="project-main">
                 <div className="project-meta">
-                  <span>{project.id}</span>
-                  <span className={`project-status ${project.statusClass}`}>{project.status}</span>
-                  {project.client && <span className="project-client">{project.client}</span>}
+                  <span>{project.projectCode}</span>
+                  <span className={`project-status ${project.status?.toLowerCase().replaceAll("_", "-")}`}>{project.status}</span>
+                  {project.customerName && <span className="project-client">{project.customerName}</span>}
                 </div>
 
                 <h2>{project.name}</h2>
 
                 <div className="project-details">
-                  <span>PM: {project.pm}</span>
-                  <span>{project.dates}</span>
-                  <span>Budget: {project.budget}</span>
-                  <span>Spent: {project.spent}</span>
-
-                  <div className="project-team">
-                    {project.team.map((member, i) => (
-                      <span key={`${member}-${i}`}>{member}</span>
-                    ))}
-                  </div>
+                  <span>PM: {project.managerName || "—"}</span>
+                  <span>{project.startDate} → {project.endDate}</span>
+                  <span>Budget: {project.plannedBudget}</span>
+                  <span>Spent: {project.actualBudget}</span>
                 </div>
               </div>
 
               <div className="project-progress-value">
-                <strong>{project.progress}%</strong>
+                <strong>{project.progressPercent}%</strong>
                 <span>COMPLETE</span>
                 <button type="button" className="project-arrow" aria-label="Open project">›</button>
               </div>
 
               <div className="project-progress-track">
                 <div
-                  className={`project-progress-fill ${project.statusClass}`}
-                  style={{ width: `${project.progress}%` }}
+                  className={`project-progress-fill ${project.status?.toLowerCase().replaceAll("_", "-")}`}
+                  style={{ width: `${project.progressPercent}%` }}
                 />
               </div>
             </article>

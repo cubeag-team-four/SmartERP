@@ -1,65 +1,24 @@
 import React from "react";
 
 const BudgetMonitoring = () => {
-  const projects = [
-    {
-      name: "ERP Phase 2 Rollout",
-      manager: "Arjun Mehta",
-      spent: "₹28.0L",
-      budget: "₹45L",
-      used: 62,
-      remaining: "₹17.0L",
-      status: "ON TRACK",
-      statusClass: "on-track",
-    },
-    {
-      name: "Bajaj Auto — Custom Integration",
-      manager: "Ananya Singh",
-      spent: "₹16.8L",
-      budget: "₹18L",
-      used: 93,
-      remaining: "₹1.2L",
-      status: "AT RISK",
-      statusClass: "at-risk",
-    },
-    {
-      name: "Factory Floor Automation",
-      manager: "Vikram Joshi",
-      spent: "₹22.0L",
-      budget: "₹80L",
-      used: 28,
-      remaining: "₹58.0L",
-      status: "ON TRACK",
-      statusClass: "on-track",
-    },
-    {
-      name: "Godrej Supply Chain Portal",
-      manager: "Rohan Verma",
-      spent: "₹12.4L",
-      budget: "₹12L",
-      used: 103,
-      remaining: "₹-0.4L",
-      status: "COMPLETED",
-      statusClass: "completed",
-    },
-  ];
+  const projects = [];
 
   return (
     <div className="budget-page">
       <div className="budget-content">
         <section className="budget-summary">
           <div className="budget-summary-card">
-            <strong>₹1.61 Cr</strong>
+            <strong>₹0</strong>
             <span>TOTAL BUDGET</span>
           </div>
 
           <div className="budget-summary-card">
-            <strong>₹79L</strong>
+            <strong>₹0</strong>
             <span>TOTAL SPENT</span>
           </div>
 
           <div className="budget-summary-card">
-            <strong>₹76L</strong>
+            <strong>₹0</strong>
             <span>REMAINING</span>
           </div>
         </section>
