@@ -1,4 +1,8 @@
 package com.cubeage.erp.manufacturing.dto.request;
 
-public class CompleteMaintenanceRequest {
-}
+import java.time.LocalDate;
+
+public record CompleteMaintenanceRequest(
+        LocalDate completedDate,
+        String notes
+) {}

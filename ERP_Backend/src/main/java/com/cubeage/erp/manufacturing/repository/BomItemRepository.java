@@ -1,4 +1,13 @@
 package com.cubeage.erp.manufacturing.repository;
 
-public interface BomItemRepository {
+import com.cubeage.erp.manufacturing.entity.BomItem;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface BomItemRepository extends JpaRepository<BomItem, Long> {
+
+    List<BomItem> findByBillOfMaterialId(Long bomId);
 }

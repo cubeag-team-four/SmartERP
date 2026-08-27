@@ -1,4 +1,12 @@
 package com.cubeage.erp.manufacturing.dto.request;
 
-public class UpdateWorkOrderProgressRequest {
-}
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+
+public record UpdateWorkOrderProgressRequest(
+        @NotNull(message = "Progress percentage is required")
+        @Min(value = 0, message = "Progress must be at least 0")
+        @Max(value = 100, message = "Progress cannot exceed 100")
+        Integer progress
+) {}
