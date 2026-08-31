@@ -1,40 +1,7 @@
 import React from "react";
 
 const TimeTracking = () => {
-  const timelineProjects = [
-    {
-      name: "ERP Phase 2",
-      progress: 62,
-      status: "ON TRACK",
-      statusClass: "on-track",
-      start: 2,
-      end: 7.35,
-    },
-    {
-      name: "Bajaj Auto —",
-      progress: 94,
-      status: "AT RISK",
-      statusClass: "at-risk",
-      start: 3,
-      end: 6.95,
-    },
-    {
-      name: "Factory Floor Automa...",
-      progress: 28,
-      status: "ON TRACK",
-      statusClass: "on-track",
-      start: 4.2,
-      end: 12,
-    },
-    {
-      name: "Godrej Supply Chain",
-      progress: 100,
-      status: "COMPLETED",
-      statusClass: "completed",
-      start: 1,
-      end: 5.55,
-    },
-  ];
+  const timelineProjects = [];
 
   const months = [
     "APR",

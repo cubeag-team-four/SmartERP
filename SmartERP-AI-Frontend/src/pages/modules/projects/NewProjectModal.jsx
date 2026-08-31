@@ -190,7 +190,7 @@ const MemberPicker = ({ members, onChange }) => {
 const emptyForm = () => ({
     // 1. Project Information
     projectName: "",
-    projectCode: "PRJ-2026-019",
+    projectCode: `PRJ-${Date.now()}`,
     projectType: "",
     client: "",
     company: "",
@@ -209,7 +209,7 @@ const emptyForm = () => ({
     projectManager: "",
     projectOwner: "",
     projectSponsor: "",
-    teamMembers: ["Arjun Mehta", "Rahul Patil", "Sneha Shah", "Amit Joshi"],
+    teamMembers: [],
 
     // 4. Budget
     budgetType: "",
@@ -235,7 +235,7 @@ const emptyForm = () => ({
     internalNotes: "",
 });
 
-const NewProjectModal = ({ open, onClose }) => {
+const NewProjectModal = ({ open, onClose, onCreate }) => {
     const [form, setForm]   = useState(emptyForm());
     const [tagInput, setTagInput] = useState("");
     const [dragging, setDragging] = useState(false);
@@ -305,7 +305,7 @@ const NewProjectModal = ({ open, onClose }) => {
                             Save as Draft
                         </button>
                         <button
-                            onClick={onClose}
+                            onClick={() => onCreate(form)}
                             className="rounded-[12px] bg-[#11130f] px-5 py-2.5 font-mono text-[12px] text-white transition hover:bg-[#292c27]"
                         >
                             Create Project
@@ -704,7 +704,7 @@ const NewProjectModal = ({ open, onClose }) => {
                         Save as Draft
                     </button>
                     <button
-                        onClick={onClose}
+                        onClick={() => onCreate(form)}
                         className="rounded-[12px] bg-[#11130f] px-6 py-2.5 font-mono text-[12px] text-white transition hover:bg-[#292c27]"
                     >
                         Create Project

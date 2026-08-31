@@ -3,6 +3,7 @@ import com.cubeage.erp.projects.dto.request.*; import com.cubeage.erp.projects.d
 import com.cubeage.erp.projects.entity.*; import com.cubeage.erp.projects.enums.*; import com.cubeage.erp.projects.exception.*;
 import com.cubeage.erp.projects.mapper.ProjectMapper; import com.cubeage.erp.projects.repository.*;
 import com.cubeage.erp.projects.service.ProjectService; import com.cubeage.erp.projects.specification.ProjectSpecification;
+import com.cubeage.erp.security.SecurityUtils;
 import lombok.RequiredArgsConstructor; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal; import java.util.*;
 @Service @RequiredArgsConstructor @Transactional
@@ -13,8 +14,9 @@ public class ProjectServiceImpl implements ProjectService {
  @Override public ProjectResponse create(Long tenantId,CreateProjectRequest r){
   if(projectRepository.existsByTenantIdAndProjectCodeIgnoreCase(tenantId,r.projectCode())) throw new ProjectValidationException("Project code already exists");
   if(r.endDate().isBefore(r.startDate())) throw new ProjectValidationException("End date cannot be before start date");
-  Project p=Project.builder().tenantId(tenantId).projectCode(r.projectCode().trim().toUpperCase()).name(r.name()).description(r.description())
-   .customerId(r.customerId()).customerName(r.customerName()).managerUserId(r.managerUserId()).managerName(r.managerName())
+    Long managerUserId = r.managerUserId() == null ? SecurityUtils.currentUserId() : r.managerUserId();
+    Project p=Project.builder().tenantId(tenantId).projectCode(r.projectCode().trim().toUpperCase()).name(r.name()).description(r.description())
+     .customerId(r.customerId()).customerName(r.customerName()).managerUserId(managerUserId).managerName(r.managerName())
    .branchId(r.branchId()).departmentId(r.departmentId()).costCenterId(r.costCenterId()).startDate(r.startDate()).endDate(r.endDate())
    .status(ProjectStatus.PLANNING).priority(r.priority()).plannedBudget(r.plannedBudget()).actualBudget(BigDecimal.ZERO)
    .budgetAlertThresholdPercent(r.budgetAlertThresholdPercent()==null?BigDecimal.valueOf(10):r.budgetAlertThresholdPercent()).progressPercent(0).build();
