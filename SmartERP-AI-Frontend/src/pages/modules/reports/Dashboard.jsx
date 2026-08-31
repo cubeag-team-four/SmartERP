@@ -1,172 +1,196 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import ReportsService from "../../../core/services/modules/reports.service";
 
 const Dashboard = () => {
-  const kpiData = {
+  const navigate = useNavigate();
+
+  // Neutral KPI Structure
+  const DEFAULT_KPIS = {
     FINANCE: [
-      { label: "REVENUE YTD", value: "₹8.55 Cr", change: "+18.4%", direction: "up" },
-      { label: "NET PROFIT", value: "₹1.60 Cr", change: "+12.1%", direction: "up" },
-      { label: "GROSS MARGIN", value: "38.5%", change: "+2.1pp", direction: "up" },
-      { label: "RECEIVABLE DAYS", value: "28d", change: "-3d", direction: "up" },
-      { label: "TOTAL PAYABLES", value: "₹1.20 Cr", change: "+8.2%", direction: "down" },
-      { label: "WORKING CAPITAL", value: "₹2.62 Cr", change: "+5.4%", direction: "up" },
+      { label: "REVENUE YTD", value: "—", change: "—", direction: "neutral" },
+      { label: "NET PROFIT", value: "—", change: "—", direction: "neutral" },
+      { label: "GROSS MARGIN", value: "—", change: "—", direction: "neutral" },
+      { label: "RECEIVABLE DAYS", value: "—", change: "—", direction: "neutral" },
+      { label: "TOTAL PAYABLES", value: "—", change: "—", direction: "neutral" },
+      { label: "WORKING CAPITAL", value: "—", change: "—", direction: "neutral" },
     ],
-
     SALES: [
-      { label: "REVENUE MTD", value: "₹1.42 Cr", change: "+18%", direction: "up" },
-      { label: "ORDERS BOOKED", value: "₹14.1 L", change: "+42%", direction: "up" },
-      { label: "WIN RATE", value: "28%", change: "+3pp", direction: "up" },
-      { label: "AVG DEAL SIZE", value: "₹8.2 L", change: "-4%", direction: "down" },
-      { label: "PIPELINE VALUE", value: "₹2.4 Cr", change: "+12%", direction: "up" },
-      { label: "AVG CLOSE TIME", value: "18d", change: "-2d", direction: "up" },
+      { label: "REVENUE MTD", value: "—", change: "—", direction: "neutral" },
+      { label: "ORDERS BOOKED", value: "—", change: "—", direction: "neutral" },
+      { label: "WIN RATE", value: "—", change: "—", direction: "neutral" },
+      { label: "AVG DEAL SIZE", value: "—", change: "—", direction: "neutral" },
+      { label: "PIPELINE VALUE", value: "—", change: "—", direction: "neutral" },
+      { label: "AVG CLOSE TIME", value: "—", change: "—", direction: "neutral" },
     ],
-
     OPERATIONS: [
-      { label: "OEE", value: "84%", change: "+3pp", direction: "up" },
-      { label: "ON-TIME DELIVERY", value: "92%", change: "+4pp", direction: "up" },
-      { label: "REJECTION RATE", value: "0.4%", change: "-0.2pp", direction: "up" },
-      { label: "STOCK VALUE", value: "₹2.44 Cr", change: "+6%", direction: "up" },
-      { label: "PO FILL RATE", value: "96%", change: "+2pp", direction: "up" },
-      { label: "MACHINE UPTIME", value: "80%", change: "-5pp", direction: "down" },
+      { label: "OEE", value: "—", change: "—", direction: "neutral" },
+      { label: "ON-TIME DELIVERY", value: "—", change: "—", direction: "neutral" },
+      { label: "REJECTION RATE", value: "—", change: "—", direction: "neutral" },
+      { label: "STOCK VALUE", value: "—", change: "—", direction: "neutral" },
+      { label: "PO FILL RATE", value: "—", change: "—", direction: "neutral" },
+      { label: "MACHINE UPTIME", value: "—", change: "—", direction: "neutral" },
     ],
-
     HR: [
-      { label: "HEADCOUNT", value: "284", change: "+3", direction: "up" },
-      { label: "ATTENDANCE RATE", value: "94.2%", change: "+0.8pp", direction: "up" },
-      { label: "ATTRITION RATE", value: "8.4%", change: "-1.2pp", direction: "up" },
-      { label: "PAYROLL COST", value: "₹98.4 L", change: "+3.2%", direction: "down" },
-      { label: "OPEN POSITIONS", value: "6", change: "+2", direction: "neutral" },
-      { label: "AVG PERFORMANCE", value: "4.2/5", change: "+0.1", direction: "up" },
+      { label: "HEADCOUNT", value: "—", change: "—", direction: "neutral" },
+      { label: "ATTENDANCE RATE", value: "—", change: "—", direction: "neutral" },
+      { label: "ATTRITION RATE", value: "—", change: "—", direction: "neutral" },
+      { label: "PAYROLL COST", value: "—", change: "—", direction: "neutral" },
+      { label: "OPEN POSITIONS", value: "—", change: "—", direction: "neutral" },
+      { label: "AVG PERFORMANCE", value: "—", change: "—", direction: "neutral" },
     ],
   };
 
+  // Dynamic States
+  const [kpiData, setKpiData] = useState(DEFAULT_KPIS);
   const [activeKpiTab, setActiveKpiTab] = useState("FINANCE");
+  const [revenueData, setRevenueData] = useState([]);
+  const [revenueSplit, setRevenueSplit] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const capitalize = (s) => {
+    if (!s) return "";
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  };
+
+  // Fetch Dashboard Stats on Mount
+  useEffect(() => {
+    setLoading(true);
+    setError("");
+    ReportsService.getDashboard()
+      .then(({ data }) => {
+        // Map KPIs
+        if (data.kpiData && Object.keys(data.kpiData).length > 0) {
+          const newKpis = {};
+          Object.entries(data.kpiData).forEach(([k, list]) => {
+            newKpis[k.toUpperCase()] = list.map(item => ({
+              label: item.label,
+              value: item.value || "—",
+              change: item.change || "—",
+              direction: item.direction || "neutral"
+            }));
+          });
+          setKpiData(prev => ({ ...prev, ...newKpis }));
+        }
+
+        // Map Revenue Trend
+        if (data.revenueTrend && data.revenueTrend.length > 0) {
+          const maxVal = Math.max(...data.revenueTrend.map(x => x.value), 1);
+          const mappedTrend = data.revenueTrend.map(x => ({
+            month: x.name,
+            value: `₹${(x.value / 100000).toFixed(0)}L`,
+            height: Math.min(Math.max(Math.round((x.value / maxVal) * 90), 10), 100)
+          }));
+          setRevenueData(mappedTrend);
+        } else {
+          setRevenueData([]);
+        }
+
+        // Map Revenue Split
+        if (data.revenueSplit && data.revenueSplit.length > 0) {
+          const totalVal = data.revenueSplit.reduce((acc, x) => acc + x.value, 0) || 1;
+          const classes = ["manufacturing", "services", "spares", "export"];
+          const mappedSplit = data.revenueSplit.map((x, i) => ({
+            name: x.name,
+            percentage: Math.round((x.value / totalVal) * 100),
+            className: classes[i % classes.length]
+          }));
+          setRevenueSplit(mappedSplit);
+        } else {
+          setRevenueSplit([]);
+        }
+
+        // Map Predefined & Custom Reports List
+        if (data.reportsList && data.reportsList.length > 0) {
+          const mappedReports = data.reportsList.map(r => ({
+            id: r.id,
+            name: r.name,
+            category: capitalize(r.category) || "General",
+            format: r.isCustom ? "Table / Chart" : (r.format || "PDF / Excel / CSV"),
+            lastRun: r.lastRun || "Recent",
+            schedule: r.schedule || (r.isCustom ? "Active" : "None"),
+            isCustom: r.isCustom || false
+          }));
+          setReports(mappedReports);
+        } else {
+          setReports([]);
+        }
+      })
+      .catch(err => {
+        setError(err.response?.data?.detail || "Failed to load reports dashboard.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Export Trigger Handler
+  const handleExport = (reportItem) => {
+    if (!reportItem.id) {
+      alert("Mock/pre-seeding reports cannot be exported. Create custom reports first or verify database seeder.");
+      return;
+    }
+
+    const formatInput = window.prompt("Enter export format (PDF, EXCEL, CSV):", "PDF");
+    if (!formatInput) return;
+    const format = formatInput.toUpperCase().trim();
+    if (format !== "PDF" && format !== "EXCEL" && format !== "CSV") {
+      alert("Invalid format. Please enter PDF, EXCEL, or CSV.");
+      return;
+    }
+
+    setLoading(true);
+    ReportsService.export(reportItem.id, { format, isCustom: reportItem.isCustom || false })
+      .then(response => {
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        const blob = new Blob([response.data], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        let ext = format.toLowerCase();
+        if (ext === 'excel') ext = 'xlsx';
+        
+        link.setAttribute('download', `${reportItem.name.replace(/\s+/g, '_')}_export.${ext}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(err => {
+        alert("Failed to export report: " + (err.response?.data?.detail || err.message || err));
+      })
+      .finally(() => setLoading(false));
+  };
 
   const getCurrentKpis = () => {
     switch (activeKpiTab) {
       case "SALES":
-        return kpiData.SALES;
-
+        return kpiData.SALES || [];
       case "OPERATIONS":
-        return kpiData.OPERATIONS;
-
+        return kpiData.OPERATIONS || [];
       case "HR":
-        return kpiData.HR;
-
+        return kpiData.HR || [];
       case "FINANCE":
       default:
-        return kpiData.FINANCE;
+        return kpiData.FINANCE || [];
     }
   };
 
   const currentKpis = getCurrentKpis();
 
-  const revenueData = [
-    { month: "MAR", value: "₹96L", height: 42 },
-    { month: "APR", value: "₹132L", height: 58 },
-    { month: "MAY", value: "₹115L", height: 51 },
-    { month: "JUN", value: "₹173L", height: 76 },
-    { month: "JUL", value: "₹216L", height: 94 },
-    { month: "AUG", value: "₹163L", height: 71 },
-  ];
-
-  const revenueSplit = [
-    {
-      name: "Manufacturing",
-      percentage: 42,
-      className: "manufacturing",
-    },
-    {
-      name: "Services",
-      percentage: 28,
-      className: "services",
-    },
-    {
-      name: "Spares & Parts",
-      percentage: 18,
-      className: "spares",
-    },
-    {
-      name: "Export",
-      percentage: 12,
-      className: "export",
-    },
-  ];
-
-  const reports = [
-    {
-      name: "Profit & Loss Statement",
-      category: "Finance",
-      format: "PDF / Excel",
-      lastRun: "08 Aug 2026",
-      schedule: "Monthly",
-    },
-    {
-      name: "Balance Sheet",
-      category: "Finance",
-      format: "PDF / Excel",
-      lastRun: "08 Aug 2026",
-      schedule: "Monthly",
-    },
-    {
-      name: "Cash Flow Statement",
-      category: "Finance",
-      format: "PDF",
-      lastRun: "01 Aug 2026",
-      schedule: "Monthly",
-    },
-    {
-      name: "Accounts Receivable Aging",
-      category: "Finance",
-      format: "Excel",
-      lastRun: "08 Aug 2026",
-      schedule: "Weekly",
-    },
-    {
-      name: "Sales Performance Report",
-      category: "Sales",
-      format: "PDF / Excel",
-      lastRun: "07 Aug 2026",
-      schedule: "Weekly",
-    },
-    {
-      name: "Lead Conversion Analysis",
-      category: "CRM",
-      format: "PDF",
-      lastRun: "01 Aug 2026",
-      schedule: "Monthly",
-    },
-    {
-      name: "Inventory Valuation",
-      category: "Inventory",
-      format: "Excel",
-      lastRun: "05 Aug 2026",
-      schedule: "Weekly",
-    },
-    {
-      name: "Payroll Summary",
-      category: "HR",
-      format: "PDF / Excel",
-      lastRun: "31 Jul 2026",
-      schedule: "Monthly",
-    },
-    {
-      name: "Production Efficiency Report",
-      category: "Manufacturing",
-      format: "PDF",
-      lastRun: "06 Aug 2026",
-      schedule: "Daily",
-    },
-    {
-      name: "Attendance Summary",
-      category: "HR",
-      format: "Excel",
-      lastRun: "08 Aug 2026",
-      schedule: "Weekly",
-    },
-  ];
-
   return (
     <div className="reports-page">
+      {loading && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 999 }}>
+          <div style={{ fontSize: '16px', color: '#6b8a62', fontWeight: 'bold' }}>Processing...</div>
+        </div>
+      )}
+      {error && (
+        <div style={{ margin: '16px 0', padding: '12px 16px', backgroundColor: '#fff2f0', border: '1px solid #ffccc7', borderRadius: '8px', color: '#ff4d4f', fontSize: '14px' }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* ================= PAGE HEADER ================= */}
 
@@ -183,11 +207,11 @@ const Dashboard = () => {
         </div>
 
         <div className="reports-actions">
-          <button className="schedule-btn">
+          <button className="schedule-btn" onClick={() => alert("To schedule a report, please edit or create a Custom Report and configure the schedule rules in Section 11.")}>
             Schedule Report
           </button>
 
-          <button className="custom-btn">
+          <button className="custom-btn" onClick={() => navigate('custom-report')}>
             + Custom Report
           </button>
         </div>
@@ -311,35 +335,33 @@ const Dashboard = () => {
 
 
           <div className="bar-chart">
-
-            {revenueData.map((item, index) => (
-              <div
-                className="bar-column"
-                key={index}
-              >
-
-                <div className="bar-value">
-                  {item.value}
+            {revenueData.length > 0 ? (
+              revenueData.map((item, index) => (
+                <div
+                  className="bar-column"
+                  key={index}
+                >
+                  <div className="bar-value">
+                    {item.value}
+                  </div>
+                  <div className="bar-wrapper">
+                    <div
+                      className="revenue-bar"
+                      style={{
+                        height: `${item.height}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="bar-month">
+                    {item.month}
+                  </div>
                 </div>
-
-                <div className="bar-wrapper">
-
-                  <div
-                    className="revenue-bar"
-                    style={{
-                      height: `${item.height}%`,
-                    }}
-                  />
-
-                </div>
-
-                <div className="bar-month">
-                  {item.month}
-                </div>
-
+              ))
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '140px', color: '#99978f', fontSize: '13px', width: '100%' }}>
+                No revenue trend data available
               </div>
-            ))}
-
+            )}
           </div>
 
         </section>
@@ -359,46 +381,39 @@ const Dashboard = () => {
 
 
           <div className="split-list">
-
-            {revenueSplit.map((item, index) => (
-              <div
-                className="split-item"
-                key={index}
-              >
-
-                <div className="split-top">
-
-                  <div className="split-name">
-
-                    <span
-                      className={`split-dot ${item.className}`}
-                    />
-
-                    {item.name}
-
+            {revenueSplit.length > 0 ? (
+              revenueSplit.map((item, index) => (
+                <div
+                  className="split-item"
+                  key={index}
+                >
+                  <div className="split-top">
+                    <div className="split-name">
+                      <span
+                        className={`split-dot ${item.className}`}
+                      />
+                      {item.name}
+                    </div>
+                    <span>
+                      {item.percentage}%
+                    </span>
                   </div>
 
-                  <span>
-                    {item.percentage}%
-                  </span>
-
+                  <div className="split-track">
+                    <div
+                      className={`split-progress ${item.className}`}
+                      style={{
+                        width: `${item.percentage}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-
-
-                <div className="split-track">
-
-                  <div
-                    className={`split-progress ${item.className}`}
-                    style={{
-                      width: `${item.percentage}%`,
-                    }}
-                  />
-
-                </div>
-
+              ))
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '140px', color: '#99978f', fontSize: '13px', width: '100%' }}>
+                No revenue split data available
               </div>
-            ))}
-
+            )}
           </div>
 
         </section>
@@ -467,57 +482,72 @@ const Dashboard = () => {
 
         <div className="report-table">
 
-          {reports.map((report, index) => (
-            <div
-              className="report-row"
-              key={index}
-            >
+          {reports.length > 0 ? (
+            reports.map((report, index) => (
+              <div
+                className="report-row"
+                key={index}
+              >
 
-              <div className="report-name">
-                {report.name}
+                <div className="report-name">
+                  {report.name}
+                </div>
+
+
+                <div>
+                  <span className="category-badge">
+                    {report.category}
+                  </span>
+                </div>
+
+
+                <div className="report-format">
+                  {report.format}
+                </div>
+
+
+                <div className="last-run">
+                  {report.lastRun}
+                </div>
+
+
+                <div>
+                  <span
+                    className={`schedule-badge ${report.schedule ? report.schedule.toLowerCase() : 'none'}`}
+                  >
+                    {report.schedule}
+                  </span>
+                </div>
+
+
+                <div className="report-actions-cell">
+
+                  <button 
+                    className="run-btn" 
+                    onClick={() => {
+                      if (report.isCustom && report.id) {
+                        navigate(`custom-report?id=${report.id}`);
+                      } else {
+                        alert(`Running standard report: ${report.name}`);
+                      }
+                    }}
+                  >
+                    Run
+                  </button>
+
+                  <button className="export-small-btn" onClick={() => handleExport(report)}>
+                    ↓ Export
+                  </button>
+
+                </div>
+
               </div>
-
-
-              <div>
-                <span className="category-badge">
-                  {report.category}
-                </span>
-              </div>
-
-
-              <div className="report-format">
-                {report.format}
-              </div>
-
-
-              <div className="last-run">
-                {report.lastRun}
-              </div>
-
-
-              <div>
-                <span
-                  className={`schedule-badge ${report.schedule.toLowerCase()}`}
-                >
-                  {report.schedule}
-                </span>
-              </div>
-
-
-              <div className="report-actions-cell">
-
-                <button className="run-btn">
-                  Run
-                </button>
-
-                <button className="export-small-btn">
-                  ↓ Export
-                </button>
-
-              </div>
-
+            ))
+          ) : (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#99978f', fontSize: '13px' }}>
+              No reports found in library. Click "+ Custom Report" to create a report.
             </div>
-          ))}
+          )}
 
         </div>
 

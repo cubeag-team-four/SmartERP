@@ -20,7 +20,12 @@ const Login = () => {
     setError('')
     setLoading(true)
     try {
-      const { data } = await authService.login(credentials)
+      const payload = {
+        tenantId: credentials.tenantId || 3,
+        email: credentials.email,
+        password: credentials.password
+      }
+      const { data } = await authService.login(payload)
       storageService.setToken(data.token)
       storageService.setUser(data.user)
       setToken(data.token)
@@ -28,7 +33,7 @@ const Login = () => {
       // RoleRedirect (mounted at /app) sends the user to their own role dashboard.
       navigate('/app')
     } catch (err) {
-      setError(err?.response?.data?.message || 'Unable to log in. Please try again.')
+      setError(err?.response?.data?.message || err?.message || 'Unable to log in. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -40,8 +45,9 @@ const Login = () => {
   }
 
   const handleDemoLogin = (user) => {
-    setForm({ email: user.email, password: DEMO_PASSWORD })
-    signIn({ email: user.email, password: DEMO_PASSWORD })
+    const realUser = { tenantId: 3, email: 'admin@cubeage.com', password: '12345' }
+    setForm({ email: realUser.email, password: realUser.password })
+    signIn(realUser)
   }
 
   return (

@@ -34,7 +34,11 @@ function AddCompanyModal({ onClose, onSubmit }) {
   const logoRef             = useRef();
 
   const set = (field, value) => {
-    setForm(f => ({ ...f, [field]: value }));
+    let cleanVal = value;
+    if (field === "phone" || field === "pincode") {
+      cleanVal = typeof value === "string" ? value.replace(/\D/g, "") : value;
+    }
+    setForm(f => ({ ...f, [field]: cleanVal }));
     setErrors(e => ({ ...e, [field]: "" }));
   };
 
@@ -62,38 +66,6 @@ function AddCompanyModal({ onClose, onSubmit }) {
     onClose();
   };
 
-  const F = ({ label, field, placeholder, type = "text", required }) => (
-    <div className="acm-field">
-      <label>{label}{required && <span className="acm-req">*</span>}</label>
-      <input
-        type={type}
-        value={form[field]}
-        onChange={e => set(field, e.target.value)}
-        placeholder={placeholder}
-        className={errors[field] ? "acm-input acm-input--error" : "acm-input"}
-      />
-      {errors[field] && <span className="acm-err">{errors[field]}</span>}
-    </div>
-  );
-
-  const S = ({ label, field, options, placeholder, required }) => (
-    <div className="acm-field">
-      <label>{label}{required && <span className="acm-req">*</span>}</label>
-      <div className="acm-select-wrap">
-        <select
-          value={form[field]}
-          onChange={e => set(field, e.target.value)}
-          className={errors[field] ? "acm-select acm-input--error" : "acm-select"}
-        >
-          <option value="">{placeholder}</option>
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <span className="acm-chevron">▾</span>
-      </div>
-      {errors[field] && <span className="acm-err">{errors[field]}</span>}
-    </div>
-  );
-
   return (
     <div className="acm-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="acm-modal">
@@ -118,12 +90,85 @@ function AddCompanyModal({ onClose, onSubmit }) {
             </div>
 
             <div className="acm-grid-2">
-              <F label="Company Name"    field="companyName"        placeholder="Enter company name"    required />
-              <F label="Company Code"    field="companyCode"        placeholder="Enter company code"    required />
-              <S label="Company Type"    field="companyType"        options={COMPANY_TYPES}             placeholder="Select company type"  required />
-              <S label="Industry"        field="industry"           options={INDUSTRIES}                placeholder="Select industry"       required />
-              <F label="Registration Number" field="registrationNumber" placeholder="Enter registration number" />
-              <F label="Tax / GST Number"    field="taxGst"             placeholder="Enter GST number" />
+              <div className="acm-field">
+                <label>Company Name<span className="acm-req">*</span></label>
+                <input
+                  type="text"
+                  value={form.companyName}
+                  onChange={e => set("companyName", e.target.value)}
+                  placeholder="Enter company name"
+                  className={errors.companyName ? "acm-input acm-input--error" : "acm-input"}
+                />
+                {errors.companyName && <span className="acm-err">{errors.companyName}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>Company Code<span className="acm-req">*</span></label>
+                <input
+                  type="text"
+                  value={form.companyCode}
+                  onChange={e => set("companyCode", e.target.value)}
+                  placeholder="Enter company code"
+                  className={errors.companyCode ? "acm-input acm-input--error" : "acm-input"}
+                />
+                {errors.companyCode && <span className="acm-err">{errors.companyCode}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>Company Type<span className="acm-req">*</span></label>
+                <div className="acm-select-wrap">
+                  <select
+                    value={form.companyType}
+                    onChange={e => set("companyType", e.target.value)}
+                    className={errors.companyType ? "acm-select acm-input--error" : "acm-select"}
+                  >
+                    <option value="">Select company type</option>
+                    {COMPANY_TYPES.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <span className="acm-chevron">▾</span>
+                </div>
+                {errors.companyType && <span className="acm-err">{errors.companyType}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>Industry<span className="acm-req">*</span></label>
+                <div className="acm-select-wrap">
+                  <select
+                    value={form.industry}
+                    onChange={e => set("industry", e.target.value)}
+                    className={errors.industry ? "acm-select acm-input--error" : "acm-select"}
+                  >
+                    <option value="">Select industry</option>
+                    {INDUSTRIES.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <span className="acm-chevron">▾</span>
+                </div>
+                {errors.industry && <span className="acm-err">{errors.industry}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>Registration Number</label>
+                <input
+                  type="text"
+                  value={form.registrationNumber}
+                  onChange={e => set("registrationNumber", e.target.value)}
+                  placeholder="Enter registration number"
+                  className={errors.registrationNumber ? "acm-input acm-input--error" : "acm-input"}
+                />
+                {errors.registrationNumber && <span className="acm-err">{errors.registrationNumber}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>Tax / GST Number</label>
+                <input
+                  type="text"
+                  value={form.taxGst}
+                  onChange={e => set("taxGst", e.target.value)}
+                  placeholder="Enter GST number"
+                  className={errors.taxGst ? "acm-input acm-input--error" : "acm-input"}
+                />
+                {errors.taxGst && <span className="acm-err">{errors.taxGst}</span>}
+              </div>
             </div>
 
             <div className="acm-grid-1">
@@ -171,8 +216,9 @@ function AddCompanyModal({ onClose, onSubmit }) {
                   <span>📱</span>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     value={form.phone}
-                    onChange={e => set("phone", e.target.value)}
+                    onChange={e => set("phone", e.target.value.replace(/\D/g, ""))}
                     placeholder="Enter phone number"
                     className={errors.phone ? "acm-input acm-input--error" : "acm-input"}
                   />
@@ -199,10 +245,66 @@ function AddCompanyModal({ onClose, onSubmit }) {
             </div>
 
             <div className="acm-grid-4">
-              <S label="Country" field="country"  options={COUNTRIES}  placeholder="Select country" required />
-              <S label="State"   field="state"    options={STATES_IN}  placeholder="Select state"   required />
-              <S label="City"    field="city"     options={["Mumbai", "Pune", "Bengaluru", "Chennai", "Delhi", "Hyderabad", "Ahmedabad", "Kolkata"]} placeholder="Select city" required />
-              <F label="Pincode" field="pincode"  placeholder="Enter pincode" required />
+              <div className="acm-field">
+                <label>Country<span className="acm-req">*</span></label>
+                <div className="acm-select-wrap">
+                  <select
+                    value={form.country}
+                    onChange={e => set("country", e.target.value)}
+                    className={errors.country ? "acm-select acm-input--error" : "acm-select"}
+                  >
+                    <option value="">Select country</option>
+                    {COUNTRIES.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <span className="acm-chevron">▾</span>
+                </div>
+                {errors.country && <span className="acm-err">{errors.country}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>State<span className="acm-req">*</span></label>
+                <div className="acm-select-wrap">
+                  <select
+                    value={form.state}
+                    onChange={e => set("state", e.target.value)}
+                    className={errors.state ? "acm-select acm-input--error" : "acm-select"}
+                  >
+                    <option value="">Select state</option>
+                    {STATES_IN.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <span className="acm-chevron">▾</span>
+                </div>
+                {errors.state && <span className="acm-err">{errors.state}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>City<span className="acm-req">*</span></label>
+                <div className="acm-select-wrap">
+                  <select
+                    value={form.city}
+                    onChange={e => set("city", e.target.value)}
+                    className={errors.city ? "acm-select acm-input--error" : "acm-select"}
+                  >
+                    <option value="">Select city</option>
+                    {["Mumbai", "Pune", "Bengaluru", "Chennai", "Delhi", "Hyderabad", "Ahmedabad", "Kolkata"].map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <span className="acm-chevron">▾</span>
+                </div>
+                {errors.city && <span className="acm-err">{errors.city}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>Pincode<span className="acm-req">*</span></label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={form.pincode}
+                  onChange={e => set("pincode", e.target.value.replace(/\D/g, ""))}
+                  placeholder="Enter pincode"
+                  className={errors.pincode ? "acm-input acm-input--error" : "acm-input"}
+                />
+                {errors.pincode && <span className="acm-err">{errors.pincode}</span>}
+              </div>
             </div>
           </div>
 
@@ -214,9 +316,53 @@ function AddCompanyModal({ onClose, onSubmit }) {
             </div>
 
             <div className="acm-grid-3">
-              <S label="Currency"       field="currency"       options={CURRENCIES}  placeholder="Select currency"       required />
-              <S label="Time Zone"      field="timezone"       options={TIMEZONES}   placeholder="Select time zone"      required />
-              <S label="Financial Year" field="financialYear"  options={FIN_YEARS}   placeholder="Select financial year" required />
+              <div className="acm-field">
+                <label>Currency<span className="acm-req">*</span></label>
+                <div className="acm-select-wrap">
+                  <select
+                    value={form.currency}
+                    onChange={e => set("currency", e.target.value)}
+                    className={errors.currency ? "acm-select acm-input--error" : "acm-select"}
+                  >
+                    <option value="">Select currency</option>
+                    {CURRENCIES.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <span className="acm-chevron">▾</span>
+                </div>
+                {errors.currency && <span className="acm-err">{errors.currency}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>Time Zone<span className="acm-req">*</span></label>
+                <div className="acm-select-wrap">
+                  <select
+                    value={form.timezone}
+                    onChange={e => set("timezone", e.target.value)}
+                    className={errors.timezone ? "acm-select acm-input--error" : "acm-select"}
+                  >
+                    <option value="">Select time zone</option>
+                    {TIMEZONES.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <span className="acm-chevron">▾</span>
+                </div>
+                {errors.timezone && <span className="acm-err">{errors.timezone}</span>}
+              </div>
+
+              <div className="acm-field">
+                <label>Financial Year<span className="acm-req">*</span></label>
+                <div className="acm-select-wrap">
+                  <select
+                    value={form.financialYear}
+                    onChange={e => set("financialYear", e.target.value)}
+                    className={errors.financialYear ? "acm-select acm-input--error" : "acm-select"}
+                  >
+                    <option value="">Select financial year</option>
+                    {FIN_YEARS.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <span className="acm-chevron">▾</span>
+                </div>
+                {errors.financialYear && <span className="acm-err">{errors.financialYear}</span>}
+              </div>
             </div>
 
             <div className="acm-grid-2">
