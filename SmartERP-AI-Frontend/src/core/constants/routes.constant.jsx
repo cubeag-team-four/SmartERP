@@ -149,6 +149,7 @@ export const ROUTES = {
   SUPER_ADMIN_REPORTS_FINANCE:              `${BASE.SUPER_ADMIN}/reports/finance`,
   SUPER_ADMIN_REPORTS_HR:                   `${BASE.SUPER_ADMIN}/reports/hr`,
   SUPER_ADMIN_REPORTS_PROJECTS:             `${BASE.SUPER_ADMIN}/reports/projects`,
+  SUPER_ADMIN_REPORTS_CUSTOM:               `${BASE.SUPER_ADMIN}/reports/custom-report`,
 
   // Notifications
   SUPER_ADMIN_NOTIFICATIONS:                `${BASE.SUPER_ADMIN}/notifications`,
@@ -289,6 +290,7 @@ export const ROUTES = {
   ADMIN_REPORTS_FINANCE:                    `${BASE.ADMIN}/reports/finance`,
   ADMIN_REPORTS_HR:                         `${BASE.ADMIN}/reports/hr`,
   ADMIN_REPORTS_PROJECTS:                   `${BASE.ADMIN}/reports/projects`,
+  ADMIN_REPORTS_CUSTOM:                     `${BASE.ADMIN}/reports/custom-report`,
 
   // Notifications
   ADMIN_NOTIFICATIONS:                      `${BASE.ADMIN}/notifications`,

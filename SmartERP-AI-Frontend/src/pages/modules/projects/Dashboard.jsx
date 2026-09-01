@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import ProjectsService from "../../../core/services/modules/projects.service";
+import storageService from "../../../core/services/storage.service";
 import ProjectPlanning from "./ProjectPlanning";
 import Tasks from "./Tasks";
 import TimeTracking from "./TimeTracking";
@@ -8,6 +10,125 @@ import NewProjectModal from "./NewProjectModal";
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("projects");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [error, setError] = useState("");
+
+  const fetchDashboardData = async () => {
+    try {
+      const { data } = await ProjectsService.getDashboard();
+      setDashboardStats(data);
+    } catch {
+      // Non-blocking fallback for dashboard stats
+    }
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const { data } = await ProjectsService.getAll();
+      setProjects(data);
+      setError("");
+    } catch (requestError) {
+      const responseData = requestError.response?.data;
+      setError(responseData?.detail || responseData?.message || "Unable to load projects.");
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+    fetchDashboardData();
+  }, []);
+
+  const handleProjectCreated = async (form) => {
+    const user = storageService.getUser();
+    try {
+      const { data } = await ProjectsService.create({
+        projectCode: form.projectCode,
+        name: form.projectName,
+        description: form.description || null,
+        customerName: form.client || null,
+        managerUserId: Number.isInteger(Number(user?.id)) ? Number(user.id) : null,
+        managerName: form.projectManager || user.name,
+        startDate: form.startDate,
+        endDate: form.expectedEnd,
+        priority: (() => {
+          const VALID = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+          const resolved = (form.priority || "Medium")
+            .toUpperCase()
+            .replaceAll(" ", "_");
+          return VALID.includes(resolved) ? resolved : "MEDIUM";
+        })(),
+        plannedBudget: Number(form.totalBudget),
+      });
+      setProjects((current) => [data, ...current]);
+      fetchDashboardData();
+      setNewProjectOpen(false);
+      setError("");
+    } catch (requestError) {
+      const responseData = requestError.response?.data;
+      setError(responseData?.detail || responseData?.message || responseData?.title || "Unable to create the project.");
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const escapeCsv = (val) => {
+        if (val == null) return "";
+        const str = String(val);
+        if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+          return `"${str.replaceAll('"', '""')}"`;
+        }
+        return str;
+      };
+
+      const headers = [
+        "Project Code",
+        "Name",
+        "Status",
+        "Priority",
+        "Manager",
+        "Start Date",
+        "End Date",
+        "Planned Budget",
+        "Progress %"
+      ];
+
+      const rows = projects.map((p) => [
+        escapeCsv(p.projectCode ?? ""),
+        escapeCsv(p.name ?? ""),
+        escapeCsv(p.status ?? ""),
+        escapeCsv(p.priority ?? ""),
+        escapeCsv(p.managerName ?? ""),
+        escapeCsv(p.startDate ?? ""),
+        escapeCsv(p.endDate ?? ""),
+        escapeCsv(p.plannedBudget ?? 0),
+        escapeCsv(p.progressPercent ?? 0),
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row) => row.join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "projects-export.csv");
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export projects to CSV:", err);
+    }
+  };
+
+  const projectStats = useMemo(() => ({
+    active: projects.filter((project) => !["COMPLETED", "CANCELLED"].includes(project.status)).length,
+    budget: projects.reduce((total, project) => total + Number(project.plannedBudget || 0), 0),
+  }), [projects]);
 
   const tabs = [
     { id: "projects", label: "PROJECTS", enabled: true },
@@ -19,19 +140,19 @@ const Dashboard = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "projects":
-        return <ProjectPlanning />;
+        return <ProjectPlanning projects={projects} />;
 
       case "tasks":
-        return <Tasks />;
+        return <Tasks projects={projects} />;
 
       case "timeline":
-        return <TimeTracking />;
+        return <TimeTracking projects={projects} />;
 
       case "budget":
-        return <BudgetMonitoring />;
+        return <BudgetMonitoring projects={projects} />;
 
       default:
-        return <ProjectPlanning />;
+        return <ProjectPlanning projects={projects} />;
     }
   };
 
@@ -65,6 +186,7 @@ const Dashboard = () => {
           <button
             type="button"
             className="projects-export-btn"
+            onClick={handleExportCSV}
           >
             ↓ Export
           </button>
@@ -88,27 +210,43 @@ const Dashboard = () => {
       <section className="projects-kpi-grid">
 
         <div className="projects-kpi-card">
-          <strong>4</strong>
+          <strong>{dashboardStats?.activeProjects ?? (projects.filter((p) => !["COMPLETED", "CANCELLED"].includes(p.status)).length)}</strong>
           <span>ACTIVE PROJECTS</span>
-          <small>4 due this month</small>
+          <small>
+            {dashboardStats
+              ? `${dashboardStats.totalProjects ?? 0} total (${dashboardStats.completedProjects ?? 0} completed)`
+              : `${projectStats.active} total loaded`}
+          </small>
         </div>
 
         <div className="projects-kpi-card">
-          <strong>₹2.4 Cr</strong>
+          <strong>₹{Number(dashboardStats?.totalPlannedBudget ?? projectStats.budget).toLocaleString("en-IN")}</strong>
           <span>TOTAL BUDGET</span>
-          <small>₹80L spent</small>
+          <small>
+            {dashboardStats
+              ? `Spent: ₹${Number(dashboardStats.totalActualBudget ?? 0).toLocaleString("en-IN")}`
+              : "From saved projects"}
+          </small>
         </div>
 
         <div className="projects-kpi-card">
-          <strong>6</strong>
-          <span>OPEN TASKS</span>
-          <small>2 overdue</small>
+          <strong>{dashboardStats?.overdueTasks ?? 0}</strong>
+          <span>OVERDUE TASKS</span>
+          <small>
+            {dashboardStats
+              ? `${dashboardStats.atRiskProjects ?? 0} projects at risk`
+              : "No task data loaded"}
+          </small>
         </div>
 
         <div className="projects-kpi-card">
-          <strong>82%</strong>
-          <span>ON-TIME RATE</span>
-          <small>↓ 3pp vs last Q</small>
+          <strong>{dashboardStats?.budgetUtilizationPercent != null ? `${Number(dashboardStats.budgetUtilizationPercent).toFixed(1)}%` : "0.0%"}</strong>
+          <span>BUDGET UTILIZATION</span>
+          <small>
+            {dashboardStats
+              ? "Based on actual spend"
+              : "No historical data"}
+          </small>
         </div>
 
       </section>
@@ -152,12 +290,14 @@ const Dashboard = () => {
           ACTIVE CHILD PAGE
       ====================================================== */}
       <main className="projects-dashboard-content">
+        {error && <div className="projects-api-message">{error}</div>}
         {renderTabContent()}
       </main>
 
       <NewProjectModal
         open={newProjectOpen}
         onClose={() => setNewProjectOpen(false)}
+        onCreate={handleProjectCreated}
       />
 
 

@@ -14,6 +14,9 @@ public interface UserRepository
             String email
     );
 
+    // added
+    Optional<User> findByEmailIgnoreCase(String email);
+
     boolean existsByTenantIdAndEmailIgnoreCase(
             Long tenantId,
             String email

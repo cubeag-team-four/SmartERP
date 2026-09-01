@@ -25,7 +25,7 @@ const NAV = {
     { label: 'AI Assistant',       to: '/app/super-admin/ai' },
     { label: 'Settings',           to: '/app/super-admin/settings' },
   ],
-  admin: [
+  tenantAdmin: [
     { label: 'Dashboard',          to: '/app/admin/dashboard' },
     { label: 'Company Management', to: '/app/admin/company' },
     { label: 'CRM',                to: '/app/admin/crm' },

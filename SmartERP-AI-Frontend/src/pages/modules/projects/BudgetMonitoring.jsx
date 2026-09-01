@@ -1,72 +1,115 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import ProjectsService from "../../../core/services/modules/projects.service";
 
-const BudgetMonitoring = () => {
-  const projects = [
-    {
-      name: "ERP Phase 2 Rollout",
-      manager: "Arjun Mehta",
-      spent: "₹28.0L",
-      budget: "₹45L",
-      used: 62,
-      remaining: "₹17.0L",
-      status: "ON TRACK",
-      statusClass: "on-track",
-    },
-    {
-      name: "Bajaj Auto — Custom Integration",
-      manager: "Ananya Singh",
-      spent: "₹16.8L",
-      budget: "₹18L",
-      used: 93,
-      remaining: "₹1.2L",
-      status: "AT RISK",
-      statusClass: "at-risk",
-    },
-    {
-      name: "Factory Floor Automation",
-      manager: "Vikram Joshi",
-      spent: "₹22.0L",
-      budget: "₹80L",
-      used: 28,
-      remaining: "₹58.0L",
-      status: "ON TRACK",
-      statusClass: "on-track",
-    },
-    {
-      name: "Godrej Supply Chain Portal",
-      manager: "Rohan Verma",
-      spent: "₹12.4L",
-      budget: "₹12L",
-      used: 103,
-      remaining: "₹-0.4L",
-      status: "COMPLETED",
-      statusClass: "completed",
-    },
-  ];
+const BudgetMonitoring = ({ projects = [] }) => {
+  const [budgetData, setBudgetData] = useState([]);
+  const [summary, setSummary] = useState({
+    totalBudget: 0,
+    totalSpent: 0,
+    remaining: 0,
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!projects || projects.length === 0) {
+      setBudgetData([]);
+      setSummary({ totalBudget: 0, totalSpent: 0, remaining: 0 });
+      return;
+    }
+
+    setLoading(true);
+
+    Promise.allSettled(
+      projects.map((project) => ProjectsService.getBudget(project.id))
+    )
+      .then((results) => {
+        let sumPlanned = 0;
+        let sumSpent = 0;
+
+        const merged = projects.map((project, index) => {
+          const res = results[index];
+          let planned = Number(project.plannedBudget || 0);
+          let spent = Number(project.actualBudget || 0);
+          let variance = planned - spent;
+          let utilPercent = planned > 0 ? (spent / planned) * 100 : 0;
+          let overThreshold = false;
+
+          if (res.status === "fulfilled" && res.value?.data) {
+            const b = res.value.data;
+            planned = Number(b.plannedBudget ?? planned);
+            spent = Number(b.actualBudget ?? spent);
+            variance = Number(b.variance ?? (planned - spent));
+            utilPercent = Number(b.utilizationPercent ?? utilPercent);
+            overThreshold = Boolean(b.overBudgetThreshold);
+          }
+
+          sumPlanned += planned;
+          sumSpent += spent;
+
+          const isCompleted = ["COMPLETED", "completed"].includes(project.status);
+          const status = overThreshold
+            ? "At Risk"
+            : isCompleted
+            ? "Completed"
+            : "On Track";
+          const statusClass = overThreshold
+            ? "at-risk"
+            : isCompleted
+            ? "completed"
+            : "on-track";
+
+          return {
+            id: project.id,
+            name: project.name,
+            manager: project.managerName || "Unassigned",
+            status,
+            statusClass,
+            spent: `₹${spent.toLocaleString("en-IN")}`,
+            budget: `₹${planned.toLocaleString("en-IN")}`,
+            used: Number(utilPercent.toFixed(1)),
+            remaining: `₹${Math.max(0, variance).toLocaleString("en-IN")}`,
+          };
+        });
+
+        setSummary({
+          totalBudget: sumPlanned,
+          totalSpent: sumSpent,
+          remaining: sumPlanned - sumSpent,
+        });
+        setBudgetData(merged);
+      })
+      .catch(() => {
+        setBudgetData([]);
+        setSummary({ totalBudget: 0, totalSpent: 0, remaining: 0 });
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [projects]);
 
   return (
     <div className="budget-page">
       <div className="budget-content">
         <section className="budget-summary">
           <div className="budget-summary-card">
-            <strong>₹1.61 Cr</strong>
+            <strong>₹{Number(summary.totalBudget).toLocaleString("en-IN")}</strong>
             <span>TOTAL BUDGET</span>
           </div>
 
           <div className="budget-summary-card">
-            <strong>₹79L</strong>
+            <strong>₹{Number(summary.totalSpent).toLocaleString("en-IN")}</strong>
             <span>TOTAL SPENT</span>
           </div>
 
           <div className="budget-summary-card">
-            <strong>₹76L</strong>
+            <strong>₹{Number(summary.remaining).toLocaleString("en-IN")}</strong>
             <span>REMAINING</span>
           </div>
         </section>
 
         <section className="budget-project-list">
-          {projects.map((project) => (
-            <article className="budget-project-card" key={project.name}>
+          {budgetData.map((project) => (
+            <article className="budget-project-card" key={project.id || project.name}>
               <div className="budget-project-header">
                 <div>
                   <h2>{project.name}</h2>
@@ -86,7 +129,7 @@ const BudgetMonitoring = () => {
               <div className="budget-progress-track">
                 <div
                   className={`budget-progress-fill ${project.statusClass}`}
-                  style={{ width: `${Math.min(project.used, 100)}%` }}
+                  style={{ width: `${Math.min(Math.max(project.used, 0), 100)}%` }}
                 />
               </div>
 

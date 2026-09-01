@@ -1,23 +1,20 @@
 import { useState, useRef, useEffect } from "react";
+import apiService from "../../../core/services/api.service";
+import storageService from "../../../core/services/storage.service";
+import CompanyManagementService from "../../../core/services/modules/companyManagement.service";
 
 /* ================================================================
-   CONSTANTS
+   CONSTANTS (STATIC UI ENUMS / CHOICES)
 ================================================================ */
 const PROJECT_TYPES   = ["Fixed Price", "Time & Material", "Retainer", "Internal", "R&D"];
-const CLIENTS         = ["ABC Manufacturing Pvt Ltd", "XYZ Corp", "SmartERP Solutions", "Infosys Ltd", "TCS"];
-const COMPANIES       = ["ABC Manufacturing Pvt Ltd", "XYZ Corp", "SmartERP Solutions"];
-const BRANCHES        = ["Pune Branch", "Mumbai Branch", "Delhi Branch", "Bangalore Branch"];
-const DEPARTMENTS     = ["Production", "HR", "Finance", "IT", "Sales", "Operations", "Admin"];
 const PRIORITIES      = ["Critical", "High", "Medium", "Low"];
 const STATUSES        = ["Not Started", "Planning", "In Progress", "On Hold", "Completed", "Cancelled"];
-const MANAGERS        = ["Amit Sharma", "Neha Verma", "Rahul Patil", "Sneha Shah", "Amit Joshi"];
 const BUDGET_TYPES    = ["Fixed Budget", "Time & Material", "Cost Plus", "Not Applicable"];
 const CURRENCIES      = ["INR - Indian Rupee", "USD - US Dollar", "EUR - Euro", "GBP - British Pound"];
 const BILLING_TYPES   = ["Fixed Price", "Hourly", "Daily", "Monthly", "Milestone Based"];
 const COST_CENTERS    = ["IT Department", "Finance", "Operations", "Sales", "HR"];
 const CATEGORIES      = ["Software Development", "Infrastructure", "Consulting", "Research", "Marketing"];
 const RISK_LEVELS     = ["Low", "Medium", "High", "Critical"];
-const ALL_MEMBERS     = ["Arjun Mehta", "Rahul Patil", "Sneha Shah", "Amit Joshi", "Priya Singh", "Dev Kumar", "Riya Patel", "Sam Nair"];
 
 /* ================================================================
    HELPERS
@@ -107,13 +104,13 @@ const SectionCard = ({ number, title, children }) => (
 
 /* ================================================================
    TEAM MEMBER PICKER
-================================================================ */
-const MemberPicker = ({ members, onChange }) => {
+=============================================================== */
+const MemberPicker = ({ members, onChange, allMembers = [] }) => {
     const [search, setSearch] = useState("");
     const [open, setOpen] = useState(false);
     const ref = useRef();
 
-    const filtered = ALL_MEMBERS.filter(
+    const filtered = allMembers.filter(
         (m) => !members.includes(m) && m.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -137,7 +134,7 @@ const MemberPicker = ({ members, onChange }) => {
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
                     onFocus={() => setOpen(true)}
-                    placeholder={members.length === 0 ? "Search and select team members" : ""}
+                    placeholder={members.length === 0 ? (allMembers.length === 0 ? "No team members available" : "Search and select team members") : ""}
                     className="w-full bg-transparent font-mono text-[12px] text-[#11130f] placeholder-[#c0c8c8] outline-none"
                 />
             </div>
@@ -190,7 +187,7 @@ const MemberPicker = ({ members, onChange }) => {
 const emptyForm = () => ({
     // 1. Project Information
     projectName: "",
-    projectCode: "PRJ-2026-019",
+    projectCode: `PRJ-${Date.now()}`,
     projectType: "",
     client: "",
     company: "",
@@ -202,14 +199,14 @@ const emptyForm = () => ({
     startDate: "",
     expectedEnd: "",
     actualEnd: "",
-    priority: "",
+    priority: "Medium",
     status: "",
 
     // 3. Management
     projectManager: "",
     projectOwner: "",
     projectSponsor: "",
-    teamMembers: ["Arjun Mehta", "Rahul Patil", "Sneha Shah", "Amit Joshi"],
+    teamMembers: [],
 
     // 4. Budget
     budgetType: "",
@@ -235,9 +232,14 @@ const emptyForm = () => ({
     internalNotes: "",
 });
 
-const NewProjectModal = ({ open, onClose }) => {
+const NewProjectModal = ({ open, onClose, onCreate }) => {
     const [form, setForm]   = useState(emptyForm());
     const [tagInput, setTagInput] = useState("");
+    const [users, setUsers] = useState([]);
+    const [companies, setCompanies] = useState([]);
+    const [branches, setBranches] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [clients, setClients] = useState([]);
     const [dragging, setDragging] = useState(false);
     const fileRef = useRef();
     const bodyRef = useRef();
@@ -246,9 +248,48 @@ const NewProjectModal = ({ open, onClose }) => {
 
     const duration = calcDuration(form.startDate, form.expectedEnd);
 
-    /* reset on open */
+    /* Fetch real users, companies, branches, departments on open */
     useEffect(() => {
-        if (open) { setForm(emptyForm()); setTagInput(""); }
+        if (open) {
+            setForm(emptyForm());
+            setTagInput("");
+
+            const currentUser = storageService.getUser();
+            const tenantId = currentUser?.tenantId;
+
+            if (tenantId) {
+                apiService.get(`/admin/users?tenantId=${tenantId}`)
+                    .then((res) => {
+                        const userList = Array.isArray(res.data) ? res.data : [];
+                        const userNames = userList.map((u) => u.name || u.email || u.username).filter(Boolean);
+                        setUsers(userNames);
+                    })
+                    .catch(() => setUsers([]));
+            }
+
+            CompanyManagementService.getAll()
+                .then((res) => {
+                    const compList = Array.isArray(res.data) ? res.data : [];
+                    setCompanies(compList);
+                    const firstComp = compList[0];
+                    if (firstComp?.id) {
+                        CompanyManagementService.getBranches(firstComp.id)
+                            .then((bRes) => {
+                                const bList = Array.isArray(bRes.data) ? bRes.data : [];
+                                setBranches(bList.map((b) => b.branchName || b.name).filter(Boolean));
+                            })
+                            .catch(() => setBranches([]));
+
+                        CompanyManagementService.getDepartments(firstComp.id)
+                            .then((dRes) => {
+                                const dList = Array.isArray(dRes.data) ? dRes.data : [];
+                                setDepartments(dList.map((d) => d.departmentName || d.name).filter(Boolean));
+                            })
+                            .catch(() => setDepartments([]));
+                    }
+                })
+                .catch(() => setCompanies([]));
+        }
     }, [open]);
 
     /* escape key */
@@ -305,7 +346,7 @@ const NewProjectModal = ({ open, onClose }) => {
                             Save as Draft
                         </button>
                         <button
-                            onClick={onClose}
+                            onClick={() => onCreate(form)}
                             className="rounded-[12px] bg-[#11130f] px-5 py-2.5 font-mono text-[12px] text-white transition hover:bg-[#292c27]"
                         >
                             Create Project
@@ -349,7 +390,7 @@ const NewProjectModal = ({ open, onClose }) => {
                                 <Field label="Client / Customer">
                                     <Sel value={form.client} onChange={(e) => set("client", e.target.value)}>
                                         <option value="">Select client</option>
-                                        {CLIENTS.map((c) => <option key={c}>{c}</option>)}
+                                        {clients.map((c) => <option key={c} value={c}>{c}</option>)}
                                     </Sel>
                                 </Field>
                             </div>
@@ -357,21 +398,42 @@ const NewProjectModal = ({ open, onClose }) => {
                             {/* Row 2 */}
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <Field label="Company" required>
-                                    <Sel value={form.company} onChange={(e) => set("company", e.target.value)}>
+                                    <Sel value={form.company} onChange={(e) => {
+                                        const compName = e.target.value;
+                                        set("company", compName);
+                                        const found = companies.find((c) => (c.companyName || c.name) === compName);
+                                        if (found?.id) {
+                                            CompanyManagementService.getBranches(found.id)
+                                                .then((bRes) => {
+                                                    const bList = Array.isArray(bRes.data) ? bRes.data : [];
+                                                    setBranches(bList.map((b) => b.branchName || b.name).filter(Boolean));
+                                                })
+                                                .catch(() => setBranches([]));
+                                            CompanyManagementService.getDepartments(found.id)
+                                                .then((dRes) => {
+                                                    const dList = Array.isArray(dRes.data) ? dRes.data : [];
+                                                    setDepartments(dList.map((d) => d.departmentName || d.name).filter(Boolean));
+                                                })
+                                                .catch(() => setDepartments([]));
+                                        }
+                                    }}>
                                         <option value="">Select company</option>
-                                        {COMPANIES.map((c) => <option key={c}>{c}</option>)}
+                                        {companies.map((c) => {
+                                            const name = c.companyName || c.name;
+                                            return <option key={c.id || name} value={name}>{name}</option>;
+                                        })}
                                     </Sel>
                                 </Field>
                                 <Field label="Branch">
                                     <Sel value={form.branch} onChange={(e) => set("branch", e.target.value)}>
                                         <option value="">Select branch</option>
-                                        {BRANCHES.map((b) => <option key={b}>{b}</option>)}
+                                        {branches.map((b) => <option key={b} value={b}>{b}</option>)}
                                     </Sel>
                                 </Field>
                                 <Field label="Department">
                                     <Sel value={form.department} onChange={(e) => set("department", e.target.value)}>
                                         <option value="">Select department</option>
-                                        {DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}
+                                        {departments.map((d) => <option key={d} value={d}>{d}</option>)}
                                     </Sel>
                                 </Field>
                             </div>
@@ -453,24 +515,25 @@ const NewProjectModal = ({ open, onClose }) => {
                                 <Field label="Project Manager" required hint="Person responsible for this project">
                                     <Sel value={form.projectManager} onChange={(e) => set("projectManager", e.target.value)}>
                                         <option value="">Select project manager</option>
-                                        {MANAGERS.map((m) => <option key={m}>{m}</option>)}
+                                        {users.map((m) => <option key={m} value={m}>{m}</option>)}
                                     </Sel>
                                 </Field>
                                 <Field label="Project Owner" hint="Owner of the project">
                                     <Sel value={form.projectOwner} onChange={(e) => set("projectOwner", e.target.value)}>
                                         <option value="">Select project owner</option>
-                                        {MANAGERS.map((m) => <option key={m}>{m}</option>)}
+                                        {users.map((m) => <option key={m} value={m}>{m}</option>)}
                                     </Sel>
                                 </Field>
                                 <Field label="Project Sponsor" hint="Sponsor or key stakeholder">
                                     <Sel value={form.projectSponsor} onChange={(e) => set("projectSponsor", e.target.value)}>
                                         <option value="">Select project sponsor</option>
-                                        {MANAGERS.map((m) => <option key={m}>{m}</option>)}
+                                        {users.map((m) => <option key={m} value={m}>{m}</option>)}
                                     </Sel>
                                 </Field>
                             </div>
                             <Field label="Team Members" required>
                                 <MemberPicker
+                                    allMembers={users}
                                     members={form.teamMembers}
                                     onChange={(v) => set("teamMembers", v)}
                                 />
@@ -704,7 +767,7 @@ const NewProjectModal = ({ open, onClose }) => {
                         Save as Draft
                     </button>
                     <button
-                        onClick={onClose}
+                        onClick={() => onCreate(form)}
                         className="rounded-[12px] bg-[#11130f] px-6 py-2.5 font-mono text-[12px] text-white transition hover:bg-[#292c27]"
                     >
                         Create Project

@@ -1,80 +1,67 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import ProjectsService from "../../../core/services/modules/projects.service";
 
-const Tasks = () => {
-const tasks = [
-    {
-      id: "T-892",
-      task: "Set up Finance module UAT environment",
-      project: "ERP Phase 2",
-      assignee: "Aditya Kumar",
-      initials: "AK",
-      due: "10 Aug 2026",
-      priority: "HIGH",
-      status: "IN PROGRESS",
-      statusClass: "in-progress",
-      priorityClass: "high",
-    },
-    {
-      id: "T-891",
-      task: "Data migration validation script",
-      project: "ERP Phase 2",
-      assignee: "Rohan Verma",
-      initials: "RV",
-      due: "12 Aug 2026",
-      priority: "MEDIUM",
-      status: "PENDING",
-      statusClass: "pending",
-      priorityClass: "medium",
-    },
-    {
-      id: "T-890",
-      task: "API rate limiting fix",
-      project: "Bajaj Integration",
-      assignee: "Aditya Kumar",
-      initials: "AK",
-      due: "09 Aug 2026",
-      priority: "HIGH",
-      status: "IN PROGRESS",
-      statusClass: "in-progress",
-      priorityClass: "high",
-    },
-    {
-      id: "T-889",
-      task: "PLC interface specification",
-      project: "Factory Automation",
-      assignee: "Vikram Joshi",
-      initials: "VJ",
-      due: "20 Aug 2026",
-      priority: "LOW",
-      status: "PENDING",
-      statusClass: "pending",
-      priorityClass: "low",
-    },
-    {
-      id: "T-888",
-      task: "HR module training deck",
-      project: "ERP Phase 2",
-      assignee: "Deepika Rao",
-      initials: "DR",
-      due: "15 Aug 2026",
-      priority: "MEDIUM",
-      status: "COMPLETED",
-      statusClass: "completed",
-      priorityClass: "medium",
-    },
-    {
-      id: "T-887",
-      task: "Machine sensor calibration checklist",
-      project: "Factory Automation",
-      assignee: "Vikram Joshi",
-      initials: "VJ",
-      due: "25 Aug 2026",
-      priority: "MEDIUM",
-      status: "PENDING",
-      statusClass: "pending",
-      priorityClass: "medium",
-    },
-  ];
+const Tasks = ({ projects = [] }) => {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!projects || projects.length === 0) {
+      setTasks([]);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    Promise.allSettled(
+      projects.map((project) => ProjectsService.getTasks(project.id))
+    )
+      .then((results) => {
+        const allTasks = [];
+        results.forEach((res, index) => {
+          if (res.status === "fulfilled" && Array.isArray(res.value?.data)) {
+            const project = projects[index];
+            res.value.data.forEach((t) => {
+              const assignee = t.assignedToName || "Unassigned";
+              const initials = (t.assignedToName || "U")
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2);
+
+              const projectName = project?.name || `PRJ-${t.projectId}`;
+              const priority = t.priority ? t.priority.toUpperCase() : "MEDIUM";
+              const priorityClass = t.priority ? t.priority.toLowerCase() : "medium";
+              const status = t.status ? t.status.toUpperCase().replaceAll("_", " ") : "TODO";
+              const statusClass = t.status ? t.status.toLowerCase().replaceAll("_", "-") : "todo";
+
+              allTasks.push({
+                id: t.id,
+                task: t.title,
+                project: projectName,
+                assignee,
+                initials,
+                due: t.plannedEndDate || "—",
+                priority,
+                priorityClass,
+                status,
+                statusClass,
+              });
+            });
+          }
+        });
+        setTasks(allTasks);
+      })
+      .catch(() => {
+        setError("Unable to load tasks.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [projects]);
 
   return (
     <div className="tasks-page">
@@ -101,7 +88,7 @@ const tasks = [
 
             {tasks.map((item) => (
               <div className="tasks-row" key={item.id}>
-                <span className="task-id">{item.id}</span>
+                <span className="task-id">#{item.id}</span>
 
                 <span className="task-name">{item.task}</span>
 

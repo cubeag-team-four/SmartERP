@@ -152,6 +152,7 @@ const InventoryReports     = lazy(() => import('../pages/modules/reports/Invento
 const FinanceReports       = lazy(() => import('../pages/modules/reports/FinanceReports'))
 const HrReports            = lazy(() => import('../pages/modules/reports/HrReports'))
 const ProjectReports       = lazy(() => import('../pages/modules/reports/ProjectReports'))
+const CustomReport         = lazy(() => import('../pages/modules/reports/CustomReport'))
 
 // Documents
 const DocumentsDashboard   = lazy(() => import('../pages/modules/documents/Dashboard'))
@@ -356,6 +357,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.SUPER_ADMIN_REPORTS_FINANCE}   element={<FinanceReports />} />
             <Route path={ROUTES.SUPER_ADMIN_REPORTS_HR}        element={<HrReports />} />
             <Route path={ROUTES.SUPER_ADMIN_REPORTS_PROJECTS}  element={<ProjectReports />} />
+            <Route path={ROUTES.SUPER_ADMIN_REPORTS_CUSTOM}    element={<CustomReport />} />
 
             {/* Settings */}
             <Route path={ROUTES.SUPER_ADMIN_SETTINGS}               element={<SettingsDashboard />} />
@@ -385,7 +387,8 @@ const AppRoutes = () => {
 
         {/* ════════════════════════════════════════════════════════════════
             ADMIN
-        ════════════════════════════════════════════════════════════════ */}        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+        ════════════════════════════════════════════════════════════════ */}        
+        <Route element={<ProtectedRoute allowedRoles={['admin', 'tenantAdmin']} />}> // added tenantadmin
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
 
@@ -496,6 +499,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.ADMIN_REPORTS_FINANCE}   element={<FinanceReports />} />
             <Route path={ROUTES.ADMIN_REPORTS_HR}        element={<HrReports />} />
             <Route path={ROUTES.ADMIN_REPORTS_PROJECTS}  element={<ProjectReports />} />
+            <Route path={ROUTES.ADMIN_REPORTS_CUSTOM}    element={<CustomReport />} />
 
             {/* Settings */}
             <Route path={ROUTES.ADMIN_SETTINGS}               element={<SettingsDashboard />} />
