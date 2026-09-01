@@ -1,15 +1,16 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Sparkles,
   ArrowUpRight,
   ChevronRight,
 } from "lucide-react";
+import hrApi from "../modules/hr/hrApiClient";
 
 /* =========================================================
-   HR DASHBOARD DATA
+   HR DASHBOARD DATA (FALLBACK / INITIAL)
 ========================================================= */
 
-const stats = [
+const defaultStats = [
   {
     label: "HEADCOUNT",
     value: "284",
@@ -44,6 +45,7 @@ const stats = [
     warning: true,
   },
 ];
+
 
 /* =========================================================
    HR AI INSIGHTS
@@ -1127,6 +1129,22 @@ export default function HRDashboard() {
     quickActionOpen,
     setQuickActionOpen,
   ] = useState(false);
+  const [dashboardData, setDashboardData] = useState(null);
+
+  useEffect(() => {
+    hrApi.getDashboard()
+      .then((res) => {
+        setDashboardData(res.data);
+      })
+      .catch((err) => {
+        console.error("HR Dashboard API error:", err);
+      });
+  }, []);
+
+  const stats = dashboardData?.stats && Array.isArray(dashboardData.stats) && dashboardData.stats.length > 0
+    ? dashboardData.stats
+    : defaultStats;
+
 
   return (
     <main

@@ -530,6 +530,10 @@ const AppRoutes = () => {
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.FINANCE_MANAGER_DASHBOARD}              element={<FinanceDashboardPage />} />
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE}                element={<FinanceDashboard />} />
+            <Route path={ROUTES.FINANCE_MANAGER_SALES}                  element={<SalesDashboard />} />
+            <Route path={ROUTES.FINANCE_MANAGER_PURCHASE}               element={<PurchaseDashboard />} />
+            <Route path={ROUTES.FINANCE_MANAGER_PROJECTS}               element={<ProjectsDashboard />} />
+            <Route path={ROUTES.FINANCE_MANAGER_DOCUMENTS}              element={<DocumentsDashboard />} />
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE_OVERVIEW}       element={<FinanceOverview />} />
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE_LEDGER}         element={<GeneralLedger />} />
             <Route path={ROUTES.FINANCE_MANAGER_FINANCE_JOURNAL}        element={<JournalEntries />} />
@@ -554,6 +558,9 @@ const AppRoutes = () => {
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.SALES_MANAGER_DASHBOARD}         element={<SalesDashboardPage />} />
             <Route path={ROUTES.SALES_MANAGER_CRM}               element={<CrmDashboard />} />
+            <Route path={ROUTES.SALES_MANAGER_INVENTORY}         element={<InventoryDashboard />} />
+            <Route path={ROUTES.SALES_MANAGER_PROJECTS}          element={<ProjectsDashboard />} />
+            <Route path={ROUTES.SALES_MANAGER_DOCUMENTS}         element={<DocumentsDashboard />} />
             <Route path={ROUTES.SALES_MANAGER_CRM_LEADS}         element={<Leads />} />
             <Route path={ROUTES.SALES_MANAGER_CRM_CUSTOMERS}     element={<Customers />} />
             <Route path={ROUTES.SALES_MANAGER_CRM_PIPELINE}      element={<SalesPipeline />} />
@@ -577,6 +584,8 @@ const AppRoutes = () => {
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.HR_MANAGER_DASHBOARD}      element={<HRDashboardPage />} />
             <Route path={ROUTES.HR_MANAGER_HR}             element={<HrDashboard />} />
+            <Route path={ROUTES.HR_MANAGER_PROJECTS}       element={<ProjectsDashboard />} />
+            <Route path={ROUTES.HR_MANAGER_DOCUMENTS}      element={<DocumentsDashboard />} />
             <Route path={ROUTES.HR_MANAGER_HR_OVERVIEW}    element={<HrOverview />} />
             <Route path={ROUTES.HR_MANAGER_HR_EMPLOYEES}   element={<EmployeeDatabase />} />
             <Route path={ROUTES.HR_MANAGER_HR_ATTENDANCE}  element={<Attendance />} />
@@ -606,6 +615,7 @@ const AppRoutes = () => {
             <Route path={ROUTES.OPERATIONS_MANAGER_MANUFACTURING_WORK_ORDERS} element={<WorkOrders />} />
             <Route path={ROUTES.OPERATIONS_MANAGER_PURCHASE}                 element={<PurchaseDashboard />} />
             <Route path={ROUTES.OPERATIONS_MANAGER_PROJECTS}                 element={<ProjectsDashboard />} />
+            <Route path={ROUTES.OPERATIONS_MANAGER_DOCUMENTS}                element={<DocumentsDashboard />} />
             <Route path={ROUTES.OPERATIONS_MANAGER_REPORTS}                  element={<ReportsDashboard />} />
             <Route path={ROUTES.OPERATIONS_MANAGER_AI}                       element={<BusinessAssistant />} />
             <Route path={ROUTES.OPERATIONS_MANAGER_SETTINGS}                 element={<SettingsDashboard />} />
@@ -621,6 +631,8 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.EMPLOYEE_DASHBOARD}     element={<EmployeeDashboardPage />} />
+            <Route path={ROUTES.EMPLOYEE_PROJECTS}      element={<ProjectsDashboard />} />
+            <Route path={ROUTES.EMPLOYEE_AI}            element={<BusinessAssistant />} />
             <Route path={ROUTES.EMPLOYEE_PROFILE}       element={<EmployeeProfile />} />
             <Route path={ROUTES.EMPLOYEE_ATTENDANCE}    element={<EmployeeAttendance />} />
             <Route path={ROUTES.EMPLOYEE_LEAVE}         element={<EmployeeLeave />} />
