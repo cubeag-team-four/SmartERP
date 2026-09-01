@@ -1,25 +1,157 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import ProjectsService from "../../../core/services/modules/projects.service";
 
-const TimeTracking = () => {
-  const timelineProjects = [];
+const MONTH_NAMES = [
+  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+];
 
-  const months = [
-    "APR",
-    "MAY",
-    "JUN",
-    "JUL",
-    "AUG",
-    "SEP",
-    "OCT",
-    "NOV",
-    "DEC",
-  ];
+const TimeTracking = ({ projects = [] }) => {
+  const [timelineItems, setTimelineItems] = useState([]);
+  const [months, setMonths] = useState(MONTH_NAMES.slice(0, 9));
+  const [timelineTitle, setTimelineTitle] = useState("Project Timeline");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!projects || projects.length === 0) {
+      setTimelineItems([]);
+      setTimelineTitle("Project Timeline");
+      return;
+    }
+
+    setLoading(true);
+
+    Promise.allSettled(
+      projects.map((project) => ProjectsService.getGantt(project.id))
+    )
+      .then((results) => {
+        const rawItems = [];
+
+        results.forEach((res, index) => {
+          const fallbackProject = projects[index];
+          if (res.status === "fulfilled" && res.value?.data) {
+            const data = res.value.data;
+            const project = data.project || fallbackProject;
+            const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+            const milestones = Array.isArray(data.milestones) ? data.milestones : [];
+
+            if (tasks.length === 0 && milestones.length === 0) {
+              if (project) {
+                const isCompleted = ["COMPLETED", "completed"].includes(project.status);
+                rawItems.push({
+                  id: `prj-${project.id}`,
+                  name: project.name,
+                  startDate: project.startDate,
+                  endDate: project.endDate,
+                  progress: project.progressPercent ?? 0,
+                  status: isCompleted ? "Completed" : "On Track",
+                  statusClass: isCompleted ? "completed" : "on-track",
+                });
+              }
+            } else {
+              tasks.forEach((t) => {
+                const isCompleted = ["COMPLETED", "completed"].includes(t.status);
+                const isAtRisk = Boolean(t.atRisk);
+                rawItems.push({
+                  id: `task-${t.id}`,
+                  name: t.title,
+                  startDate: t.plannedStartDate || project?.startDate,
+                  endDate: t.plannedEndDate || project?.endDate,
+                  progress: t.progressPercent ?? 0,
+                  status: isAtRisk ? "At Risk" : isCompleted ? "Completed" : "On Track",
+                  statusClass: isAtRisk ? "at-risk" : isCompleted ? "completed" : "on-track",
+                });
+              });
+
+              milestones.forEach((m) => {
+                const isCompleted = ["COMPLETED", "completed"].includes(m.status);
+                rawItems.push({
+                  id: `ms-${m.id}`,
+                  name: `◆ ${m.name}`,
+                  startDate: m.plannedDate || project?.startDate,
+                  endDate: m.plannedDate || project?.endDate,
+                  progress: m.progressPercent ?? 0,
+                  status: isCompleted ? "Completed" : "On Track",
+                  statusClass: isCompleted ? "completed" : "on-track",
+                });
+              });
+            }
+          } else if (fallbackProject) {
+            const isCompleted = ["COMPLETED", "completed"].includes(fallbackProject.status);
+            rawItems.push({
+              id: `prj-${fallbackProject.id}`,
+              name: fallbackProject.name,
+              startDate: fallbackProject.startDate,
+              endDate: fallbackProject.endDate,
+              progress: fallbackProject.progressPercent ?? 0,
+              status: isCompleted ? "Completed" : "On Track",
+              statusClass: isCompleted ? "completed" : "on-track",
+            });
+          }
+        });
+
+        const validDates = rawItems
+          .flatMap((item) => [item.startDate ? new Date(item.startDate) : null, item.endDate ? new Date(item.endDate) : null])
+          .filter((d) => d && !isNaN(d.getTime()));
+
+        if (validDates.length === 0) {
+          setTimelineItems([]);
+          setMonths(MONTH_NAMES.slice(0, 9));
+          setTimelineTitle("Project Timeline");
+          return;
+        }
+
+        const minDate = new Date(Math.min(...validDates.map((d) => d.getTime())));
+        const startYear = minDate.getFullYear();
+        const startMonthIdx = minDate.getMonth();
+
+        const dynamicMonths = [];
+        for (let i = 0; i < 9; i++) {
+          const mIdx = (startMonthIdx + i) % 12;
+          dynamicMonths.push(MONTH_NAMES[mIdx]);
+        }
+        setMonths(dynamicMonths);
+
+        const windowStart = new Date(startYear, startMonthIdx, 1).getTime();
+        const windowEnd = new Date(startYear, startMonthIdx + 9, 0, 23, 59, 59).getTime();
+        const totalWindowMs = Math.max(windowEnd - windowStart, 86400000);
+
+        const endYear = new Date(windowEnd).getFullYear();
+        const yearLabel = startYear === endYear ? `${startYear}` : `${startYear}–${endYear}`;
+        setTimelineTitle(`Project Timeline — ${yearLabel}`);
+
+        const positionedItems = rawItems.map((item) => {
+          const s = item.startDate ? new Date(item.startDate).getTime() : windowStart;
+          const e = item.endDate ? new Date(item.endDate).getTime() : s;
+          const clampedStart = Math.max(windowStart, Math.min(windowEnd, s));
+          const clampedEnd = Math.max(clampedStart, Math.min(windowEnd, e));
+
+          const startPercent = ((clampedStart - windowStart) / totalWindowMs) * 100;
+          const rawDurationPercent = ((Math.max(clampedEnd - clampedStart, 86400000)) / totalWindowMs) * 100;
+          const widthPercent = Math.max(5, Math.min(100 - startPercent, rawDurationPercent));
+
+          return {
+            ...item,
+            startPercent: Math.max(0, Math.min(95, startPercent)),
+            widthPercent: Math.max(5, widthPercent),
+          };
+        });
+
+        setTimelineItems(positionedItems);
+      })
+      .catch(() => {
+        setTimelineItems([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [projects]);
 
   return (
     <div className="timeline-page">
       <section className="timeline-card">
         <div className="timeline-card-header">
-          <h2>Project Timeline — H2 2026</h2>
+          <h2>{timelineTitle}</h2>
 
           <div className="timeline-legend">
             <span>
@@ -41,14 +173,14 @@ const TimeTracking = () => {
 
         <div className="timeline-content">
           <div className="timeline-months">
-            {months.map((month) => (
-              <span key={month}>{month}</span>
+            {months.map((month, idx) => (
+              <span key={`${month}-${idx}`}>{month}</span>
             ))}
           </div>
 
           <div className="timeline-grid">
-            {timelineProjects.map((project) => (
-              <div className="timeline-row" key={project.name}>
+            {timelineItems.map((project) => (
+              <div className="timeline-row" key={project.id || project.name}>
                 <div className="timeline-project-name">{project.name}</div>
 
                 <div className="timeline-track">
@@ -61,8 +193,8 @@ const TimeTracking = () => {
                   <div
                     className={`timeline-bar ${project.statusClass}`}
                     style={{
-                      left: `${(project.start / 12) * 100}%`,
-                      width: `${((project.end - project.start) / 12) * 100}%`,
+                      left: `${project.startPercent}%`,
+                      width: `${project.widthPercent}%`,
                     }}
                   >
                     <span>{project.progress}%</span>

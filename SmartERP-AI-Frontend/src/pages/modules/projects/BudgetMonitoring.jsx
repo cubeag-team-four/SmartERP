@@ -1,31 +1,115 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import ProjectsService from "../../../core/services/modules/projects.service";
 
-const BudgetMonitoring = () => {
-  const projects = [];
+const BudgetMonitoring = ({ projects = [] }) => {
+  const [budgetData, setBudgetData] = useState([]);
+  const [summary, setSummary] = useState({
+    totalBudget: 0,
+    totalSpent: 0,
+    remaining: 0,
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!projects || projects.length === 0) {
+      setBudgetData([]);
+      setSummary({ totalBudget: 0, totalSpent: 0, remaining: 0 });
+      return;
+    }
+
+    setLoading(true);
+
+    Promise.allSettled(
+      projects.map((project) => ProjectsService.getBudget(project.id))
+    )
+      .then((results) => {
+        let sumPlanned = 0;
+        let sumSpent = 0;
+
+        const merged = projects.map((project, index) => {
+          const res = results[index];
+          let planned = Number(project.plannedBudget || 0);
+          let spent = Number(project.actualBudget || 0);
+          let variance = planned - spent;
+          let utilPercent = planned > 0 ? (spent / planned) * 100 : 0;
+          let overThreshold = false;
+
+          if (res.status === "fulfilled" && res.value?.data) {
+            const b = res.value.data;
+            planned = Number(b.plannedBudget ?? planned);
+            spent = Number(b.actualBudget ?? spent);
+            variance = Number(b.variance ?? (planned - spent));
+            utilPercent = Number(b.utilizationPercent ?? utilPercent);
+            overThreshold = Boolean(b.overBudgetThreshold);
+          }
+
+          sumPlanned += planned;
+          sumSpent += spent;
+
+          const isCompleted = ["COMPLETED", "completed"].includes(project.status);
+          const status = overThreshold
+            ? "At Risk"
+            : isCompleted
+            ? "Completed"
+            : "On Track";
+          const statusClass = overThreshold
+            ? "at-risk"
+            : isCompleted
+            ? "completed"
+            : "on-track";
+
+          return {
+            id: project.id,
+            name: project.name,
+            manager: project.managerName || "Unassigned",
+            status,
+            statusClass,
+            spent: `₹${spent.toLocaleString("en-IN")}`,
+            budget: `₹${planned.toLocaleString("en-IN")}`,
+            used: Number(utilPercent.toFixed(1)),
+            remaining: `₹${Math.max(0, variance).toLocaleString("en-IN")}`,
+          };
+        });
+
+        setSummary({
+          totalBudget: sumPlanned,
+          totalSpent: sumSpent,
+          remaining: sumPlanned - sumSpent,
+        });
+        setBudgetData(merged);
+      })
+      .catch(() => {
+        setBudgetData([]);
+        setSummary({ totalBudget: 0, totalSpent: 0, remaining: 0 });
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [projects]);
 
   return (
     <div className="budget-page">
       <div className="budget-content">
         <section className="budget-summary">
           <div className="budget-summary-card">
-            <strong>₹0</strong>
+            <strong>₹{Number(summary.totalBudget).toLocaleString("en-IN")}</strong>
             <span>TOTAL BUDGET</span>
           </div>
 
           <div className="budget-summary-card">
-            <strong>₹0</strong>
+            <strong>₹{Number(summary.totalSpent).toLocaleString("en-IN")}</strong>
             <span>TOTAL SPENT</span>
           </div>
 
           <div className="budget-summary-card">
-            <strong>₹0</strong>
+            <strong>₹{Number(summary.remaining).toLocaleString("en-IN")}</strong>
             <span>REMAINING</span>
           </div>
         </section>
 
         <section className="budget-project-list">
-          {projects.map((project) => (
-            <article className="budget-project-card" key={project.name}>
+          {budgetData.map((project) => (
+            <article className="budget-project-card" key={project.id || project.name}>
               <div className="budget-project-header">
                 <div>
                   <h2>{project.name}</h2>
@@ -45,7 +129,7 @@ const BudgetMonitoring = () => {
               <div className="budget-progress-track">
                 <div
                   className={`budget-progress-fill ${project.statusClass}`}
-                  style={{ width: `${Math.min(project.used, 100)}%` }}
+                  style={{ width: `${Math.min(Math.max(project.used, 0), 100)}%` }}
                 />
               </div>
 
