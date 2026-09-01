@@ -11,6 +11,9 @@ public class ProjectServiceImpl implements ProjectService {
  private final ProjectRepository projectRepository; private final ProjectMilestoneRepository milestoneRepository;
  private final ProjectTaskRepository taskRepository; private final ProjectMemberRepository memberRepository;
  private final ProjectDocumentLinkRepository documentRepository; private final ProjectMapper mapper;
+ private final ProjectBudgetRepository budgetRepository; private final ProjectCostEntryRepository costEntryRepository;
+ private final ProjectRiskRepository riskRepository; private final TimesheetRepository timesheetRepository;
+ private final ProjectAiInsightRepository aiInsightRepository; private final TaskDependencyRepository taskDependencyRepository;
  @Override public ProjectResponse create(Long tenantId,CreateProjectRequest r){
   if(projectRepository.existsByTenantIdAndProjectCodeIgnoreCase(tenantId,r.projectCode())) throw new ProjectValidationException("Project code already exists");
   if(r.endDate().isBefore(r.startDate())) throw new ProjectValidationException("End date cannot be before start date");
@@ -30,6 +33,24 @@ public class ProjectServiceImpl implements ProjectService {
   if(r.status()!=null)p.setStatus(r.status()); if(r.priority()!=null)p.setPriority(r.priority()); if(r.plannedBudget()!=null)p.setPlannedBudget(r.plannedBudget());
   if(r.budgetAlertThresholdPercent()!=null)p.setBudgetAlertThresholdPercent(r.budgetAlertThresholdPercent()); if(r.progressPercent()!=null)p.setProgressPercent(Math.max(0,Math.min(100,r.progressPercent())));
   return mapper.project(projectRepository.save(p));
+ }
+ @Override public void delete(Long tenantId, Long id) {
+  Project p = entity(tenantId, id);
+  List<ProjectTask> tasks = taskRepository.findByTenantIdAndProject_IdOrderByPlannedStartDateAsc(tenantId, id);
+  for (ProjectTask task : tasks) {
+    taskDependencyRepository.deleteAll(taskDependencyRepository.findByTenantIdAndTask_Id(tenantId, task.getId()));
+    taskDependencyRepository.deleteAll(taskDependencyRepository.findByTenantIdAndDependsOnTask_Id(tenantId, task.getId()));
+  }
+  timesheetRepository.deleteAll(timesheetRepository.findByTenantIdAndProject_IdOrderByWorkDateDesc(tenantId, id));
+  documentRepository.deleteAll(documentRepository.findByTenantIdAndProject_IdOrderByCreatedAtDesc(tenantId, id));
+  costEntryRepository.deleteAll(costEntryRepository.findByTenantIdAndProject_IdOrderByCostDateDesc(tenantId, id));
+  riskRepository.deleteAll(riskRepository.findByTenantIdAndProject_IdOrderByCreatedAtDesc(tenantId, id));
+  aiInsightRepository.deleteAll(aiInsightRepository.findByTenantIdAndProject_IdAndActiveTrueOrderByCreatedAtDesc(tenantId, id));
+  taskRepository.deleteAll(tasks);
+  milestoneRepository.deleteAll(milestoneRepository.findByTenantIdAndProject_IdOrderByPlannedDateAsc(tenantId, id));
+  budgetRepository.deleteAll(budgetRepository.findByTenantIdAndProject_Id(tenantId, id));
+  memberRepository.deleteAll(memberRepository.findByTenantIdAndProject_IdAndActiveTrue(tenantId, id));
+  projectRepository.delete(p);
  }
  @Override @Transactional(readOnly=true) public ProjectResponse get(Long tenantId,Long id){return mapper.project(entity(tenantId,id));}
  @Override @Transactional(readOnly=true) public List<ProjectResponse> all(Long tenantId){return projectRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream().map(mapper::project).toList();}

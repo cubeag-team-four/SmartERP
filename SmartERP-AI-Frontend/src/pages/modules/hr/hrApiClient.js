@@ -1,0 +1,54 @@
+import axios from 'axios';
+import storageService from '../../../core/services/storage.service';
+
+const BACKEND_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1';
+
+const hrAxios = axios.create({
+  baseURL: `${BACKEND_BASE}/hr`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+hrAxios.interceptors.request.use((config) => {
+  const token = storageService.getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const hrApi = {
+  // Employees
+  getEmployees: (params) => hrAxios.get('/employees', { params }),
+  getEmployee: (id, params) => hrAxios.get(`/employees/${id}`, { params }),
+  createEmployee: (data, params) => hrAxios.post('/employees', data, { params }),
+  updateEmployee: (id, data, params) => hrAxios.put(`/employees/${id}`, data, { params }),
+  deleteEmployee: (id, params) => hrAxios.delete(`/employees/${id}`, { params }),
+
+  // Dashboard
+  getDashboard: (params) => hrAxios.get('/dashboard', { params }),
+
+  // Attendance
+  getAttendance: (params) => hrAxios.get('/attendance', { params }),
+  logAttendance: (data, params) => hrAxios.post('/attendance', data, { params }),
+
+  // Leaves
+  getLeaves: (params) => hrAxios.get('/leaves', { params }),
+  createLeave: (data, params) => hrAxios.post('/leaves', data, { params }),
+  approveLeave: (id, params) => hrAxios.patch(`/leaves/${id}/approve`, null, { params }),
+  rejectLeave: (id, params) => hrAxios.patch(`/leaves/${id}/reject`, null, { params }),
+
+  // Payroll
+  getPayrollSummary: (params) => hrAxios.get('/payroll/summary', { params }),
+  getPayrolls: (params) => hrAxios.get('/payroll', { params }),
+  processPayroll: (data, params) => hrAxios.post('/payroll/process', data, { params }),
+
+  // Performance
+  getPerformance: (params) => hrAxios.get('/performance', { params }),
+  getPerformanceReviews: (params) => hrAxios.get('/performance/reviews', { params }),
+  getDepartmentScores: (params) => hrAxios.get('/performance/department-scores', { params }),
+  addPerformanceReview: (data, params) => hrAxios.post('/performance/reviews', data, { params }),
+};
+
+export default hrApi;
