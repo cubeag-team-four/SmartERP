@@ -387,7 +387,8 @@ const AppRoutes = () => {
 
         {/* ════════════════════════════════════════════════════════════════
             ADMIN
-        ════════════════════════════════════════════════════════════════ */}        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+        ════════════════════════════════════════════════════════════════ */}        
+        <Route element={<ProtectedRoute allowedRoles={['admin', 'tenantAdmin']} />}> // added tenantadmin
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
 

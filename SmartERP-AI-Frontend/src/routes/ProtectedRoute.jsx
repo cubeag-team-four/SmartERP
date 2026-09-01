@@ -5,7 +5,7 @@ import useAuthStore from '../store/slices/auth.store'
 // Maps each role to its home dashboard path
 export const ROLE_HOME = {
   superAdmin:       '/app/super-admin/dashboard',
-  admin:            '/app/admin/dashboard',
+  tenantAdmin:      '/app/admin/dashboard',
   financeManager:   '/app/finance-manager/dashboard',
   salesManager:     '/app/sales-manager/dashboard',
   hrManager:        '/app/hr-manager/dashboard',
