@@ -19,7 +19,7 @@ const stats = [
   {
     label: "PRODUCTION OEE",
     value: "78.4%",
-    footer: "+2.1%",
+    footer: "+2.1%",  
   },
   {
     label: "OPEN ORDERS",
