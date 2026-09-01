@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import useAuthStore from "../../../store/slices/auth.store";
+import apiService from "../../../core/services/api.service";
 
 function StatusBadge({ status, type }) {
   const styles = {
@@ -99,35 +100,25 @@ const WorkOrders = () => {
   const [workOrders, setWorkOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchWorkOrders = async () => {
-      try {
-        const response = await fetch(
-          "http://localhost:8082/api/v1/manufacturing/work-orders",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+useEffect(() => {
+  const fetchWorkOrders = async () => {
+    try {
+      const response = await apiService.get(
+        "/api/v1/manufacturing/work-orders"
+      );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch work orders");
-        }
-
-        const data = await response.json();
-        setWorkOrders(data);
-      } catch (error) {
-        console.error("Error fetching work orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (token) {
-      fetchWorkOrders();
+      setWorkOrders(response.data);
+    } catch (error) {
+      console.error("Error fetching work orders:", error);
+    } finally {
+      setLoading(false);
     }
-  }, [token]);
+  };
+
+  if (token) {
+    fetchWorkOrders();
+  }
+}, [token]);
 
   if (loading) {
     return <div>Loading...</div>;

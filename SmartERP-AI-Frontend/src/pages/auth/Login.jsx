@@ -44,11 +44,10 @@ const Login = () => {
     signIn(form)
   }
 
-  const handleDemoLogin = (user) => {
-    const realUser = { tenantId: 3, email: 'admin@cubeage.com', password: '12345' }
-    setForm({ email: realUser.email, password: realUser.password })
-    signIn(realUser)
-  }
+const handleDemoLogin = (user) => {
+  setForm({ email: user.email, password: DEMO_PASSWORD })
+  signIn({ email: user.email, password: DEMO_PASSWORD })
+}
 
   return (
     <div>
