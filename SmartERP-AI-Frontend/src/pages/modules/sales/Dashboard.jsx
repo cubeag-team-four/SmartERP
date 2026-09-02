@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import Quotations  from './Quotations'
-import SalesOrders from './SalesOrders'
-import Invoices    from './Invoices'
-import Analytics   from './Analytics'
+import Quotations              from './Quotations'
+import SalesOrders             from './SalesOrders'
+import Invoices                from './Invoices'
+import Analytics               from './Analytics'
+import CreateQuotationModal    from './CreateQuotationModal'
 
 const TABS = ['QUOTATIONS', 'ORDERS', 'INVOICES', 'ANALYTICS']
 
@@ -14,10 +15,14 @@ const KPI_CARDS = [
 ]
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('QUOTATIONS')
+  const [activeTab,  setActiveTab]  = useState('QUOTATIONS')
+  const [modalOpen,  setModalOpen]  = useState(false)
 
   return (
     <div className="min-h-screen p-6 md:p-8" style={{ backgroundColor: '#f5f4f0' }}>
+
+      {/* New Quotation modal */}
+      <CreateQuotationModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
@@ -56,16 +61,19 @@ const Dashboard = () => {
           }}>
             ↓ Export
           </button>
-          <button style={{
-            padding: '10px 18px',
-            borderRadius: 14,
-            border: 'none',
-            background: '#11130f',
-            fontFamily: 'monospace',
-            fontSize: 11,
-            color: '#fff',
-            cursor: 'pointer',
-          }}>
+          <button
+            style={{
+              padding: '10px 18px',
+              borderRadius: 14,
+              border: 'none',
+              background: '#11130f',
+              fontFamily: 'monospace',
+              fontSize: 11,
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+            onClick={() => setModalOpen(true)}
+          >
             + New Quotation
           </button>
         </div>
@@ -143,7 +151,7 @@ const Dashboard = () => {
 
       {/* Tab Content */}
       <div>
-        {activeTab === 'QUOTATIONS' && <Quotations />}
+        {activeTab === 'QUOTATIONS' && <Quotations onView={() => setModalOpen(true)} />}
         {activeTab === 'ORDERS'     && <SalesOrders />}
         {activeTab === 'INVOICES'   && <Invoices />}
         {activeTab === 'ANALYTICS'  && <Analytics />}

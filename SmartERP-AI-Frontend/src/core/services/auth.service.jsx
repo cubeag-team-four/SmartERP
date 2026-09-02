@@ -31,7 +31,7 @@ const authService = {
   const response = await apiService.post(
     `${SERVER_URL}/auth/login`,
     payload
-  );git
+  );
 
   const loginData = response.data.data;
 

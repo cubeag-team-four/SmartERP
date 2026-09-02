@@ -57,7 +57,7 @@ const TH = ({ children, right }) => (
   </th>
 )
 
-const Quotations = () => {
+const Quotations = ({ onView }) => {
   const [hoveredRow, setHovered] = useState(null)
 
   return (
@@ -167,18 +167,20 @@ const Quotations = () => {
                   <StatusBadge status={q.status} />
                 </td>
                 <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                  <button style={{
-                    padding: '5px 14px',
-                    borderRadius: 8,
-                    border: '1px solid #e3e0d9',
-                    background: '#fff',
-                    fontFamily: 'monospace',
-                    fontSize: 10,
-                    color: '#53605e',
-                    cursor: 'pointer',
-                    opacity: hoveredRow === q.id ? 1 : 0,
-                    transition: 'opacity .12s',
-                  }}>
+                  <button
+                    onClick={() => onView && onView(q)}
+                    style={{
+                      padding: '5px 14px',
+                      borderRadius: 8,
+                      border: '1px solid #e3e0d9',
+                      background: '#fff',
+                      fontFamily: 'monospace',
+                      fontSize: 10,
+                      color: '#53605e',
+                      cursor: 'pointer',
+                      opacity: hoveredRow === q.id ? 1 : 0,
+                      transition: 'opacity .12s',
+                    }}>
                     View
                   </button>
                 </td>
