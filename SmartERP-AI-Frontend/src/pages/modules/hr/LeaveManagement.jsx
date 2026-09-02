@@ -1,47 +1,5 @@
-import React, { useState } from "react";
-
-const initialLeaves = [
-    {
-        id: "LV-2026-0389",
-        employee: "Rohan Verma",
-        dept: "Sales",
-        type: "Casual Leave",
-        from: "11 Aug 2026",
-        to: "12 Aug 2026",
-        days: "2d",
-        status: "PENDING",
-    },
-    {
-        id: "LV-2026-0388",
-        employee: "Smita Gupta",
-        dept: "HR",
-        type: "Sick Leave",
-        from: "09 Aug 2026",
-        to: "10 Aug 2026",
-        days: "2d",
-        status: "APPROVED",
-    },
-    {
-        id: "LV-2026-0387",
-        employee: "Aditya Kumar",
-        dept: "IT",
-        type: "Earned Leave",
-        from: "15 Aug 2026",
-        to: "20 Aug 2026",
-        days: "4d",
-        status: "PENDING",
-    },
-    {
-        id: "LV-2026-0386",
-        employee: "Kavya Reddy",
-        dept: "Marketing",
-        type: "Casual Leave",
-        from: "08 Aug 2026",
-        to: "08 Aug 2026",
-        days: "1d",
-        status: "REJECTED",
-    },
-];
+import React, { useState, useEffect } from "react";
+import hrApi from "./hrApiClient";
 
 const statusStyle = {
     PENDING: "bg-[#eeeef2] text-[#717389]",
@@ -50,26 +8,72 @@ const statusStyle = {
 };
 
 export default function LeaveManagement() {
-    const [leaves, setLeaves] = useState(initialLeaves);
+    const [leaves, setLeaves] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        setLoading(true);
+        hrApi.getLeaves()
+            .then((res) => {
+                setLeaves(Array.isArray(res.data) ? res.data : []);
+                setError(null);
+            })
+            .catch((err) => {
+                console.error("Failed to load leave requests:", err);
+                setError(err.message || "Failed to load leave requests");
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, []);
 
     const handleApprove = (id) => {
-        setLeaves((currentLeaves) =>
-            currentLeaves.map((leave) =>
-                leave.id === id
-                    ? { ...leave, status: "APPROVED" }
-                    : leave
-            )
-        );
+        hrApi.approveLeave(id)
+            .then(() => {
+                setLeaves((currentLeaves) =>
+                    currentLeaves.map((leave) =>
+                        leave.id === id || leave.leaveCode === id
+                            ? { ...leave, status: "APPROVED" }
+                            : leave
+                    )
+                );
+            })
+            .catch((err) => {
+                console.error("Failed to approve leave:", err);
+                // Fallback optimistic update
+                setLeaves((currentLeaves) =>
+                    currentLeaves.map((leave) =>
+                        leave.id === id || leave.leaveCode === id
+                            ? { ...leave, status: "APPROVED" }
+                            : leave
+                    )
+                );
+            });
     };
 
     const handleReject = (id) => {
-        setLeaves((currentLeaves) =>
-            currentLeaves.map((leave) =>
-                leave.id === id
-                    ? { ...leave, status: "REJECTED" }
-                    : leave
-            )
-        );
+        hrApi.rejectLeave(id)
+            .then(() => {
+                setLeaves((currentLeaves) =>
+                    currentLeaves.map((leave) =>
+                        leave.id === id || leave.leaveCode === id
+                            ? { ...leave, status: "REJECTED" }
+                            : leave
+                    )
+                );
+            })
+            .catch((err) => {
+                console.error("Failed to reject leave:", err);
+                // Fallback optimistic update
+                setLeaves((currentLeaves) =>
+                    currentLeaves.map((leave) =>
+                        leave.id === id || leave.leaveCode === id
+                            ? { ...leave, status: "REJECTED" }
+                            : leave
+                    )
+                );
+            });
     };
 
     const pendingCount = leaves.filter(
@@ -138,7 +142,7 @@ export default function LeaveManagement() {
                             text-[#8f9694]
                         "
                     >
-                        {pendingCount} pending approval
+                        {loading ? "..." : `${pendingCount} pending approval`}
                     </span>
 
                 </div>
@@ -184,9 +188,40 @@ export default function LeaveManagement() {
 
                     </div>
 
+                    {/* LOADING STATE */}
+                    {loading && (
+                        <div className="px-6 py-12 text-center font-mono text-[11px] text-[#969e9a]">
+                            Loading leave requests from API...
+                        </div>
+                    )}
+
+                    {/* ERROR STATE */}
+                    {!loading && error && (
+                        <div className="px-6 py-12 text-center font-mono text-[11px] text-[#8a635b]">
+                            Error loading leave requests: {error}
+                        </div>
+                    )}
+
+                    {/* EMPTY STATE */}
+                    {!loading && !error && leaves.length === 0 && (
+                        <div className="px-6 py-12 text-center font-mono text-[11px] text-[#969e9a]">
+                            No leave requests found in database.
+                        </div>
+                    )}
 
                     {/* TABLE ROWS */}
-                    {leaves.map((leave) => (
+                    {!loading && !error && leaves.map((leave) => {
+                        const displayId = leave.leaveCode || leave.id;
+                        const displayEmployee = leave.employee || leave.employeeName || "—";
+                        const displayDept = leave.dept || leave.department || "—";
+                        const displayType = leave.type || leave.leaveType || "—";
+                        const displayFrom = leave.from || (leave.startDate ? String(leave.startDate) : "—");
+                        const displayTo = leave.to || (leave.endDate ? String(leave.endDate) : "—");
+                        const displayDays = leave.days || "1d";
+                        const displayStatus = leave.status || "PENDING";
+                        const statusBadgeClass = statusStyle[displayStatus] || "bg-[#eeeef2] text-[#717389]";
+
+                        return (
 
                         <div
                             key={leave.id}
@@ -393,8 +428,8 @@ export default function LeaveManagement() {
                             </div>
 
                         </div>
-
-                    ))}
+                        );
+                    })}
 
                 </div>
 

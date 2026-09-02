@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import EmployeeDatabase from "./EmployeeDatabase";
 import Attendance from "./Attendance";
@@ -6,10 +6,27 @@ import LeaveManagement from "./LeaveManagement";
 import Payroll from "./Payroll";
 import PerformanceTracking from "./PerformanceTracking";
 import AddEmployeeModal from "./AddEmployeeModal";
+import hrApi from "./hrApiClient";
 
 const Dashboard = () => {
     const [activeSection, setActiveSection] = useState("employees");
     const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
+    const [dashboardData, setDashboardData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        hrApi.getDashboard()
+            .then((res) => {
+                setDashboardData(res.data);
+            })
+            .catch((err) => {
+                console.error("Failed to load HR dashboard data:", err);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, []);
 
     const navigation = [
         {
@@ -187,27 +204,27 @@ const Dashboard = () => {
                 ">
 
                     <SummaryCard
-                        amount="284"
+                        amount={loading ? "—" : (dashboardData?.totalEmployees != null ? String(dashboardData.totalEmployees) : "0")}
                         label="TOTAL EMPLOYEES"
-                        description="+3 this month"
+                        description={loading ? "Loading..." : (dashboardData?.totalEmployeesChange || "Active workforce")}
                     />
 
                     <SummaryCard
-                        amount="₹98.4 L"
+                        amount={loading ? "—" : (dashboardData?.monthlyPayroll || "₹0")}
                         label="MONTHLY PAYROLL"
-                        description="Aug 2026"
+                        description={loading ? "Loading..." : (dashboardData?.monthlyPayrollPeriod || "Current cycle")}
                     />
 
                     <SummaryCard
-                        amount="6"
+                        amount={loading ? "—" : (dashboardData?.leaveRequestsPending != null ? String(dashboardData.leaveRequestsPending) : "0")}
                         label="LEAVE REQUESTS"
-                        description="2 pending approval"
+                        description={loading ? "Loading..." : (dashboardData?.leaveRequestsDescription || "Pending review")}
                     />
 
                     <SummaryCard
-                        amount="94.2%"
+                        amount={loading ? "—" : (dashboardData?.attendanceRate || "—")}
                         label="ATTENDANCE"
-                        description="Today – 268/284"
+                        description={loading ? "Loading..." : (dashboardData?.attendanceRateToday || "Today's rate")}
                     />
 
                 </div>
