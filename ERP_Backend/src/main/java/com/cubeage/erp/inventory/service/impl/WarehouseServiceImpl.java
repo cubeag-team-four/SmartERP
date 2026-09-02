@@ -12,10 +12,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Locale;
 
-@Service @RequiredArgsConstructor @Transactional
+@Service @Transactional
 public class WarehouseServiceImpl implements WarehouseService {
     private final WarehouseRepository repository;
     private final InventoryItemRepository itemRepository;
+
+    public WarehouseServiceImpl(WarehouseRepository repository, InventoryItemRepository itemRepository) {
+        this.repository = repository;
+        this.itemRepository = itemRepository;
+    }
 
     @Override @Transactional(readOnly = true)
     public List<WarehouseResponse> all(Long tenantId) {

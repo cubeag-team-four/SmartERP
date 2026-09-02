@@ -630,6 +630,22 @@ const AppRoutes = () => {
         </Route>
 
         {/* ════════════════════════════════════════════════════════════════
+            INVENTORY MANAGER
+        ════════════════════════════════════════════════════════════════ */}
+        <Route element={<ProtectedRoute allowedRoles={['inventoryManager']} />}>
+          <Route element={<DashboardLayout />}>
+            <Route path={ROUTES.INVENTORY_MANAGER_DASHBOARD}            element={<InventoryDashboard />} />
+            <Route path={ROUTES.INVENTORY_MANAGER_INVENTORY}            element={<InventoryDashboard />} />
+            <Route path={ROUTES.INVENTORY_MANAGER_INVENTORY_OVERVIEW}   element={<InventoryOverview />} />
+            <Route path={ROUTES.INVENTORY_MANAGER_INVENTORY_STOCK}      element={<Stock />} />
+            <Route path={ROUTES.INVENTORY_MANAGER_INVENTORY_WAREHOUSES} element={<Warehouses />} />
+            <Route path={ROUTES.INVENTORY_MANAGER_DOCUMENTS}           element={<DocumentsDashboard />} />
+            <Route path={ROUTES.INVENTORY_MANAGER_AI}                  element={<BusinessAssistant />} />
+            <Route path={ROUTES.INVENTORY_MANAGER_NOTIFICATIONS}       element={<Navnotification />} />
+          </Route>
+        </Route>
+
+        {/* ════════════════════════════════════════════════════════════════
             EMPLOYEE
         ════════════════════════════════════════════════════════════════ */}
         <Route element={<ProtectedRoute allowedRoles={['employee']} />}>

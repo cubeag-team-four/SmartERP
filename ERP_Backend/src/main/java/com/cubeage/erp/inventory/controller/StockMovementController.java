@@ -9,9 +9,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/inventory/movements")
-@RequiredArgsConstructor
 public class StockMovementController {
 	private final StockMovementService service;
+
+	public StockMovementController(StockMovementService service) {
+		this.service = service;
+	}
 
 	@GetMapping 
 	@PreAuthorize("isAuthenticated()")

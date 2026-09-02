@@ -79,6 +79,12 @@ const NAV = {
     { label: 'AI Assistant',        to: '/app/operations-manager/ai' },
     { label: 'Reports & Analytics', to: '/app/operations-manager/reports' },
   ],
+  inventoryManager: [
+    { label: 'Dashboard',           to: '/app/inventory-manager/dashboard' },
+    { label: 'Inventory',           to: '/app/inventory-manager/inventory' },
+    { label: 'Documents',           to: '/app/inventory-manager/documents' },
+    { label: 'AI Assistant',        to: '/app/inventory-manager/ai' },
+  ],
   employee: [
     { label: 'Dashboard',  to: '/app/employee/dashboard' },
     { label: 'Projects',   to: '/app/employee/projects' },

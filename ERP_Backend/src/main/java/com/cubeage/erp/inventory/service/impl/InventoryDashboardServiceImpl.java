@@ -10,10 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 
-@Service @RequiredArgsConstructor
+@Service
 public class InventoryDashboardServiceImpl implements InventoryDashboardService {
     private final InventoryItemRepository itemRepository;
     private final WarehouseRepository warehouseRepository;
+
+    public InventoryDashboardServiceImpl(InventoryItemRepository itemRepository, WarehouseRepository warehouseRepository) {
+        this.itemRepository = itemRepository;
+        this.warehouseRepository = warehouseRepository;
+    }
 
     @Override @Transactional(readOnly = true)
     public InventoryDashboardResponse summary(Long tenantId) {
