@@ -1,47 +1,5 @@
-import React, { useState } from "react";
-
-const grnData = [
-  {
-    id: "GRN-2026-0214",
-    po: "PO-2026-0284",
-    vendor: "Tata Steel Ltd",
-    receivedDate: "06 Aug 2026",
-    items: 4,
-    value: "₹18,40,000",
-    quality: "ACCEPTED",
-    qualityType: "accepted",
-  },
-  {
-    id: "GRN-2026-0213",
-    po: "PO-2026-0283",
-    vendor: "Sigma Components",
-    receivedDate: "04 Aug 2026",
-    items: 7,
-    value: "₹5,20,000",
-    quality: "ACCEPTED",
-    qualityType: "accepted",
-  },
-  {
-    id: "GRN-2026-0212",
-    po: "PO-2026-0282",
-    vendor: "Brindavan Fasteners",
-    receivedDate: "02 Aug 2026",
-    items: 14,
-    value: "₹1,70,000",
-    quality: "ON HOLD",
-    qualityType: "hold",
-  },
-  {
-    id: "GRN-2026-0211",
-    po: "PO-2026-0281",
-    vendor: "Hindustan Zinc",
-    receivedDate: "30 Jul 2026",
-    items: 2,
-    value: "₹8,80,000",
-    quality: "ACCEPTED",
-    qualityType: "accepted",
-  },
-];
+import React, { useEffect, useState } from "react";
+import PurchaseService from "../../../core/services/modules/purchase.service";
 
 const qualityStyles = {
   accepted: "bg-[#dfe9db] text-[#50614b]",
@@ -78,17 +36,17 @@ function GoodsReceiptRow({
     >
       {/* GRN */}
       <div className="py-1 text-xs text-gray-400">
-        {grn.id}
+        {grn.grnNumber}
       </div>
 
       {/* PO */}
       <div className="py-1 text-xs text-[#53664a]">
-        {grn.po}
+        {grn.purchaseOrderId}
       </div>
 
       {/* Vendor */}
       <div className="py-1 text-sm font-semibold text-gray-800">
-        {grn.vendor}
+        {grn.vendorName}
       </div>
 
       {/* Received Date */}
@@ -98,12 +56,12 @@ function GoodsReceiptRow({
 
       {/* Items */}
       <div className="py-1 text-sm text-gray-500">
-        {grn.items}
+        {grn.itemCount}
       </div>
 
       {/* Value */}
       <div className="py-1 text-sm font-semibold text-gray-800">
-        {grn.value}
+        {grn.totalValue}
       </div>
 
       {/* Quality + Details */}
@@ -122,7 +80,7 @@ function GoodsReceiptRow({
             ${qualityStyles[grn.qualityType]}
           `}
         >
-          {grn.quality}
+          {grn.qualityStatus}
         </span>
 
         <button
@@ -159,7 +117,25 @@ function GoodsReceiptRow({
 }
 
 const GoodsReceipts = () => {
-  const [hoveredRow, setHoveredRow] = useState(null);
+
+const [hoveredRow, setHoveredRow] = useState(null);
+const [goodsReceipts, setGoodsReceipts] = useState([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const fetchGoodsReceipts = async () => {
+    try {
+      const response = await PurchaseService.getAllGRNs();
+      setGoodsReceipts(response.data);
+    } catch (error) {
+      console.error("Failed to load GRNs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchGoodsReceipts();
+}, []);
 
   return (
     <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
@@ -219,15 +195,25 @@ const GoodsReceipts = () => {
 
             {/* Rows */}
             <div>
-              {grnData.map((grn, index) => (
-                <GoodsReceiptRow
-                  key={grn.id}
-                  grn={grn}
-                  index={index}
-                  hoveredRow={hoveredRow}
-                  setHoveredRow={setHoveredRow}
-                />
-              ))}
+             {loading ? (
+  <div className="px-6 py-10 text-center text-sm text-gray-400">
+    Loading goods receipts...
+  </div>
+) : goodsReceipts.length === 0 ? (
+  <div className="px-6 py-10 text-center text-sm text-gray-400">
+    No goods receipts found.
+  </div>
+) : (
+  goodsReceipts.map((grn, index) => (
+    <GoodsReceiptRow
+      key={grn.grnNumber}
+      grn={grn}
+      index={index}
+      hoveredRow={hoveredRow}
+      setHoveredRow={setHoveredRow}
+    />
+  ))
+)}
             </div>
 
           </div>

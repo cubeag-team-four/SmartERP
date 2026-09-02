@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import PurchaseService from "../../../core/services/modules/purchase.service";
 
 import PurchaseOrders from "./PurchaseOrders";
 import Vendors from "./Vendors";
@@ -6,28 +7,23 @@ import GoodsReceipts from "./GoodsReceipts";
 import PayablesAging from "./PayablesAging";
 import CreatePurchaseOrder from "./CreatePurchaseOrder";
 
-const stats = [
-  {
-    value: "₹38.4 L",
-    label: "PURCHASE MTD",
-    description: "289 orders",
-  },
-  {
-    value: "₹1.2 Cr",
-    label: "PAYABLES",
-    description: "18 invoices pending",
-  },
-  {
-    value: "42",
-    label: "ACTIVE VENDORS",
-    description: "5 new this month",
-  },
-  {
-    value: "96%",
-    label: "ON-TIME RECEIPT",
-    description: "↑ 2pp vs last month",
-  },
-];
+const formatIndianAmount = (value) => {
+  const amount = Number(value) || 0;
+
+  if (amount >= 10000000) {
+    return `₹${(amount / 10000000).toFixed(1).replace(/\.0$/, "")} Cr`;
+  }
+
+  if (amount >= 100000) {
+    return `₹${(amount / 100000).toFixed(1).replace(/\.0$/, "")} L`;
+  }
+
+  if (amount >= 1000) {
+    return `₹${(amount / 1000).toFixed(1).replace(/\.0$/, "")} K`;
+  }
+
+  return `₹${amount.toLocaleString("en-IN")}`;
+};
 
 const tabs = [
   {
@@ -45,83 +41,6 @@ const tabs = [
   {
     label: "PAYABLES",
     key: "payables",
-  },
-];
-
-/* =========================================================
-   VENDORS
-   ========================================================= */
-
-const vendors = [
-  {
-    id: "V-0042",
-    vendor: "Tata Steel Ltd",
-    contact: "Ramesh Iyer",
-    phone: "+91 9876543210",
-    email: "ramesh.iyer@tatasteel.com",
-    city: "Pune",
-    category: "Raw Materials",
-    gstin: "27AABCT1234A1Z5",
-    pan: "AABCT1234A",
-    paymentTerms: "Net 30 Days",
-    creditLimit: "₹50L",
-    address: "18, Industrial Area,\nPune, Maharashtra - 411026",
-  },
-  {
-    id: "V-0041",
-    vendor: "Hindustan Zinc",
-    contact: "Pradeep Mehta",
-    phone: "+91 9876543211",
-    email: "pradeep@hzl.com",
-    city: "Udaipur",
-    category: "Raw Materials",
-    gstin: "08AAACH7355K1ZP",
-    pan: "AAACH7355K",
-    paymentTerms: "Net 30 Days",
-    creditLimit: "₹30L",
-    address: "Udaipur Industrial Area,\nUdaipur, Rajasthan",
-  },
-  {
-    id: "V-0040",
-    vendor: "Sigma Components",
-    contact: "Anil Kumar",
-    phone: "+91 9876543212",
-    email: "anil@sigma.com",
-    city: "Pune",
-    category: "Components",
-    gstin: "27AABCS1234A1Z5",
-    pan: "AABCS1234A",
-    paymentTerms: "Net 45 Days",
-    creditLimit: "₹15L",
-    address: "MIDC Industrial Area,\nPune, Maharashtra",
-  },
-  {
-    id: "V-0039",
-    vendor: "Brindavan Fasteners",
-    contact: "Suresh Nair",
-    phone: "+91 9876543213",
-    email: "suresh@brindavan.com",
-    city: "Coimbatore",
-    category: "Hardware",
-    gstin: "33AABCB1234A1Z5",
-    pan: "AABCB1234A",
-    paymentTerms: "Net 30 Days",
-    creditLimit: "₹8L",
-    address: "Industrial Estate,\nCoimbatore, Tamil Nadu",
-  },
-  {
-    id: "V-0038",
-    vendor: "Anand Packaging",
-    contact: "Kavita Sharma",
-    phone: "+91 9876543214",
-    email: "kavita@anandpack.com",
-    city: "Delhi",
-    category: "Packaging",
-    gstin: "07AABCA1234A1Z5",
-    pan: "AABCA1234A",
-    paymentTerms: "Net 30 Days",
-    creditLimit: "₹12L",
-    address: "Okhla Industrial Area,\nNew Delhi",
   },
 ];
 
@@ -153,97 +72,74 @@ function StatCard({ value, label, description }) {
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("purchase-orders");
-
   const [showCreatePO, setShowCreatePO] = useState(false);
+  const [purchaseOrdersRefresh, setPurchaseOrdersRefresh] = useState(0);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [vendors, setVendors] = useState([]);
 
-  const [purchaseOrders, setPurchaseOrders] = useState([
-    {
-      id: "PO-2026-0289",
-      vendor: "Tata Steel Ltd",
-      date: "08 Aug 2026",
-      delivery: "15 Aug 2026",
-      items: 4,
-      value: "₹18,40,000",
-      status: "CONFIRMED",
-      statusType: "confirmed",
-    },
-    {
-      id: "PO-2026-0288",
-      vendor: "Hindustan Zinc",
-      date: "06 Aug 2026",
-      delivery: "14 Aug 2026",
-      items: 2,
-      value: "₹9,20,000",
-      status: "SENT",
-      statusType: "sent",
-    },
-    {
-      id: "PO-2026-0287",
-      vendor: "Sigma Components",
-      date: "04 Aug 2026",
-      delivery: "12 Aug 2026",
-      items: 8,
-      value: "₹5,60,000",
-      status: "IN PROGRESS",
-      statusType: "progress",
-    },
-    {
-      id: "PO-2026-0286",
-      vendor: "Brindavan Fasteners",
-      date: "01 Aug 2026",
-      delivery: "09 Aug 2026",
-      items: 15,
-      value: "₹1,80,000",
-      status: "COMPLETED",
-      statusType: "completed",
-    },
-    {
-      id: "PO-2026-0285",
-      vendor: "Anand Packaging",
-      date: "28 Jul 2026",
-      delivery: "05 Aug 2026",
-      items: 3,
-      value: "₹3,40,000",
-      status: "CANCELLED",
-      statusType: "cancelled",
-    },
-  ]);
+useEffect(() => {
+  const fetchDashboard = async () => {
+    try {
+      const response = await PurchaseService.getDashboard();
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error("Failed to load purchase dashboard:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDashboard();
+}, []);
+
+useEffect(() => {
+  const fetchVendors = async () => {
+    try {
+      const response = await PurchaseService.getAllVendors();
+      setVendors(response.data || []);
+    } catch (error) {
+      console.error("Failed to load vendors:", error);
+    }
+  };
+
+  fetchVendors();
+}, []);
+
+const stats = dashboardData
+    ? [
+        {
+          value: formatIndianAmount(dashboardData.purchaseMtd),
+          label: "PURCHASE MTD",
+          description: `${dashboardData.purchaseChangePercent >= 0 ? "↑" : "↓"} ${Math.abs(
+            dashboardData.purchaseChangePercent
+          )}% vs last month`,
+        },
+        {
+          value: formatIndianAmount(dashboardData.totalPayables),
+          label: "PAYABLES",
+          description: `${dashboardData.pendingPayableCount} invoices pending`,
+        },
+        {
+          value: dashboardData.activeVendorCount,
+          label: "ACTIVE VENDORS",
+          description: "Currently active",
+        },
+        {
+          value: `${dashboardData.onTimeReceiptPercentage}%`,
+          label: "ON-TIME RECEIPT",
+          description: `${dashboardData.onTimeReceiptChangePoints >= 0 ? "↑" : "↓"} ${Math.abs(
+            dashboardData.onTimeReceiptChangePoints
+          )}pp vs last month`,
+        },
+      ]
+    : [];
 
   /* =======================================================
      SAVE NEW PO
      ======================================================= */
 
-  const handleSavePO = (poData) => {
-    const newPO = {
-      id:
-        poData.poNumber ||
-        `PO-2026-${String(290 + purchaseOrders.length).padStart(
-          4,
-          "0"
-        )}`,
-
-      vendor: poData.vendor?.vendor || "Unknown Vendor",
-
-      date: poData.poDate || "26 Aug 2026",
-
-      delivery: poData.deliveryDate || "-",
-
-      items: poData.items?.length || 0,
-
-      value: poData.grandTotal
-        ? `₹${Number(poData.grandTotal).toLocaleString("en-IN")}`
-        : "₹0",
-
-      status: "PENDING APPROVAL",
-
-      statusType: "progress",
-    };
-
-    setPurchaseOrders((prev) => [newPO, ...prev]);
-
-    setShowCreatePO(false);
-  };
-
+const handleSavePO = () => { setPurchaseOrdersRefresh((prev) => prev + 1); setShowCreatePO(false); };
   return (
     <main className="bg-[#f7f6f2] text-[#171815]">
 
@@ -345,9 +241,7 @@ const Dashboard = () => {
       <section>
 
         {activeTab === "purchase-orders" && (
-          <PurchaseOrders
-            purchaseOrders={purchaseOrders}
-          />
+          <PurchaseOrders refreshTrigger={purchaseOrdersRefresh} />
         )}
 
         {activeTab === "vendors" && <Vendors />}

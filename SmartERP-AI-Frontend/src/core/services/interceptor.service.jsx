@@ -20,6 +20,8 @@ export const attachInterceptors = (axiosInstance) => {
     (response) => response,
     (error) => {
       if (error?.response?.status === 401) {
+        // console.error("401 UNAUTHORIZED:", error.config) // Log the request config for debugging
+        // console.error("401 RESPONSE:", error.response?.data)
         storageService.clear()
         window.location.href = '/login'
       }

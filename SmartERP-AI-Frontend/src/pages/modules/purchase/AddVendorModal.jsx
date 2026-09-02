@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import PurchaseService from "../../../core/services/modules/purchase.service";
 
 /* =========================================================
    COMMON STYLES
@@ -216,7 +217,7 @@ const AddVendorModal = ({ onClose, onSave }) => {
 
     /* Vendor Information */
     vendorName: "",
-    vendorCode: "V-0043",
+    vendorCode: "V-0000", // Auto-generated
     vendorType: "",
     category: "",
     status: "Active",
@@ -315,32 +316,33 @@ const AddVendorModal = ({ onClose, onSave }) => {
      SUBMIT
   ======================================================= */
 
-const handleSubmit = (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
-  console.log("Vendor Data:", form);
-  console.log("Vendor Documents:", documents);
+  try {
+    const payload = {
+      vendorName: form.vendorName,
+      contactName: form.contactName,
+      phone: form.phone,
+      email: form.email,
+      city: form.city,
+      address: form.address1,
+      category: form.category,
+      gstin: form.gstin,
+      pan: form.pan,
+      paymentTerms: form.paymentTerms,
+      creditLimit: Number(form.creditLimit) || 0,
+      rating: Number(form.rating) || 0,
+      status: form.status.toUpperCase(),
+    };
 
-  onSave({
-    ...form,
-    documents,
-  });
+    const response = await PurchaseService.createVendor(payload);
+
+    onSave(response.data);
+  } catch (error) {
+    console.error("Failed to create vendor:", error.response?.data || error);
+  }
 };
-
-
-  /* =======================================================
-     SAVE DRAFT
-  ======================================================= */
-
-  const handleSaveDraft = () => {
-    console.log("Vendor Draft:", form);
-
-    console.log(
-      "Draft Documents:",
-      documents
-    );
-  };
-
 
   /* =======================================================
      UI

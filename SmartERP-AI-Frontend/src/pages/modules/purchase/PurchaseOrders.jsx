@@ -1,18 +1,30 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import PurchaseService from "../../../core/services/modules/purchase.service";
 
 const statusStyles = {
+  draft: "bg-[#eeedf3] text-[#5b5870]",
   confirmed: "bg-[#dfe9db] text-[#50614b]",
   sent: "bg-[#eeedf3] text-[#5b5870]",
-  progress: "bg-[#eeedf3] text-[#5b5870]",
+  in_progress: "bg-[#eeedf3] text-[#5b5870]",
   completed: "bg-[#dfe9db] text-[#3f513c]",
   cancelled: "bg-[#e7e5df] text-[#77766f] line-through",
+};
+
+const formatDate = (date) => {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 function StatusBadge({ status, type }) {
   return (
     <span
       className={`inline-flex items-center rounded-[10px] px-3 py-[7px] text-[10px] leading-none font-semibold tracking-[0.06em] transition-all duration-200 ${
-        statusStyles[type] || statusStyles.progress
+        statusStyles[type] || "bg-[#eeedf3] text-[#5b5870]"
       }`}
     >
       {status}
@@ -26,9 +38,11 @@ function PurchaseOrderRow({
   onMouseEnter,
   onMouseLeave,
 }) {
-  const showGRN =
-    order.statusType === "confirmed" ||
-    order.statusType === "progress";
+const statusType = order.status?.toLowerCase();
+
+const showGRN =
+  statusType === "confirmed" ||
+  statusType === "in_progress";
 
   return (
     <div
@@ -50,47 +64,44 @@ function PurchaseOrderRow({
       {/* PO Number */}
 
       <div className="py-1 font-mono text-xs text-gray-400">
-        {order.id}
+        {order.orderNumber}
       </div>
 
       {/* Vendor */}
 
       <div className="py-1 text-sm font-semibold text-gray-800">
-        {order.vendor}
+        {order.vendorName}
       </div>
 
       {/* Date */}
 
       <div className="py-1 text-sm text-gray-500">
-        {order.date}
+        {formatDate(order.orderDate)}
       </div>
 
       {/* Delivery */}
 
       <div className="py-1 text-sm text-gray-500">
-        {order.delivery}
+        {formatDate(order.expectedDeliveryDate)}
       </div>
 
       {/* Items */}
 
       <div className="py-1 text-sm text-gray-500">
-        {order.items}
+        {order.itemCount}
       </div>
 
       {/* Value */}
 
       <div className="py-1 text-sm font-semibold text-gray-800">
-        {order.value}
+        ₹{Number(order.totalAmount || 0).toLocaleString("en-IN")}
       </div>
 
       {/* Status */}
 
       <div className="flex items-center justify-between gap-3">
 
-        <StatusBadge
-          status={order.status}
-          type={order.statusType}
-        />
+        <StatusBadge status={order.status} type={statusType} />
 
         <div
           className={`
@@ -132,8 +143,24 @@ function PurchaseOrderRow({
   );
 }
 
-const PurchaseOrders = ({ purchaseOrders }) => {
+const PurchaseOrders = ( { refreshTrigger }) => {
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchPurchaseOrders = async () => {
+      try {
+        const response = await PurchaseService.getAllOrders();
+        setPurchaseOrders(response.data);
+      } catch (error) {
+        console.error("Failed to load purchase orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPurchaseOrders();
+  }, [ refreshTrigger ]);
   const [hoveredRow, setHoveredRow] = useState(null);
 
   return (

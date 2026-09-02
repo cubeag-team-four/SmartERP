@@ -1,49 +1,5 @@
-import React from "react";
-
-const payableData = [
-  {
-    vendor: "Tata Steel Ltd",
-    location: "Mumbai",
-    category: "Raw Materials",
-    amount: "₹18.2L",
-  },
-  {
-    vendor: "Hindustan Zinc",
-    location: "Udaipur",
-    category: "Raw Materials",
-    amount: "₹17.7L",
-  },
-  {
-    vendor: "Sigma Components",
-    location: "Pune",
-    category: "Components",
-    amount: "₹9.6L",
-  },
-  {
-    vendor: "Brindavan Fasteners",
-    location: "Coimbatore",
-    category: "Hardware",
-    amount: "₹18.6L",
-  },
-];
-
-const summary = [
-  {
-    value: "₹1.2 Cr",
-    label: "TOTAL PAYABLES",
-    type: "normal",
-  },
-  {
-    value: "₹38 L",
-    label: "DUE THIS WEEK",
-    type: "warning",
-  },
-  {
-    value: "₹14 L",
-    label: "OVERDUE",
-    type: "danger",
-  },
-];
+import React, { useEffect, useState } from "react";
+import PurchaseService from "../../../core/services/modules/purchase.service";
 
 function SummaryCard({ value, label, type }) {
   const valueColor =
@@ -136,7 +92,7 @@ function PayableCard({ item }) {
           </div>
 
           <div className="mt-[6px] text-[9px] leading-none text-[#aaa9a4] sm:text-[10px]">
-            Due: 15 Aug 2026
+            Due: {item.dueDate || "-"}
           </div>
         </div>
 
@@ -168,25 +124,75 @@ function PayableCard({ item }) {
 }
 
 const PayablesAging = () => {
+
+const [payables, setPayables] = useState([]);
+const [summary, setSummary] = useState({
+  totalPayables: 0,
+  dueThisWeek: 0,
+  overduePayables: 0,
+  pendingCount: 0,
+  currency: "INR",
+});
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const fetchPayables = async () => {
+    try {
+      const [payablesResponse, summaryResponse] = await Promise.all([
+        PurchaseService.getAllPayables(),
+        PurchaseService.getPayablesSummary(),
+      ]);
+
+      setPayables(payablesResponse.data);
+      setSummary(summaryResponse.data);
+    } catch (error) {
+      console.error("Failed to load payables:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchPayables();
+}, []);
+
   return (
     <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
       {/* Summary */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {summary.map((item) => (
-          <SummaryCard
-            key={item.label}
-            value={item.value}
-            label={item.label}
-            type={item.type}
-          />
-        ))}
-      </section>
+  <SummaryCard
+    value={`₹${Number(summary.totalPayables || 0).toLocaleString("en-IN")}`}
+    label="TOTAL PAYABLES"
+    type="normal"
+  />
+
+  <SummaryCard
+    value={`₹${Number(summary.dueThisWeek || 0).toLocaleString("en-IN")}`}
+    label="DUE THIS WEEK"
+    type="warning"
+  />
+
+  <SummaryCard
+    value={`₹${Number(summary.overduePayables || 0).toLocaleString("en-IN")}`}
+    label="OVERDUE"
+    type="danger"
+  />
+</section>
 
       {/* Payables */}
       <section className="mt-4 space-y-3 sm:mt-4">
-        {payableData.map((item) => (
-          <PayableCard key={item.vendor} item={item} />
-        ))}
+        {loading ? (
+  <div className="py-10 text-center text-sm text-gray-400">
+    Loading payables...
+  </div>
+) : payables.length === 0 ? (
+  <div className="py-10 text-center text-sm text-gray-400">
+    No payables found.
+  </div>
+) : (
+  payables.map((item) => (
+    <PayableCard key={item.vendor} item={item} />
+  ))
+)}
       </section>
     </main>
   );

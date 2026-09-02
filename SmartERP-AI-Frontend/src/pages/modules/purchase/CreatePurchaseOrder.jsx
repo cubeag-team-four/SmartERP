@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
+import PurchaseService from "../../../core/services/modules/purchase.service";
 
 /* =========================================================
    COMMON INPUT STYLE
@@ -61,44 +62,24 @@ const CreatePurchaseOrder = ({
   ===================================================== */
 
   const [form, setForm] = useState({
-    poNumber: `PO-2026-${String(
-      290 + Math.floor(Math.random() * 10)
-    ).padStart(4, "0")}`,
 
-    poDate: "26 Aug 2026",
-
+    poDate: new Date().toLocaleDateString("en-GB", {day: "2-digit", month: "short", year: "numeric",}),
     vendorId: "",
-
     company: "",
-
     branch: "",
-
     purchaseType: "Material",
-
     currency: "INR",
-
     referenceNo: "",
-
     quotationDate: "",
-
     deliveryDate: "",
-
     deliveryLocation: "Pune",
-
     warehouse: "Main Warehouse",
-
     shippingAddress: "",
-
     shippingMethod: "Road",
-
     freightTerms: "Paid by Supplier",
-
     paymentTerms: "Net 30 Days",
-
     creditPeriod: "30",
-
     paymentMethod: "Bank Transfer",
-
     notes: "",
   });
 
@@ -120,15 +101,7 @@ const CreatePurchaseOrder = ({
     },
   ]);
 
-  /* =====================================================
-     SELECTED VENDOR
-  ===================================================== */
-
-  const selectedVendor = useMemo(() => {
-    return vendors.find(
-      (vendor) => vendor.id === form.vendorId
-    );
-  }, [vendors, form.vendorId]);
+const [selectedVendor, setSelectedVendor] = useState(null);
 
   /* =====================================================
      FORM CHANGE
@@ -143,23 +116,36 @@ const CreatePurchaseOrder = ({
     }));
   };
 
-  /* =====================================================
-     VENDOR CHANGE
-  ===================================================== */
+const handleVendorChange = async (e) => {
+  const vendorId = e.target.value;
 
-  const handleVendorChange = (e) => {
-    const vendorId = e.target.value;
+  setForm((prev) => ({
+    ...prev,
+    vendorId,
+  }));
 
-    const vendor = vendors.find(
-      (item) => item.id === vendorId
-    );
+  if (!vendorId) {
+    setSelectedVendor(null);
+    return;
+  }
+
+  try {
+    const response = await PurchaseService.getVendorById(vendorId);
+    const vendor = response.data;
+
+    setSelectedVendor(vendor);
 
     setForm((prev) => ({
       ...prev,
       vendorId,
       shippingAddress: vendor?.address || "",
+      paymentTerms: vendor?.paymentTerms || prev.paymentTerms,
     }));
-  };
+  } catch (error) {
+    console.error("Failed to load vendor details:", error);
+    setSelectedVendor(null);
+  }
+};
 
   /* =====================================================
      ITEM CHANGE
@@ -361,37 +347,85 @@ const CreatePurchaseOrder = ({
   const grandTotal =
     taxableAmount + taxAmount;
 
-  /* =====================================================
-     SAVE
-  ===================================================== */
+ /* =====================================================
+   SAVE / SUBMIT
+===================================================== */
 
-  const savePurchaseOrder = () => {
-    if (!selectedVendor) {
-      alert("Please select a vendor.");
-      return;
+const savePurchaseOrder = async (submitForApproval = false) => {
+  if (!selectedVendor) {
+    alert("Please select a vendor.");
+    return;
+  }
+
+  if (!form.deliveryDate) {
+    alert("Please select an expected delivery date.");
+    return;
+  }
+
+  const payload = {
+    vendorId: Number(form.vendorId),
+    vendorName: selectedVendor.vendorName,
+    expectedDeliveryDate: form.deliveryDate,
+    deliveryLocation: form.deliveryLocation,
+    paymentTerms: form.paymentTerms,
+    notes: form.notes,
+    items: items.map((item) => ({
+      productId: null,
+      description: item.description || item.name,
+      quantity: Number(item.qty),
+      unitPrice: Number(item.rate),
+      taxRate: Number(item.tax),
+    })),
+  };
+
+  try {
+    // First create the Purchase Order.
+    // Backend creates it as DRAFT.
+    const response = await PurchaseService.create(payload);
+
+    let finalOrder = response.data;
+
+    // If Submit for Approval was clicked,
+    // change the newly created PO from DRAFT -> SENT.
+    if (submitForApproval) {
+      const updateResponse = await PurchaseService.update(
+        response.data.id,
+        {
+          status: "SENT",
+        }
+      );
+
+      finalOrder = updateResponse.data;
     }
 
-    onSave({
-      ...form,
-      vendor: selectedVendor,
-      items,
-      subtotal,
-      totalDiscount,
-      taxableAmount,
-      taxAmount,
-      grandTotal,
-    });
-  };
+    alert(
+      submitForApproval
+        ? "Purchase order submitted for approval."
+        : "Purchase order saved as draft."
+    );
 
-  /* =====================================================
-     SUBMIT
-  ===================================================== */
+    // Send the final backend response to Dashboard
+    onSave(finalOrder);
+  } catch (error) {
+    console.error("Failed to save purchase order:", error);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+    alert(
+      error?.response?.data?.message ||
+        "Failed to save purchase order."
+    );
+  }
+};
 
-    savePurchaseOrder();
-  };
+/* =====================================================
+   FORM SUBMIT
+===================================================== */
+
+const handleSubmit = (e) => {
+  e.preventDefault();
+
+  // Form submit means Submit for Approval
+  savePurchaseOrder(true);
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -403,21 +437,14 @@ const CreatePurchaseOrder = ({
         ================================================= */}
 
         <div className="flex shrink-0 items-center justify-between border-b border-[#e4e2dd] bg-white px-6 py-4">
-
           <div>
             <p className="text-[10px] font-semibold tracking-[0.14em] text-[#999a94]">
               PURCHASE ORDERS
             </p>
-
             <h2 className="mt-1 font-serif text-[23px] font-semibold text-[#171815]">
               Create Purchase Order
             </h2>
-
-            <p className="mt-1 font-mono text-[11px] text-[#999a94]">
-              {form.poNumber}
-            </p>
           </div>
-
           <div className="flex items-center gap-2">
 
             <button
@@ -428,21 +455,21 @@ const CreatePurchaseOrder = ({
               Cancel
             </button>
 
-            <button
-              type="button"
-              onClick={savePurchaseOrder}
-              className="rounded-[11px] border border-[#d9d7d1] bg-white px-5 py-2.5 text-[11px] font-semibold text-[#252622] transition hover:bg-[#f5f4f0]"
-            >
-              Save Draft
-            </button>
+<button
+  type="button"
+  onClick={() => savePurchaseOrder(false)}
+  className="rounded-[11px] border border-[#d9d7d1] bg-white px-5 py-2.5 text-[11px] font-semibold text-[#252622] transition hover:bg-[#f5f4f0]"
+>
+  Save Draft
+</button>
 
-            <button
-              type="button"
-              onClick={savePurchaseOrder}
-              className="rounded-[11px] bg-[#151714] px-5 py-2.5 text-[11px] font-semibold text-white transition hover:bg-[#292b27]"
-            >
-              Submit for Approval
-            </button>
+<button
+  type="button"
+  onClick={() => savePurchaseOrder(true)}
+  className="rounded-[11px] bg-[#151714] px-5 py-2.5 text-[11px] font-semibold text-white transition hover:bg-[#292b27]"
+>
+  Submit for Approval
+</button>
 
           </div>
         </div>
@@ -503,7 +530,7 @@ const CreatePurchaseOrder = ({
                           key={vendor.id}
                           value={vendor.id}
                         >
-                          {vendor.vendor}
+                          {vendor.vendorName}
                         </option>
                       ))}
 
@@ -518,7 +545,7 @@ const CreatePurchaseOrder = ({
 
                 <Field
                   label="Vendor Code"
-                  value={selectedVendor?.id || ""}
+                  value={selectedVendor?.vendorCode || ""}
                   readOnly
                 />
 
@@ -597,18 +624,18 @@ const CreatePurchaseOrder = ({
                   <div className="min-w-0">
 
                     <div className="text-[15px] font-semibold text-[#171815]">
-                      {selectedVendor.vendor}
+                      {selectedVendor.vendorName}
                     </div>
 
                     <span className="mt-2 inline-flex rounded-[7px] bg-[#151714] px-2.5 py-1 text-[9px] text-white">
-                      {selectedVendor.id}
+                      {selectedVendor.vendorCode}
                     </span>
 
                   </div>
 
                   <VendorDetail
                     label="Contact Person"
-                    value={selectedVendor.contact}
+                    value={selectedVendor.contactName}
                   />
 
                   <VendorDetail
@@ -1225,37 +1252,6 @@ const CreatePurchaseOrder = ({
               />
 
             </section>
-
-            {/* =================================================
-                FOOTER
-            ================================================= */}
-
-            <div className="flex justify-end gap-2 border-t border-[#e4e2dd] pt-4">
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-[11px] border border-[#d9d7d1] bg-white px-5 py-2.5 text-[11px] font-semibold text-[#252622] transition hover:bg-[#f5f4f0]"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={savePurchaseOrder}
-                className="rounded-[11px] border border-[#d9d7d1] bg-white px-5 py-2.5 text-[11px] font-semibold text-[#252622] transition hover:bg-[#f5f4f0]"
-              >
-                Save Draft
-              </button>
-
-              <button
-                type="submit"
-                className="rounded-[11px] bg-[#151714] px-5 py-2.5 text-[11px] font-semibold text-white transition hover:bg-[#292b27]"
-              >
-                Submit for Approval
-              </button>
-
-            </div>
 
           </form>
 

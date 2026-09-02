@@ -1,58 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import PurchaseService from "../../../core/services/modules/purchase.service";
 import AddVendorModal from "./AddVendorModal";
-
-const initialVendors = [
-  {
-    id: "V-0042",
-    vendor: "Tata Steel Ltd",
-    contact: "Ramesh Iyer",
-    city: "Mumbai",
-    category: "Raw Materials",
-    creditLimit: "₹50L",
-    rating: "4.8",
-    status: "ACTIVE",
-  },
-  {
-    id: "V-0041",
-    vendor: "Hindustan Zinc",
-    contact: "Pradeep Mehta",
-    city: "Udaipur",
-    category: "Raw Materials",
-    creditLimit: "₹30L",
-    rating: "4.5",
-    status: "ACTIVE",
-  },
-  {
-    id: "V-0040",
-    vendor: "Sigma Components",
-    contact: "Anil Kumar",
-    city: "Pune",
-    category: "Components",
-    creditLimit: "₹15L",
-    rating: "4.2",
-    status: "ACTIVE",
-  },
-  {
-    id: "V-0039",
-    vendor: "Brindavan Fasteners",
-    contact: "Suresh Nair",
-    city: "Coimbatore",
-    category: "Hardware",
-    creditLimit: "₹8L",
-    rating: "3.9",
-    status: "ACTIVE",
-  },
-  {
-    id: "V-0038",
-    vendor: "Anand Packaging",
-    contact: "Kavita Sharma",
-    city: "Delhi",
-    category: "Packaging",
-    creditLimit: "₹12L",
-    rating: "3.6",
-    status: "INACTIVE",
-  },
-];
 
 const headers = [
   "ID",
@@ -90,7 +38,7 @@ function Rating({ value }) {
       </div>
 
       <span className="text-[11px] leading-none text-[#999a94]">
-        {value}
+        <span className="text-[11px] leading-none text-[#999a94]">{Number(value || 0).toFixed(1)}</span>
       </span>
     </div>
   );
@@ -123,17 +71,17 @@ function VendorRow({
     >
       {/* ID */}
       <div className="py-1 font-mono text-xs text-gray-400">
-        {vendor.id}
+        {vendor.vendorCode}
       </div>
 
       {/* Vendor */}
       <div className="py-1 text-sm font-semibold text-gray-800">
-        {vendor.vendor}
+        {vendor.vendorName}
       </div>
 
       {/* Contact */}
       <div className="py-1 text-sm text-gray-500">
-        {vendor.contact}
+        {vendor.contactName}
       </div>
 
       {/* City */}
@@ -162,7 +110,7 @@ function VendorRow({
       <div className="py-1">
         <span
           className={`inline-flex rounded-[10px] px-[11px] py-[7px] text-[10px] font-semibold leading-none tracking-[0.06em] ${
-            vendor.status === "ACTIVE"
+            vendor.status?.toUpperCase() === "ACTIVE"
               ? "bg-[#dfe9db] text-[#50614b]"
               : "bg-[#e7e5df] text-[#77766f]"
           }`}
@@ -179,50 +127,38 @@ const Vendors = () => {
      VENDORS STATE
   ===================================================== */
 
-  const [vendors, setVendors] = useState(initialVendors);
+const [vendors, setVendors] = useState([]);
+const [loading, setLoading] = useState(true);
+const [hoveredRow, setHoveredRow] = useState(null);
+const [showAddVendor, setShowAddVendor] = useState(false);
 
-  const [hoveredRow, setHoveredRow] = useState(null);
+useEffect(() => {
+  const fetchVendors = async () => {
+    try {
+      const response = await PurchaseService.getAllVendors();
+      setVendors(response.data);
+    } catch (error) {
+      console.error("Failed to load vendors:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const [showAddVendor, setShowAddVendor] = useState(false);
-
+  fetchVendors();
+}, []);
 
   /* =====================================================
      ADD NEW VENDOR
   ===================================================== */
 
-  const handleAddVendor = (vendorData) => {
-    const newVendor = {
-      id:
-        vendorData.vendorCode ||
-        `V-${String(43 + vendors.length).padStart(4, "0")}`,
+const handleAddVendor = (vendorData) => {
+  setVendors((prevVendors) => [
+    vendorData,
+    ...prevVendors,
+  ]);
 
-      vendor: vendorData.vendorName || "-",
-
-      contact: vendorData.contactName || "-",
-
-      city: vendorData.city || "-",
-
-      category: vendorData.category || "-",
-
-      creditLimit: vendorData.creditLimit
-        ? `₹${vendorData.creditLimit}`
-        : "₹0",
-
-      rating: vendorData.rating || "0",
-
-      status:
-        vendorData.status?.toUpperCase() || "ACTIVE",
-    };
-
-    /* Add new vendor at the top */
-    setVendors((prevVendors) => [
-      newVendor,
-      ...prevVendors,
-    ]);
-
-    /* Close Add Vendor popup */
-    setShowAddVendor(false);
-  };
+  setShowAddVendor(false);
+};
 
 
   return (
@@ -290,18 +226,26 @@ const Vendors = () => {
             ================================================= */}
 
             <div>
-
-              {vendors.map((vendor, index) => (
-                <VendorRow
-                  key={vendor.id}
-                  vendor={vendor}
-                  index={index}
-                  hoveredRow={hoveredRow}
-                  setHoveredRow={setHoveredRow}
-                />
-              ))}
-
-            </div>
+  {loading ? (
+    <div className="px-6 py-10 text-center text-sm text-gray-400">
+      Loading vendors...
+    </div>
+  ) : vendors.length === 0 ? (
+    <div className="px-6 py-10 text-center text-sm text-gray-400">
+      No vendors found.
+    </div>
+  ) : (
+    vendors.map((vendor, index) => (
+      <VendorRow
+        key={vendor.id}
+        vendor={vendor}
+        index={index}
+        hoveredRow={hoveredRow}
+        setHoveredRow={setHoveredRow}
+      />
+    ))
+  )}
+</div>
 
           </div>
 
