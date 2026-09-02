@@ -13,13 +13,16 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/inventory")
-@RequiredArgsConstructor
 public class InventoryItemController {
 	private final InventoryItemService service;
 
+	public InventoryItemController(InventoryItemService service) {
+		this.service = service;
+	}
+
 	@PostMapping 
 	@ResponseStatus(HttpStatus.CREATED)
-	@PreAuthorize("hasAnyRole('TENANT_ADMIN','INVENTORY_MANAGER')")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','INVENTORY_MANAGER')")
 	public InventoryItemResponse create(@RequestHeader("X-Tenant-Id") Long tenantId, @Valid @RequestBody CreateInventoryItemRequest request) {
 		return service.create(tenantId, request);
 	}
@@ -39,7 +42,7 @@ public class InventoryItemController {
 	}
 
 	@PutMapping("/{id}")
-	@PreAuthorize("hasAnyRole('TENANT_ADMIN','INVENTORY_MANAGER')")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','INVENTORY_MANAGER')")
 	public InventoryItemResponse update(@RequestHeader("X-Tenant-Id") Long tenantId, @PathVariable Long id,
 										 @Valid @RequestBody UpdateInventoryItemRequest request) {
 		return service.update(tenantId, id, request);
@@ -47,7 +50,7 @@ public class InventoryItemController {
 
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@PreAuthorize("hasAnyRole('TENANT_ADMIN','INVENTORY_MANAGER')")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','INVENTORY_MANAGER')")
 	public void delete(@RequestHeader("X-Tenant-Id") Long tenantId, @PathVariable Long id) {
 		service.delete(tenantId, id);
 	}

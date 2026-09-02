@@ -10,6 +10,7 @@ export const ROLE_HOME = {
   salesManager:     '/app/sales-manager/dashboard',
   hrManager:        '/app/hr-manager/dashboard',
   operationsManager:'/app/operations-manager/dashboard',
+  inventoryManager: '/app/inventory-manager/dashboard',
   employee:         '/app/employee/dashboard',
 }
 

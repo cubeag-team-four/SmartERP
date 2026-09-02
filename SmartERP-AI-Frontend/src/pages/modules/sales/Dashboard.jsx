@@ -1,73 +1,78 @@
-import React, { useEffect, useState } from 'react'
-import Quotations  from './Quotations'
-import SalesOrders from './SalesOrders'
-import Invoices    from './Invoices'
-import Analytics   from './Analytics'
-import SalesService from '../../../core/services/modules/sales.service'
-import { formatCurrency } from '../../../core/utils/formatCurrency'
+import React, { useState } from 'react'
+import Quotations              from './Quotations'
+import SalesOrders             from './SalesOrders'
+import Invoices                from './Invoices'
+import Analytics               from './Analytics'
+import CreateQuotationModal    from './CreateQuotationModal'
 
 const TABS = ['QUOTATIONS', 'ORDERS', 'INVOICES', 'ANALYTICS']
 
+const KPI_CARDS = [
+  { value: '₹42.6 L',  label: 'REVENUE MTD',      sub: '↑ 12.4% vs last month', subColor: '#3a7d44' },
+  { value: '₹18.2 L',  label: 'OUTSTANDING',       sub: '14 invoices pending',   subColor: '#91a0a0' },
+  { value: '₹1.84 Cr', label: 'ORDERS YTD',        sub: '138 orders',            subColor: '#91a0a0' },
+  { value: '94.2%',    label: 'ON-TIME DELIVERY',  sub: '↑ 2pp this month',      subColor: '#3a7d44' },
+]
+
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('QUOTATIONS')
-  const [kpi, setKpi]             = useState(null)
-
-  useEffect(() => {
-    SalesService.getDashboard()
-      .then((res) => setKpi(res.data))
-      .catch(() => {})
-  }, [])
-
-  const cards = kpi
-    ? [
-        {
-          value:    formatCurrency(kpi.revenueMtd, kpi.currency),
-          label:    'REVENUE MTD',
-          sub:      `${kpi.revenueChangePercent >= 0 ? '↑' : '↓'} ${Math.abs(kpi.revenueChangePercent)}% vs last month`,
-          subColor: kpi.revenueChangePercent >= 0 ? 'text-green-600' : 'text-red-500',
-        },
-        {
-          value:    formatCurrency(kpi.outstanding, kpi.currency),
-          label:    'OUTSTANDING',
-          sub:      `${kpi.pendingInvoices} invoices pending`,
-          subColor: 'text-gray-400',
-        },
-        {
-          value:    formatCurrency(kpi.ordersYtdAmount, kpi.currency),
-          label:    'ORDERS YTD',
-          sub:      `${kpi.orderCountYtd} orders`,
-          subColor: 'text-gray-400',
-        },
-        {
-          value:    `${kpi.onTimeDeliveryPercent}%`,
-          label:    'ON-TIME DELIVERY',
-          sub:      `${kpi.onTimeDeliveryChange >= 0 ? '↑' : '↓'} ${Math.abs(kpi.onTimeDeliveryChange)}pp this month`,
-          subColor: kpi.onTimeDeliveryChange >= 0 ? 'text-green-600' : 'text-red-500',
-        },
-      ]
-    : [
-        { value: '—', label: 'REVENUE MTD',      sub: '',  subColor: 'text-gray-400' },
-        { value: '—', label: 'OUTSTANDING',       sub: '',  subColor: 'text-gray-400' },
-        { value: '—', label: 'ORDERS YTD',        sub: '',  subColor: 'text-gray-400' },
-        { value: '—', label: 'ON-TIME DELIVERY',  sub: '',  subColor: 'text-gray-400' },
-      ]
+  const [activeTab,  setActiveTab]  = useState('QUOTATIONS')
+  const [modalOpen,  setModalOpen]  = useState(false)
 
   return (
     <div className="min-h-screen p-6 md:p-8" style={{ backgroundColor: '#f5f4f0' }}>
 
+      {/* New Quotation modal */}
+      <CreateQuotationModal open={modalOpen} onClose={() => setModalOpen(false)} />
+
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">Sales</p>
-          <h1 className="text-2xl font-bold text-gray-900">Sales Management</h1>
+          <p style={{
+            fontFamily: 'monospace',
+            fontSize: 10,
+            letterSpacing: '0.12em',
+            color: '#91a0a0',
+            marginBottom: 10,
+          }}>
+            SALES
+          </p>
+          <h1 style={{
+            fontFamily: 'var(--serif, Georgia, serif)',
+            fontSize: 32,
+            fontWeight: 400,
+            lineHeight: 1,
+            color: '#11130f',
+            margin: 0,
+          }}>
+            Sales Management
+          </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors">
-            Export
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button style={{
+            padding: '10px 18px',
+            borderRadius: 14,
+            border: '1px solid #e2dfd7',
+            background: '#fff',
+            fontFamily: 'monospace',
+            fontSize: 11,
+            color: '#303531',
+            cursor: 'pointer',
+          }}>
+            ↓ Export
           </button>
           <button
-            className="px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors"
-            style={{ backgroundColor: '#1a1a1a' }}
+            style={{
+              padding: '10px 18px',
+              borderRadius: 14,
+              border: 'none',
+              background: '#11130f',
+              fontFamily: 'monospace',
+              fontSize: 11,
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+            onClick={() => setModalOpen(true)}
           >
             + New Quotation
           </button>
@@ -75,27 +80,69 @@ const Dashboard = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {cards.map((card) => (
-          <div key={card.label} className="bg-white rounded-2xl border border-gray-100 px-6 py-5">
-            <p className="text-3xl font-serif text-gray-900 tracking-tight">{card.value}</p>
-            <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mt-1 mb-1">{card.label}</p>
-            <p className={`text-xs font-medium ${card.subColor}`}>{card.sub}</p>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 14,
+        marginBottom: 28,
+      }}>
+        {KPI_CARDS.map((card) => (
+          <div key={card.label} style={{
+            background: '#fff',
+            border: '1px solid #e3e0d9',
+            borderRadius: 20,
+            padding: '22px 22px 18px',
+          }}>
+            <p style={{
+              fontFamily: 'var(--serif, Georgia, serif)',
+              fontSize: 28,
+              fontWeight: 400,
+              color: '#9b8050',
+              margin: '0 0 8px',
+              lineHeight: 1,
+            }}>
+              {card.value}
+            </p>
+            <p style={{
+              fontFamily: 'monospace',
+              fontSize: 9,
+              letterSpacing: '0.12em',
+              color: '#9ba2a2',
+              margin: '0 0 6px',
+            }}>
+              {card.label}
+            </p>
+            <p style={{
+              fontFamily: 'monospace',
+              fontSize: 11,
+              color: card.subColor,
+              margin: 0,
+            }}>
+              {card.sub}
+            </p>
           </div>
         ))}
       </div>
 
       {/* Tab Bar */}
-      <div className="flex items-center gap-1 mb-4">
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-xs font-semibold tracking-widest rounded-lg transition-colors ${
-              activeTab === tab
-                ? 'bg-white text-gray-900 border border-gray-200 shadow-sm'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
+            style={{
+              padding: '10px 20px',
+              borderRadius: 12,
+              border: activeTab === tab ? '1px solid #e3e0d9' : '1px solid transparent',
+              background: activeTab === tab ? '#fff' : 'transparent',
+              fontFamily: 'monospace',
+              fontSize: 10,
+              letterSpacing: '0.06em',
+              color: activeTab === tab ? '#11130f' : '#8d9696',
+              cursor: 'pointer',
+              boxShadow: activeTab === tab ? '0 2px 5px rgba(0,0,0,.06)' : 'none',
+              transition: 'all .15s',
+            }}
           >
             {tab}
           </button>
@@ -104,7 +151,7 @@ const Dashboard = () => {
 
       {/* Tab Content */}
       <div>
-        {activeTab === 'QUOTATIONS' && <Quotations />}
+        {activeTab === 'QUOTATIONS' && <Quotations onView={() => setModalOpen(true)} />}
         {activeTab === 'ORDERS'     && <SalesOrders />}
         {activeTab === 'INVOICES'   && <Invoices />}
         {activeTab === 'ANALYTICS'  && <Analytics />}

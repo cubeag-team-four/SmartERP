@@ -6,6 +6,7 @@ const BASE = {
   SALES_MANAGER:      '/app/sales-manager',
   HR_MANAGER:         '/app/hr-manager',
   OPERATIONS_MANAGER: '/app/operations-manager',
+  INVENTORY_MANAGER:  '/app/inventory-manager',
   EMPLOYEE:           '/app/employee',
 }
 
@@ -398,6 +399,19 @@ export const ROUTES = {
   OPERATIONS_MANAGER_AI:                    `${BASE.OPERATIONS_MANAGER}/ai`,
   OPERATIONS_MANAGER_SETTINGS:              `${BASE.OPERATIONS_MANAGER}/settings`,
   OPERATIONS_MANAGER_NOTIFICATIONS:         `${BASE.OPERATIONS_MANAGER}/notifications`,
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // INVENTORY MANAGER
+  // ══════════════════════════════════════════════════════════════════════════════
+  INVENTORY_MANAGER:                         BASE.INVENTORY_MANAGER,
+  INVENTORY_MANAGER_DASHBOARD:               `${BASE.INVENTORY_MANAGER}/dashboard`,
+  INVENTORY_MANAGER_INVENTORY:               `${BASE.INVENTORY_MANAGER}/inventory`,
+  INVENTORY_MANAGER_INVENTORY_OVERVIEW:      `${BASE.INVENTORY_MANAGER}/inventory/overview`,
+  INVENTORY_MANAGER_INVENTORY_STOCK:         `${BASE.INVENTORY_MANAGER}/inventory/stock`,
+  INVENTORY_MANAGER_INVENTORY_WAREHOUSES:    `${BASE.INVENTORY_MANAGER}/inventory/warehouses`,
+  INVENTORY_MANAGER_DOCUMENTS:               `${BASE.INVENTORY_MANAGER}/documents`,
+  INVENTORY_MANAGER_AI:                      `${BASE.INVENTORY_MANAGER}/ai`,
+  INVENTORY_MANAGER_NOTIFICATIONS:           `${BASE.INVENTORY_MANAGER}/notifications`,
 
   // ══════════════════════════════════════════════════════════════════════════════
   // EMPLOYEE
