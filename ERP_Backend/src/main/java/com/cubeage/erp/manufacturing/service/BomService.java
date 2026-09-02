@@ -2,6 +2,7 @@ package com.cubeage.erp.manufacturing.service;
 
 import com.cubeage.erp.manufacturing.dto.request.CreateBomRequest;
 import com.cubeage.erp.manufacturing.dto.request.UpdateBomRequest;
+import com.cubeage.erp.manufacturing.dto.response.BomDetailsResponse;
 import com.cubeage.erp.manufacturing.dto.response.BomResponse;
 
 import java.util.List;
@@ -12,7 +13,7 @@ public interface BomService {
 
     List<BomResponse> getAll(Long tenantId);
 
-    BomResponse getById(Long tenantId, Long id);
+    BomDetailsResponse getById(Long tenantId, Long id);
 
     BomResponse update(Long tenantId, Long id, UpdateBomRequest request);
 

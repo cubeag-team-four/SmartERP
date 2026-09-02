@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import ManufacturingService from "../../../core/services/modules/manufacturing.service";
 
 import WorkOrders from "./WorkOrders";
 import BillOfMaterials from "./BillOfMaterials";
@@ -54,7 +55,7 @@ function NewWorkOrderModal({ onClose, onSubmit }) {
     priority:     "High",
     productionType: "Manufacturing",
     orderType:    "Production",
-    status:       "Planned",
+    status:       "PENDING",
     source:       "Internal",
     customer:     "",
     referenceNo:  "",
@@ -62,7 +63,7 @@ function NewWorkOrderModal({ onClose, onSubmit }) {
     product:      "",
     itemCode:     "",
     uom:          "",
-    quantity:     "0",
+    quantity:     "1",
     bom:          "",
     bomVersion:   "",
     totalComponents: "0",
@@ -87,9 +88,28 @@ function NewWorkOrderModal({ onClose, onSubmit }) {
     return !Object.keys(e).length;
   };
 
-  const submit = (asDraft = false) => {
-    if (asDraft || validate()) { onSubmit({ ...form, savedAs: asDraft ? "draft" : "confirmed" }); onClose(); }
+  const submit = async (asDraft = false) => {if (!asDraft && !validate()) {return;}
+
+  const payload = {
+    productName: form.product,
+    quantity: Number(form.quantity),
+    bomNumber: form.bom,
+    machineName: form.machine,
+    operatorName: form.operator,
+    dueDate: form.requiredDate,
+    status: asDraft ? "PENDING" : form.status,
+    progress: 0,
   };
+
+  try {
+    await onSubmit(payload);
+    onClose();
+  } catch (error) {
+      console.error("Error creating work order:", error);
+  console.error("STATUS:", error.response?.status);
+  console.error("BACKEND RESPONSE:", error.response?.data);
+  }
+};
 
   const err = k => errors[k] && <span className="text-[11px] text-[#c0392b]">{errors[k]}</span>;
 
@@ -144,9 +164,17 @@ function NewWorkOrderModal({ onClose, onSubmit }) {
                 {err("orderType")}
               </F>
               <F label="Status">
-                <div className="flex items-center h-[42px]">
-                  <span className="rounded-md bg-[#dbeafe] px-3 py-1 text-[12px] font-medium text-[#1d4ed8]">{form.status}</span>
-                </div>
+                <Sel
+                  value={form.status}
+                  onChange={e => set("status", e.target.value)}
+                  options={[
+                    { v: "PENDING", l: "Pending" },
+                    { v: "IN_PROGRESS", l: "In Progress" },
+                    { v: "COMPLETED", l: "Completed" },
+                    { v: "ON_HOLD", l: "On Hold" },
+                    { v: "CANCELLED", l: "Cancelled" },
+                  ]}
+                />
               </F>
               <F label="Source">
                 <Sel value={form.source} onChange={e => set("source", e.target.value)} options={["Internal","Customer Order","Sales Order","Project"]} />
@@ -267,33 +295,6 @@ function NewWorkOrderModal({ onClose, onSubmit }) {
   );
 }
 
-const stats = [
-  {
-    value: "12",
-    label: "ACTIVE WOS",
-    description: "4 completing today",
-    type: "positive",
-  },
-  {
-    value: "84%",
-    label: "OEE",
-    description: "↑ 3pp this week",
-    type: "positive",
-  },
-  {
-    value: "98.2%",
-    label: "QUALITY RATE",
-    description: "↓ 0.4pp vs target",
-    type: "positive",
-  },
-  {
-    value: "1",
-    label: "MACHINE DOWN",
-    description: "CNC-03 in maintenance",
-    type: "danger",
-  },
-];
-
 const tabs = [
   {
     label: "WORK ORDERS",
@@ -335,10 +336,10 @@ function StatCard({ value, label, description, type }) {
   );
 }
 
-function PageContent({ activeTab }) {
+function PageContent({ activeTab, workOrdersRefreshKey }) {
   switch (activeTab) {
     case "work-orders":
-      return <WorkOrders />;
+      return <WorkOrders refreshKey={workOrdersRefreshKey} />;
 
     case "bom":
       return <BillOfMaterials />;
@@ -355,8 +356,60 @@ function PageContent({ activeTab }) {
 }
 
 const Dashboard = () => {
-  const [activeTab,  setActiveTab]  = useState("work-orders");
-  const [showModal,  setShowModal]  = useState(false);
+  const [activeTab, setActiveTab] = useState("work-orders");
+  const [showModal, setShowModal] = useState(false);
+  const [workOrdersRefreshKey, setWorkOrdersRefreshKey] = useState(0);
+
+  const [dashboardStats, setDashboardStats] = useState([]);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+  const fetchDashboard = async () => {
+    try {
+      setLoadingStats(true);
+
+      const response = await ManufacturingService.getDashboard();
+
+      setDashboardStats(response.data?.stats || []);
+    } catch (error) {
+      console.error("Error fetching manufacturing dashboard:", error);
+      setDashboardStats([]);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  fetchDashboard();
+}, [workOrdersRefreshKey]);
+
+const stats = loadingStats
+  ? [
+      {
+        value: "...",
+        label: "ACTIVE WOS",
+        description: "Loading...",
+        type: "positive",
+      },
+      {
+        value: "...",
+        label: "OEE",
+        description: "Loading...",
+        type: "positive",
+      },
+      {
+        value: "...",
+        label: "QUALITY RATE",
+        description: "Loading...",
+        type: "positive",
+      },
+      {
+        value: "...",
+        label: "MACHINE DOWN",
+        description: "Loading...",
+        type: "positive",
+      },
+    ]
+  : dashboardStats;
 
   return (
     <main className="bg-[#f7f6f2] text-[#171815]">
@@ -436,16 +489,22 @@ const Dashboard = () => {
 
       {/* Selected Page Content */}
       <section className="mt-0 overflow-x-hidden">
-        <PageContent activeTab={activeTab} />
+        <PageContent activeTab={activeTab} workOrdersRefreshKey={workOrdersRefreshKey} />
       </section>
 
       {/* New Work Order Modal */}
       {showModal && (
         <NewWorkOrderModal
           onClose={() => setShowModal(false)}
-          onSubmit={(data) => {
-            console.log("Work order created:", data);
-            setShowModal(false);
+          onSubmit={async (payload) => {
+            try {
+              await ManufacturingService.create(payload);
+            
+              setWorkOrdersRefreshKey((key) => key + 1);
+            } catch (error) {
+              console.error("Error creating work order:", error);
+              throw error;
+            }
           }}
         />
       )}

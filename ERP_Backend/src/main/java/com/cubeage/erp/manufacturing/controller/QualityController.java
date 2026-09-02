@@ -1,8 +1,8 @@
 package com.cubeage.erp.manufacturing.controller;
 
 import com.cubeage.erp.manufacturing.dto.request.CreateQualityInspectionRequest;
-import com.cubeage.erp.manufacturing.dto.response.QualitySummaryResponse;
 import com.cubeage.erp.manufacturing.dto.response.QualityInspectionResponse;
+import com.cubeage.erp.manufacturing.dto.response.QualitySummaryResponse;
 import com.cubeage.erp.manufacturing.service.QualityService;
 import com.cubeage.erp.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -17,12 +17,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/quality")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'MANUFACTURING_USER', 'SUPER_ADMIN')")
+@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class QualityController {
 
     private final QualityService qualityService;
 
     @PostMapping("/inspections")
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<QualityInspectionResponse> createInspection(@Valid @RequestBody CreateQualityInspectionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(qualityService.createInspection(SecurityUtils.currentTenantId(), request));

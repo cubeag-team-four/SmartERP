@@ -3,6 +3,7 @@ package com.cubeage.erp.manufacturing.dto.request;
 import com.cubeage.erp.manufacturing.enums.MachineStatus;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+
 import java.time.LocalDate;
 
 public record UpdateMachineRequest(

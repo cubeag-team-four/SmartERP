@@ -15,4 +15,6 @@ public interface BillOfMaterialRepository extends JpaRepository<BillOfMaterial, 
     Optional<BillOfMaterial> findByBomNumberAndTenantId(String bomNumber, Long tenantId);
 
     List<BillOfMaterial> findByTenantIdOrderByCreatedAtDesc(Long tenantId);
+
+    long countByTenantId(Long tenantId);
 }

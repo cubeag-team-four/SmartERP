@@ -2,6 +2,7 @@ package com.cubeage.erp.manufacturing.dto.response;
 
 import com.cubeage.erp.manufacturing.enums.ProductionPriority;
 import com.cubeage.erp.manufacturing.enums.ProductionScheduleStatus;
+
 import java.time.LocalDate;
 
 public record ProductionScheduleResponse(

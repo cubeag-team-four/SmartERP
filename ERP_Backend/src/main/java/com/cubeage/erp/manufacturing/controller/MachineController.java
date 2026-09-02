@@ -17,12 +17,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/machines")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'MANUFACTURING_USER', 'SUPER_ADMIN')")
+@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class MachineController {
 
     private final MachineService machineService;
 
     @PostMapping
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<MachineResponse> create(@Valid @RequestBody CreateMachineRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(machineService.create(SecurityUtils.currentTenantId(), request));
@@ -39,12 +40,14 @@ public class MachineController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
     public MachineResponse update(@PathVariable Long id, @Valid @RequestBody UpdateMachineRequest request) {
         return machineService.update(SecurityUtils.currentTenantId(), id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','DELETE')")
     public void delete(@PathVariable Long id) {
         machineService.delete(SecurityUtils.currentTenantId(), id);
     }
