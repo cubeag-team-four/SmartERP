@@ -25,12 +25,13 @@ const mockLogin = ({ email, password }) =>
   })
 
 const authService = {
+
   // added
   login: async (payload) => {
   const response = await apiService.post(
     `${SERVER_URL}/auth/login`,
     payload
-  );
+  );git
 
   const loginData = response.data.data;
 
