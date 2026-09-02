@@ -70,26 +70,6 @@ export default function EmployeeDashboard() {
             </span>
           </div>
 
-          {/* QUICK ACTION */}
-          <button
-            type="button"
-            className="
-              rounded-full
-              bg-[#151714]
-              px-6
-              py-3
-              font-mono
-              text-[12px]
-              tracking-[0.08em]
-              text-white
-              transition-all
-              duration-200
-              hover:bg-[#242722]
-              active:scale-[0.98]
-            "
-          >
-            + QUICK ACTION
-          </button>
         </div>
       </section>
 

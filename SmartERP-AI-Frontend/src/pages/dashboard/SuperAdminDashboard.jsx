@@ -257,17 +257,6 @@ const SuperAdminDashboard = () => {
         },
     ];
 
-    /* =========================================================
-       QUICK ACTIONS
-    ========================================================= */
-
-    const quickActions = [
-        "New User",
-        "Create Workflow",
-        "View Reports",
-        "System Settings",
-    ];
-
     return (
         <div className="min-h-screen w-full bg-[#f6f5f1] px-4 py-6 font-mono text-[#11130f] sm:px-6 lg:px-7">
 
@@ -309,17 +298,6 @@ const SuperAdminDashboard = () => {
                             AI ACTIVE
 
                         </div>
-
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                alert("Quick Action opened")
-                            }
-                            className="h-[43px] flex-1 rounded-[14px] bg-[#151713] px-5 text-[11px] tracking-[1px] text-white transition-all duration-200 hover:-translate-y-[2px] hover:bg-[#252820] active:translate-y-0 sm:flex-none"
-                        >
-                            + QUICK ACTION
-                        </button>
 
                     </div>
 
@@ -655,7 +633,7 @@ const SuperAdminDashboard = () => {
 
 
                 {/* =====================================================
-                    PENDING APPROVALS + QUICK ACTIONS
+                    PENDING APPROVALS
                 ===================================================== */}
 
                 <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,3.2fr)_minmax(290px,1fr)]">
@@ -713,55 +691,6 @@ const SuperAdminDashboard = () => {
 
                             )
                         )}
-
-                    </div>
-
-
-                    {/* =================================================
-                        QUICK ACTIONS
-                    ================================================= */}
-
-                    <div className="overflow-hidden rounded-[20px] border border-[#e2e0da] bg-white">
-
-                        <div className="flex min-h-[70px] items-center border-b border-[#e6e4de] px-5">
-
-                            <h2 className="font-serif text-[20px] font-normal">
-                                Quick Actions
-                            </h2>
-
-                        </div>
-
-
-                        <div className="flex flex-col gap-2.5 p-5">
-
-                            {quickActions.map(
-                                (action, index) => (
-
-                                    <button
-                                        key={index}
-                                        type="button"
-                                        onClick={() =>
-                                            alert(
-                                                `${action} clicked`
-                                            )
-                                        }
-                                        className="flex h-[49px] w-full items-center justify-between rounded-[15px] border border-[#e1dfd8] bg-white px-4 text-left text-[11px] text-[#777a73] transition-all duration-200 hover:translate-x-1 hover:border-[#cfcfc7] hover:bg-[#fafaf7]"
-                                    >
-
-                                        <span>
-                                            {action}
-                                        </span>
-
-                                        <span className="text-[14px] text-[#aaa9a1]">
-                                            →
-                                        </span>
-
-                                    </button>
-
-                                )
-                            )}
-
-                        </div>
 
                     </div>
 
