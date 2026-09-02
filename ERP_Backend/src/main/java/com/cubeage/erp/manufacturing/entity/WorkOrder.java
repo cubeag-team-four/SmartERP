@@ -26,6 +26,9 @@ public class WorkOrder extends BaseEntity {
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 
+    @Column(name = "company_id", nullable = false)
+    private Long companyId;
+
     @Column(name = "work_order_number", nullable = false, length = 40)
     private String workOrderNumber;
 

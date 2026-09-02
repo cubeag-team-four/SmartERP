@@ -16,12 +16,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/schedules")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'MANUFACTURING_USER', 'SUPER_ADMIN')")
+@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class ProductionScheduleController {
 
     private final ProductionScheduleService scheduleService;
 
     @PostMapping
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<ProductionScheduleResponse> create(@Valid @RequestBody CreateProductionScheduleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(scheduleService.create(SecurityUtils.currentTenantId(), request));

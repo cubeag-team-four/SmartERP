@@ -1,5 +1,6 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.manufacturing.dto.request.CreateMaintenanceRequest;
 import com.cubeage.erp.manufacturing.dto.response.MachineMaintenanceResponse;
 import com.cubeage.erp.manufacturing.entity.Machine;
@@ -10,7 +11,6 @@ import com.cubeage.erp.manufacturing.mapper.MachineMaintenanceMapper;
 import com.cubeage.erp.manufacturing.repository.MachineMaintenanceRepository;
 import com.cubeage.erp.manufacturing.repository.MachineRepository;
 import com.cubeage.erp.manufacturing.service.MachineMaintenanceService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +30,7 @@ public class MachineMaintenanceServiceImpl implements MachineMaintenanceService 
     @Override
     public MachineMaintenanceResponse create(Long tenantId, CreateMaintenanceRequest request) {
         Machine machine = machineRepository.findByIdAndTenantId(request.machineId(), tenantId)
-                .orElseThrow(() -> new EntityNotFoundException("Machine not found: " + request.machineId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Machine not found: " + request.machineId()));
 
         machine.setStatus(MachineStatus.MAINTENANCE);
         machineRepository.save(machine);
@@ -67,9 +67,8 @@ public class MachineMaintenanceServiceImpl implements MachineMaintenanceService 
 
     @Override
     public MachineMaintenanceResponse completeMaintenance(Long tenantId, Long id) {
-        MachineMaintenance maintenance = maintenanceRepository.findById(id)
-                .filter(m -> m.getTenantId().equals(tenantId))
-                .orElseThrow(() -> new EntityNotFoundException("Maintenance record not found: " + id));
+        MachineMaintenance maintenance = maintenanceRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Maintenance record not found: " + id));
 
         maintenance.setStatus(MaintenanceStatus.COMPLETED);
         maintenance.setCompletedDate(LocalDate.now());

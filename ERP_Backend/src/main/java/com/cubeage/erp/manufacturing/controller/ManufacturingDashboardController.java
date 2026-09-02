@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/manufacturing/dashboard")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'MANUFACTURING_USER', 'SUPER_ADMIN')")
+@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class ManufacturingDashboardController {
 
     private final ManufacturingDashboardService dashboardService;

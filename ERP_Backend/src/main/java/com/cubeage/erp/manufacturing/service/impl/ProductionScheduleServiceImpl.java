@@ -1,5 +1,6 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.manufacturing.dto.request.CreateProductionScheduleRequest;
 import com.cubeage.erp.manufacturing.dto.response.ProductionScheduleResponse;
 import com.cubeage.erp.manufacturing.entity.ProductionSchedule;
@@ -9,7 +10,6 @@ import com.cubeage.erp.manufacturing.mapper.ProductionScheduleMapper;
 import com.cubeage.erp.manufacturing.repository.ProductionScheduleRepository;
 import com.cubeage.erp.manufacturing.repository.WorkOrderRepository;
 import com.cubeage.erp.manufacturing.service.ProductionScheduleService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +28,7 @@ public class ProductionScheduleServiceImpl implements ProductionScheduleService 
     @Override
     public ProductionScheduleResponse create(Long tenantId, CreateProductionScheduleRequest request) {
         WorkOrder workOrder = workOrderRepository.findByIdAndTenantId(request.workOrderId(), tenantId)
-                .orElseThrow(() -> new EntityNotFoundException("Work order not found: " + request.workOrderId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Work order not found: " + request.workOrderId()));
 
         ProductionSchedule schedule = ProductionSchedule.builder()
                 .tenantId(tenantId)

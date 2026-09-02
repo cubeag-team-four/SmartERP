@@ -18,12 +18,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/work-orders")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'MANUFACTURING_USER', 'SUPER_ADMIN')")
+@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class WorkOrderController {
 
     private final WorkOrderService workOrderService;
 
     @PostMapping
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<WorkOrderResponse> create(@Valid @RequestBody CreateWorkOrderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(workOrderService.create(SecurityUtils.currentTenantId(), request));
@@ -43,12 +44,14 @@ public class WorkOrderController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
     public WorkOrderResponse update(@PathVariable Long id, @Valid @RequestBody UpdateWorkOrderRequest request) {
         return workOrderService.update(SecurityUtils.currentTenantId(), id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','DELETE')")
     public void delete(@PathVariable Long id) {
         workOrderService.delete(SecurityUtils.currentTenantId(), id);
     }

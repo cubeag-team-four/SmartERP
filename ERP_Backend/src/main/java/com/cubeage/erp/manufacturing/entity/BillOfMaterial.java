@@ -12,7 +12,8 @@ import java.util.List;
 @Table(
         name = "bill_of_materials",
         indexes = {
-                @Index(name = "idx_bom_tenant", columnList = "tenant_id")
+                @Index(name = "idx_bom_tenant", columnList = "tenant_id"),
+                @Index(name = "idx_bom_number_tenant", columnList = "bom_number,tenant_id")
         }
 )
 @Getter
@@ -43,4 +44,9 @@ public class BillOfMaterial extends BaseEntity {
     @OneToMany(mappedBy = "billOfMaterial", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BomItem> items = new ArrayList<>();
+
+    public void addItem(BomItem item) {
+        item.setBillOfMaterial(this);
+        items.add(item);
+    }
 }

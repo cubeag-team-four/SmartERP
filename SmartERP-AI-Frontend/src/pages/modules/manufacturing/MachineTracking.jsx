@@ -1,57 +1,5 @@
-import React from "react";
-
-const machines = [
-  {
-    id: "CNC-01",
-    name: "CNC Machining Centre 1",
-    floor: "Shop Floor A",
-    status: "RUNNING",
-    statusType: "running",
-    utilization: 86,
-    lastMaintenance: "01 Aug 2026",
-    nextMaintenance: "01 Sep 2026",
-  },
-  {
-    id: "CNC-02",
-    name: "CNC Machining Centre 2",
-    floor: "Shop Floor A",
-    status: "RUNNING",
-    statusType: "running",
-    utilization: 62,
-    lastMaintenance: "15 Jul 2026",
-    nextMaintenance: "15 Aug 2026",
-  },
-  {
-    id: "CNC-03",
-    name: "CNC Machining Centre 3",
-    floor: "Shop Floor B",
-    status: "MAINTENANCE",
-    statusType: "maintenance",
-    utilization: 0,
-    lastMaintenance: "20 Jun 2026",
-    nextMaintenance: "12 Aug 2026",
-  },
-  {
-    id: "PRESS-01",
-    name: "Hydraulic Press 200T",
-    floor: "Shop Floor B",
-    status: "IDLE",
-    statusType: "idle",
-    utilization: 44,
-    lastMaintenance: "10 Jul 2026",
-    nextMaintenance: "10 Sep 2026",
-  },
-  {
-    id: "LATHE-01",
-    name: "CNC Lathe L450",
-    floor: "Shop Floor A",
-    status: "RUNNING",
-    statusType: "running",
-    utilization: 78,
-    lastMaintenance: "25 Jul 2026",
-    nextMaintenance: "25 Sep 2026",
-  },
-];
+import React, { useEffect, useState } from "react";
+import ManufacturingService from "../../../core/services/modules/manufacturing.service";
 
 const statusStyles = {
   running: "bg-[#dfe9db] text-[#50614b]",
@@ -139,8 +87,43 @@ function MachineCard({ machine }) {
 }
 
 const MachineTracking = () => {
+    const [machines, setMachines] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMachines();
+  }, []);
+
+  const fetchMachines = async () => {
+    try {
+      setLoading(true);
+
+      const response = await ManufacturingService.getMachines();
+
+      setMachines(response.data || []);
+    } catch (error) {
+      console.error("Error fetching machines:", error);
+      console.error("Response:", error.response?.data);
+      setMachines([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+        <div className="flex items-center justify-center py-20">
+          <span className="font-mono text-xs text-[#8a8f80]">
+            Loading machines...
+          </span>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+    <main className="min-h-screen bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
       {/* Machines Grid */}
       <section className="grid grid-cols-1 gap-3.5 sm:gap-4 lg:grid-cols-2 lg:gap-[20px] xl:grid-cols-3">
         {machines.map((machine) => (

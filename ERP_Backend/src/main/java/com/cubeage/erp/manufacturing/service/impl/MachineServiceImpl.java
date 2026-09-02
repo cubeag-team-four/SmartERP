@@ -1,5 +1,6 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.manufacturing.dto.request.CreateMachineRequest;
 import com.cubeage.erp.manufacturing.dto.request.UpdateMachineRequest;
 import com.cubeage.erp.manufacturing.dto.response.MachineResponse;
@@ -7,7 +8,6 @@ import com.cubeage.erp.manufacturing.entity.Machine;
 import com.cubeage.erp.manufacturing.mapper.MachineMapper;
 import com.cubeage.erp.manufacturing.repository.MachineRepository;
 import com.cubeage.erp.manufacturing.service.MachineService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,6 +75,6 @@ public class MachineServiceImpl implements MachineService {
 
     private Machine getEntity(Long tenantId, Long id) {
         return machineRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new EntityNotFoundException("Machine not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Machine not found: " + id));
     }
 }

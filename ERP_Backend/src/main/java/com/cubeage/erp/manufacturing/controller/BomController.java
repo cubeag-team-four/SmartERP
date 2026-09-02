@@ -2,6 +2,7 @@ package com.cubeage.erp.manufacturing.controller;
 
 import com.cubeage.erp.manufacturing.dto.request.CreateBomRequest;
 import com.cubeage.erp.manufacturing.dto.request.UpdateBomRequest;
+import com.cubeage.erp.manufacturing.dto.response.BomDetailsResponse;
 import com.cubeage.erp.manufacturing.dto.response.BomResponse;
 import com.cubeage.erp.manufacturing.service.BomService;
 import com.cubeage.erp.security.SecurityUtils;
@@ -17,12 +18,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/bom")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'MANUFACTURING_USER', 'SUPER_ADMIN')")
+@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class BomController {
 
     private final BomService bomService;
 
     @PostMapping
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<BomResponse> create(@Valid @RequestBody CreateBomRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(bomService.create(SecurityUtils.currentTenantId(), request));
@@ -34,17 +36,19 @@ public class BomController {
     }
 
     @GetMapping("/{id}")
-    public BomResponse getById(@PathVariable Long id) {
+    public BomDetailsResponse getById(@PathVariable Long id) {
         return bomService.getById(SecurityUtils.currentTenantId(), id);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
     public BomResponse update(@PathVariable Long id, @Valid @RequestBody UpdateBomRequest request) {
         return bomService.update(SecurityUtils.currentTenantId(), id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','DELETE')")
     public void delete(@PathVariable Long id) {
         bomService.delete(SecurityUtils.currentTenantId(), id);
     }

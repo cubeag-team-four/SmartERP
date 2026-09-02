@@ -1,14 +1,15 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.manufacturing.dto.request.CreateBomRequest;
 import com.cubeage.erp.manufacturing.dto.request.UpdateBomRequest;
+import com.cubeage.erp.manufacturing.dto.response.BomDetailsResponse;
 import com.cubeage.erp.manufacturing.dto.response.BomResponse;
 import com.cubeage.erp.manufacturing.entity.BillOfMaterial;
 import com.cubeage.erp.manufacturing.entity.BomItem;
 import com.cubeage.erp.manufacturing.mapper.BomMapper;
 import com.cubeage.erp.manufacturing.repository.BillOfMaterialRepository;
 import com.cubeage.erp.manufacturing.service.BomService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,8 +67,8 @@ public class BomServiceImpl implements BomService {
 
     @Override
     @Transactional(readOnly = true)
-    public BomResponse getById(Long tenantId, Long id) {
-        return mapper.toResponse(getEntity(tenantId, id));
+    public BomDetailsResponse getById(Long tenantId, Long id) {
+        return mapper.toDetailsResponse(getEntity(tenantId, id));
     }
 
     @Override
@@ -89,11 +90,11 @@ public class BomServiceImpl implements BomService {
 
     private BillOfMaterial getEntity(Long tenantId, Long id) {
         return bomRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new EntityNotFoundException("BOM not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("BOM not found: " + id));
     }
 
     private synchronized String generateBomNumber(Long tenantId) {
-        long count = bomRepository.count() + 1;
+        long count = bomRepository.countByTenantId(tenantId) + 1;
         return String.format("BOM-%03d", count);
     }
 }

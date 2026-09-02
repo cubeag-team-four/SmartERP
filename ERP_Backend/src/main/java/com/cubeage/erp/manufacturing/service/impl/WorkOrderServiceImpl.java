@@ -1,5 +1,7 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.exception.BadRequestException;
+import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.manufacturing.dto.request.CreateWorkOrderRequest;
 import com.cubeage.erp.manufacturing.dto.request.UpdateWorkOrderRequest;
 import com.cubeage.erp.manufacturing.dto.response.WorkOrderResponse;
@@ -7,8 +9,8 @@ import com.cubeage.erp.manufacturing.entity.WorkOrder;
 import com.cubeage.erp.manufacturing.enums.WorkOrderStatus;
 import com.cubeage.erp.manufacturing.mapper.WorkOrderMapper;
 import com.cubeage.erp.manufacturing.repository.WorkOrderRepository;
+import com.cubeage.erp.company.repository.CompanyRepository;
 import com.cubeage.erp.manufacturing.service.WorkOrderService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
 
     private final WorkOrderRepository workOrderRepository;
     private final WorkOrderMapper mapper;
+    private final CompanyRepository companyRepository;
 
     @Override
     public WorkOrderResponse create(Long tenantId, CreateWorkOrderRequest request) {
@@ -31,8 +34,17 @@ public class WorkOrderServiceImpl implements WorkOrderService {
         int progress = request.progress() == null ? 0 : request.progress();
         WorkOrderStatus status = request.status() == null ? WorkOrderStatus.PENDING : request.status();
 
+        Long companyId = companyRepository.findByTenantIdOrderByName(tenantId)
+                .stream()
+                .findFirst()
+                .map(company -> company.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No company found for tenant: " + tenantId
+                ));
+
         WorkOrder workOrder = WorkOrder.builder()
                 .tenantId(tenantId)
+                .companyId(companyId)
                 .workOrderNumber(generateWorkOrderNumber(tenantId))
                 .status(status)
                 .title(request.productName().trim())
@@ -116,12 +128,12 @@ public class WorkOrderServiceImpl implements WorkOrderService {
 
     private WorkOrder getEntity(Long tenantId, Long id) {
         return workOrderRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new EntityNotFoundException("Work order not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Work order not found: " + id));
     }
 
     private void validateProgress(Integer progress) {
         if (progress != null && (progress < 0 || progress > 100)) {
-            throw new IllegalArgumentException("Progress must be between 0 and 100");
+            throw new BadRequestException("Progress must be between 0 and 100");
         }
     }
 

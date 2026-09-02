@@ -25,27 +25,22 @@ public class ManufacturingDashboardServiceImpl implements ManufacturingDashboard
 
     @Override
     public ManufacturingDashboardResponse getDashboard(Long tenantId) {
-        // Dynamic Active Work Orders Count
         long activeWorkOrders = workOrderRepository.countByTenantIdAndStatus(tenantId, WorkOrderStatus.IN_PROGRESS);
 
-        // Dynamic Count of Work Orders completing today
         long completingToday = workOrderRepository.findByTenantIdAndStatusOrderByCreatedAtDesc(tenantId, WorkOrderStatus.IN_PROGRESS)
                 .stream()
                 .filter(wo -> wo.getDueDate() != null && wo.getDueDate().equals(LocalDate.now()))
                 .count();
 
-        // Dynamic Machine Down / Maintenance Count
         long downMachines = machineRepository.countByTenantIdAndStatus(tenantId, MachineStatus.MAINTENANCE)
                 + machineRepository.countByTenantIdAndStatus(tenantId, MachineStatus.DOWN);
 
-        // Dynamic OEE Calculation based on average machine utilization
         double avgUtilization = machineRepository.findByTenantIdOrderByCodeAsc(tenantId)
                 .stream()
                 .mapToInt(m -> m.getUtilization() != null ? m.getUtilization() : 0)
                 .average()
                 .orElse(0.0);
 
-        // Dynamic Quality Pass Rate Summary
         var qualitySummary = qualityService.getQualityControlSummary(tenantId);
         double passRate = qualitySummary.passRate() != null ? qualitySummary.passRate() : 0.0;
 

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import ManufacturingService from "../../../core/services/modules/manufacturing.service";
 
 // ─── Shared form primitives ───────────────────────────────────────────────────
 const Sel = ({ value, onChange, options, placeholder }) => (
@@ -79,7 +80,7 @@ function NewBOMModal({ onClose, onSubmit }) {
 
   const STEPS = ["Basic Information","Components","Operations","Costing & Review"];
 
-  const submit = (asDraft) => { onSubmit({ ...form, components, operations, savedAs: asDraft ? "draft" : "submitted" }); onClose(); };
+  const submit = (asDraft) => { onSubmit({ ...form, components, operations, savedAs: asDraft ? "draft" : "submitted" }); };
 
   // ── Section: Basic Information ─────────────────────────────────────────────
   const renderBasic = () => (
@@ -512,45 +513,39 @@ function NewBOMModal({ onClose, onSubmit }) {
   );
 }
 
-// ─── BOM data ─────────────────────────────────────────────────────────────────
-const bomData = [
-  {
-    id: "BOM-042",
-    product: "Steel Frame Assembly A",
-    version: "v2.1",
-    components: 8,
-    cost: "₹4,240",
-    updated: "12 Jul 2026",
-  },
-  {
-    id: "BOM-041",
-    product: "Bracket Kit M8",
-    version: "v1.3",
-    components: 3,
-    cost: "₹420",
-    updated: "05 Jun 2026",
-  },
-  {
-    id: "BOM-039",
-    product: "Drive Shaft Assembly",
-    version: "v3.0",
-    components: 12,
-    cost: "₹8,800",
-    updated: "20 Jul 2026",
-  },
-  {
-    id: "BOM-038",
-    product: "Zinc Cast Housing B",
-    version: "v1.0",
-    components: 5,
-    cost: "₹1,850",
-    updated: "01 Aug 2026",
-  },
-];
-
 const BillOfMaterials = () => {
-  const [hoveredRow,  setHoveredRow]  = useState(null);
-  const [showModal,   setShowModal]   = useState(false);
+  const [hoveredRow, setHoveredRow] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const [boms, setBoms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {fetchBoms();}, []);
+  
+  const fetchBoms = async () => {
+    try {
+      setLoading(true);
+      const response = await ManufacturingService.getBoms();
+      setBoms(response.data || []);
+    } catch (error) {
+      console.error("Error fetching BOMs:", error);
+      setBoms([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f7f6f2] px-4 py-4">
+        <div className="flex items-center justify-center py-20">
+          <span className="font-mono text-xs text-[#8a8f80]">
+            Loading BOMs...
+          </span>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
@@ -603,12 +598,12 @@ const BillOfMaterials = () => {
 
             {/* Rows */}
             <div>
-              {bomData.map((bom, index) => {
+              {boms.map((bom, index) => {
                 const isHovered = hoveredRow === index;
 
                 return (
                   <div
-                    key={bom.id}
+                    key={bom.bomNumber}
                     onMouseEnter={() => setHoveredRow(index)}
                     onMouseLeave={() => setHoveredRow(null)}
                     className={`
@@ -620,16 +615,16 @@ const BillOfMaterials = () => {
                       transition-colors
                       duration-200
                       ${
-                        index !== bomData.length - 1
+                        index !== boms.length - 1
                           ? "border-b border-[#e4e2dd]"
                           : ""
                       }
                       ${isHovered ? "bg-[#f7f6f2]" : "bg-white"}
                     `}
-                  >
+                  > 
                     {/* BOM ID */}
                     <div className="font-mono text-[11px] leading-none text-[#999a94]">
-                      {bom.id}
+                      {bom.bomNumber}
                     </div>
 
                     {/* Product */}
@@ -651,13 +646,13 @@ const BillOfMaterials = () => {
 
                     {/* Cost */}
                     <div className="font-mono text-[12px] leading-none text-[#171815]">
-                      {bom.cost}
+                      {bom.formattedCost || `₹${bom.cost}`}
                     </div>
 
                     {/* Updated + Explode */}
                     <div className="flex items-center gap-4">
                       <span className="font-mono text-[11px] leading-none text-[#999a94]">
-                        {bom.updated}
+                        {bom.updatedAt ? new Date(bom.updatedAt).toLocaleDateString("en-IN") : "-"}
                       </span>
 
                       <button
@@ -699,14 +694,39 @@ const BillOfMaterials = () => {
 
       {/* New BOM Modal */}
       {showModal && (
-        <NewBOMModal
-          onClose={() => setShowModal(false)}
-          onSubmit={(data) => {
-            console.log("BOM created:", data);
-            setShowModal(false);
-          }}
-        />
-      )}
+  <NewBOMModal
+    onClose={() => setShowModal(false)}
+    onSubmit={async (data) => {
+      try {
+        const payload = {
+          product: data.product,
+          version: data.version,
+          notes: data.notes,
+          items: data.components.map((component) => ({
+            productId: null,
+            description: component.name,
+            quantity: Number(component.qty),
+            unitCost: Number(component.unitCost),
+          })),
+        };
+
+        console.log("Creating BOM:", payload);
+
+        const response = await ManufacturingService.createBom(payload);
+
+        console.log("BOM created:", response.data);
+
+        setShowModal(false);
+
+        // Refresh BOM list
+        await fetchBoms();
+      } catch (error) {
+        console.error("Error creating BOM:", error);
+        console.error("Response:", error.response?.data);
+      }
+    }}
+  />
+)}
     </main>
   );
 };

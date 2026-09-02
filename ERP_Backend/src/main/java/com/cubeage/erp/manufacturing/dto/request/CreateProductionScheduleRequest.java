@@ -2,6 +2,7 @@ package com.cubeage.erp.manufacturing.dto.request;
 
 import com.cubeage.erp.manufacturing.enums.ProductionPriority;
 import jakarta.validation.constraints.NotNull;
+
 import java.time.LocalDate;
 
 public record CreateProductionScheduleRequest(

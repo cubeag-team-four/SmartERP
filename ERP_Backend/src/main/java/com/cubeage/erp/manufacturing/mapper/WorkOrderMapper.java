@@ -2,7 +2,6 @@ package com.cubeage.erp.manufacturing.mapper;
 
 import com.cubeage.erp.manufacturing.dto.response.WorkOrderResponse;
 import com.cubeage.erp.manufacturing.entity.WorkOrder;
-import com.cubeage.erp.manufacturing.enums.WorkOrderStatus;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;

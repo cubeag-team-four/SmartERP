@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import useAuthStore from "../../../store/slices/auth.store";
-import apiService from "../../../core/services/api.service";
+// import apiService from "../../../core/services/api.service";
+import ManufacturingService from "../../../core/services/modules/manufacturing.service";
 
 function StatusBadge({ status, type }) {
   const styles = {
@@ -94,18 +95,15 @@ function WorkOrderCard({ order }) {
   );
 }
 
-const WorkOrders = () => {
+const WorkOrders = ( { refreshKey } ) => {
   const { token } = useAuthStore();
-  console.log("Token",token);
   const [workOrders, setWorkOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
 useEffect(() => {
   const fetchWorkOrders = async () => {
     try {
-      const response = await apiService.get(
-        "/api/v1/manufacturing/work-orders"
-      );
+      const response = await ManufacturingService.getAll();
 
       setWorkOrders(response.data);
     } catch (error) {
@@ -118,10 +116,18 @@ useEffect(() => {
   if (token) {
     fetchWorkOrders();
   }
-}, [token]);
+}, [token, refreshKey]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+        <div className="flex items-center justify-center py-20">
+          <span className="font-mono text-xs text-[#8a8f80]">
+            Loading machines...
+          </span>
+        </div>
+      </main>
+    );
   }
 
   return (

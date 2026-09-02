@@ -2,6 +2,7 @@ package com.cubeage.erp.manufacturing.dto.response;
 
 import com.cubeage.erp.manufacturing.enums.MaintenanceStatus;
 import com.cubeage.erp.manufacturing.enums.MaintenanceType;
+
 import java.time.LocalDate;
 
 public record MachineMaintenanceResponse(

@@ -66,6 +66,11 @@ public class QualityServiceImpl implements QualityService {
                 .map(mapper::toRejectionResponse)
                 .toList();
 
-        return new QualitySummaryResponse(passRate, reworkRate, rejectionRate, recentRejections);
+        return new QualitySummaryResponse(
+                Math.round(passRate * 10.0) / 10.0,
+                Math.round(reworkRate * 10.0) / 10.0,
+                Math.round(rejectionRate * 10.0) / 10.0,
+                recentRejections
+        );
     }
 }
