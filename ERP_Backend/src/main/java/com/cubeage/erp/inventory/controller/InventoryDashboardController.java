@@ -8,9 +8,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/inventory/dashboard")
-@RequiredArgsConstructor
 public class InventoryDashboardController {
 	private final InventoryDashboardService service;
+
+	public InventoryDashboardController(InventoryDashboardService service) {
+		this.service = service;
+	}
 
 	@GetMapping @PreAuthorize("isAuthenticated()")
 	public InventoryDashboardResponse summary(@RequestHeader("X-Tenant-Id") Long tenantId) { return service.summary(tenantId); }

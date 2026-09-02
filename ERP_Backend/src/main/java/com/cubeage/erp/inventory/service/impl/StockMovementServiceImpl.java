@@ -8,9 +8,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
-@Service @RequiredArgsConstructor
+@Service
 public class StockMovementServiceImpl implements StockMovementService {
     private final StockMovementRepository repository;
+
+    public StockMovementServiceImpl(StockMovementRepository repository) {
+        this.repository = repository;
+    }
 
     @Override @Transactional(readOnly = true)
     public List<StockMovementResponse> recent(Long tenantId) {

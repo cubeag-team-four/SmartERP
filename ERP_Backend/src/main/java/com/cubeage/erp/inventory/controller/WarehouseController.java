@@ -12,9 +12,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/inventory/warehouses")
-@RequiredArgsConstructor
 public class WarehouseController {
 	private final WarehouseService service;
+
+	public WarehouseController(WarehouseService service) {
+		this.service = service;
+	}
 
 	@GetMapping 
 	@PreAuthorize("isAuthenticated()")
@@ -22,7 +25,7 @@ public class WarehouseController {
 
 	@PostMapping 
 	@ResponseStatus(HttpStatus.CREATED)
-	@PreAuthorize("hasAnyRole('TENANT_ADMIN','INVENTORY_MANAGER')")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','INVENTORY_MANAGER')")
 	public WarehouseResponse create(@RequestHeader("X-Tenant-Id") Long tenantId,
 									 @Valid @RequestBody CreateWarehouseRequest request) {
 		return service.create(tenantId, request);
