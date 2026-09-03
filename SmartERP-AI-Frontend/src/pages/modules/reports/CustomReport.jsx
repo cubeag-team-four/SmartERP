@@ -86,11 +86,11 @@ const PIE_COLORS = ["#9bb48c", "#aaa6b8", "#b0a06d", "#c6d8bc", "#c49a8a"];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const CustomReport = () => {
+const CustomReport = ({ isModal = false, reportId: propReportId = null, onClose = null, onSaved = null }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const reportId = queryParams.get("id");
+  const queryParams = new URLSearchParams(location?.search || "");
+  const reportId = propReportId || queryParams.get("id");
 
   // API State
   const [loading, setLoading] = useState(false);
@@ -174,39 +174,66 @@ const CustomReport = () => {
     return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   };
 
-  // Fetch Real Users and Roles for Sharing
-  useEffect(() => {
+  // Permission check for Tenant Admin
+  const isTenantAdmin = () => {
+    const user = storageService.getUser();
+    if (!user) return false;
+    const roles = Array.isArray(user.roles)
+      ? user.roles
+      : typeof user.roles === "string"
+      ? [user.roles]
+      : user.role
+      ? (Array.isArray(user.role) ? user.role : [user.role])
+      : [];
+    return roles.some(r => {
+      const normalized = String(r).toUpperCase().replace(/^ROLE_/, "");
+      return normalized === "TENANT_ADMIN";
+    });
+  };
+
+  // Fetch Real Users and Roles for Sharing (Only for Tenant Admin)
+  const loadUsersAndRoles = () => {
     const currentUser = storageService.getUser();
     const tenantId = currentUser?.tenantId;
-    if (tenantId) {
-      setLoadingUsersRoles(true);
-      Promise.allSettled([
-        apiService.get(`/admin/users?tenantId=${tenantId}`),
-        apiService.get(`/admin/roles?tenantId=${tenantId}`)
-      ]).then(([usersRes, rolesRes]) => {
-        const options = ["All Users"];
-        if (rolesRes.status === "fulfilled" && Array.isArray(rolesRes.value.data)) {
-          rolesRes.value.data.forEach(r => {
-            if (r.name) options.push(`Role: ${r.name}`);
-          });
-        }
-        if (usersRes.status === "fulfilled" && Array.isArray(usersRes.value.data)) {
-          usersRes.value.data.forEach(u => {
-            if (u.name && u.email) {
-              options.push(`${u.name} (${u.email})`);
-            } else if (u.name) {
-              options.push(u.name);
-            } else if (u.email) {
-              options.push(u.email);
-            }
-          });
-        }
-        setAvailableUsersRoles(options);
-      }).catch(() => {
-        setAvailableUsersRoles(["All Users"]);
-      }).finally(() => {
-        setLoadingUsersRoles(false);
-      });
+    if (!tenantId || !isTenantAdmin()) {
+      setAvailableUsersRoles(["All Users"]);
+      return;
+    }
+    setLoadingUsersRoles(true);
+    Promise.allSettled([
+      apiService.get(`/admin/users?tenantId=${tenantId}`),
+      apiService.get(`/admin/roles?tenantId=${tenantId}`)
+    ]).then(([usersRes, rolesRes]) => {
+      const options = ["All Users"];
+      if (rolesRes.status === "fulfilled" && Array.isArray(rolesRes.value?.data)) {
+        rolesRes.value.data.forEach(r => {
+          if (r.name) options.push(`Role: ${r.name}`);
+        });
+      }
+      if (usersRes.status === "fulfilled" && Array.isArray(usersRes.value?.data)) {
+        usersRes.value.data.forEach(u => {
+          if (u.name && u.email) {
+            options.push(`${u.name} (${u.email})`);
+          } else if (u.name) {
+            options.push(u.name);
+          } else if (u.email) {
+            options.push(u.email);
+          }
+        });
+      }
+      setAvailableUsersRoles(options);
+    }).catch(() => {
+      setAvailableUsersRoles(["All Users"]);
+    }).finally(() => {
+      setLoadingUsersRoles(false);
+    });
+  };
+
+  useEffect(() => {
+    if (isTenantAdmin()) {
+      loadUsersAndRoles();
+    } else {
+      setAvailableUsersRoles(["All Users"]);
     }
   }, []);
 
@@ -447,7 +474,8 @@ const CustomReport = () => {
             setSuccessMsg(`Report successfully saved!`);
             setSaveStatus("saved");
             setTimeout(() => setSaveStatus(null), 3000);
-            if (!reportId && data.id) {
+            if (onSaved) onSaved(data);
+            if (!isModal && !reportId && data.id) {
               navigate(`/app/admin/reports/custom-report?id=${data.id}`);
             }
           });
@@ -485,7 +513,8 @@ const CustomReport = () => {
             setSuccessMsg(`Draft successfully saved!`);
             setSaveStatus("draft");
             setTimeout(() => setSaveStatus(null), 3000);
-            if (!reportId && data.id) {
+            if (onSaved) onSaved(data);
+            if (!isModal && !reportId && data.id) {
               navigate(`/app/admin/reports/custom-report?id=${data.id}`);
             }
           });
@@ -651,74 +680,72 @@ const CustomReport = () => {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="cr-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh', fontSize: '16px', color: '#aaa' }}>
-        Loading report builder...
-      </div>
-    );
-  }
+  const renderLeftColumn = () => (
+    <div className="cr-left">
+          {/* Top Progress / Step Indicator */}
+          <div className="cr-stepper-ribbon">
+            {[
+              { num: "01", label: "Info", id: "cr-sec-01" },
+              { num: "02", label: "Source", id: "cr-sec-02" },
+              { num: "03", label: "Filters", id: "cr-sec-03" },
+              { num: "04", label: "Dates", id: "cr-sec-04" },
+              { num: "05", label: "Group", id: "cr-sec-05" },
+              { num: "06", label: "Sort", id: "cr-sec-06" },
+              { num: "07", label: "Calc", id: "cr-sec-07" },
+              { num: "08", label: "Visuals", id: "cr-sec-08" },
+              { num: "09", label: "KPIs", id: "cr-sec-09" },
+              { num: "10", label: "Schedule", id: "cr-sec-10" },
+              { num: "11", label: "Export", id: "cr-sec-11" },
+              { num: "12", label: "Save", id: "cr-sec-12" },
+            ].map((step, idx, arr) => (
+              <React.Fragment key={step.num}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById(step.id);
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className="cr-step-item"
+                  title={`${step.num}. ${step.label}`}
+                >
+                  <span className="cr-step-num">{step.num}</span>
+                  <span className="cr-step-txt">{step.label}</span>
+                </button>
+                {idx < arr.length - 1 && <span className="cr-step-line" />}
+              </React.Fragment>
+            ))}
+          </div>
 
-  return (
-    <div className="cr-page">
-
-      {/* ── Page Header ── */}
-      <div className="cr-header">
-        <div>
-          <div className="cr-eyebrow">REPORTS & ANALYTICS</div>
-          <h1 className="cr-title">Custom Report Builder</h1>
-        </div>
-        <div className="cr-header-actions">
-          {reportId && (
-            <button 
-              className="cr-btn-outline" 
-              onClick={handleDeleteReport} 
-              style={{ marginRight: '8px', borderColor: '#ff4d4f', color: '#ff4d4f', cursor: 'pointer' }}
-            >
-              Delete Report
-            </button>
-          )}
-          <button className="cr-btn-ghost" onClick={() => navigate(-1)}>
-            ← Back to Dashboard
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="cr-api-error-message" style={{ margin: '16px 24px', padding: '12px 16px', backgroundColor: '#fff2f0', border: '1px solid #ffccc7', borderRadius: '8px', color: '#ff4d4f', fontSize: '14px' }}>
-          ⚠️ {error}
-        </div>
-      )}
-      {successMsg && (
-        <div className="cr-api-success-message" style={{ margin: '16px 24px', padding: '12px 16px', backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: '8px', color: '#52c41a', fontSize: '14px' }}>
-          ✅ {successMsg}
-        </div>
-      )}
-
-      {/* ── Two-column layout ── */}
-      <div className="cr-layout">
-
-        {/* ══════════ LEFT COLUMN ══════════ */}
-        <div className="cr-left">
-
-          {/* 1. Report Information */}
-          <section className="cr-section">
+          {/* 01. Report Information */}
+          <section id="cr-sec-01" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">1</span>
-              <h2>Report Information</h2>
+              <span className="cr-section-num">01</span>
+              <div>
+                <h2>Report Information</h2>
+                <p className="cr-section-subtitle">Configure report title, module domain, and baseline visibility</p>
+              </div>
             </div>
             <div className="cr-form-grid">
               <div className="cr-field cr-field-full">
                 <label className="cr-label">REPORT NAME</label>
                 <input className="cr-input" placeholder="Enter report name…" value={reportName} onChange={e => setReportName(e.target.value)} />
               </div>
-              <div className="cr-field">
+              <div className="cr-field cr-field-full">
                 <label className="cr-label">MODULE</label>
-                <select className="cr-select" value={module} onChange={e => { setModule(e.target.value); setPrimaryTable(""); setSelectedFields([]); }}>
-                  {MODULES.map(m => <option key={m}>{m}</option>)}
-                </select>
+                <div className="cr-chip-group">
+                  {MODULES.map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`cr-chip-btn ${module === m ? "active" : ""}`}
+                      onClick={() => { setModule(m); setPrimaryTable(""); setSelectedFields([]); }}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="cr-field">
+              <div className="cr-field cr-field-full">
                 <label className="cr-label">REPORT TYPE</label>
                 <select className="cr-select" value={reportType} onChange={e => setReportType(e.target.value)}>
                   {["Summary", "Detailed", "Comparative", "Trend"].map(t => <option key={t}>{t}</option>)}
@@ -749,11 +776,14 @@ const CustomReport = () => {
             </div>
           </section>
 
-          {/* 2. Data Source */}
-          <section className="cr-section">
+          {/* 02. Data Source */}
+          <section id="cr-sec-02" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">2</span>
-              <h2>Data Source</h2>
+              <span className="cr-section-num">02</span>
+              <div>
+                <h2>Data Source &amp; Primary Table</h2>
+                <p className="cr-section-subtitle">Select live ERP data source, table entity, and display columns</p>
+              </div>
             </div>
             <div className="cr-form-grid">
               <div className="cr-field">
@@ -762,12 +792,20 @@ const CustomReport = () => {
                   {["ERP Live Data", "Uploaded Data", "External API"].map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
-              <div className="cr-field">
-                <label className="cr-label">PRIMARY TABLE</label>
-                <select className="cr-select" value={primaryTable} onChange={e => { setPrimaryTable(e.target.value); setSelectedFields([]); }}>
-                  <option value="">— Select table —</option>
-                  {(TABLES_BY_MODULE[module] || []).map(t => <option key={t}>{t}</option>)}
-                </select>
+              <div className="cr-field cr-field-full">
+                <label className="cr-label">PRIMARY TABLE / SUB-MODULE</label>
+                <div className="cr-chip-group">
+                  {(TABLES_BY_MODULE[module] || []).map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`cr-chip-btn ${primaryTable === t ? "active" : ""}`}
+                      onClick={() => { setPrimaryTable(t); setSelectedFields([]); }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="cr-field cr-field-full">
                 <label className="cr-label">FIELDS TO DISPLAY</label>
@@ -799,11 +837,14 @@ const CustomReport = () => {
             </div>
           </section>
 
-          {/* 3. Filters */}
-          <section className="cr-section">
+          {/* 03. Filters */}
+          <section id="cr-sec-03" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">3</span>
-              <h2>Filters</h2>
+              <span className="cr-section-num">03</span>
+              <div>
+                <h2>Filters &amp; Conditions</h2>
+                <p className="cr-section-subtitle">Define match rules and filter expressions to scope records</p>
+              </div>
             </div>
             <div className="cr-filter-top">
               <span className="cr-label">MATCH TYPE</span>
@@ -832,11 +873,14 @@ const CustomReport = () => {
             <button className="cr-add-link" onClick={addFilter}>+ Add Filter</button>
           </section>
 
-          {/* 4. Date Range */}
-          <section className="cr-section">
+          {/* 04. Date Range */}
+          <section id="cr-sec-04" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">4</span>
-              <h2>Date Range</h2>
+              <span className="cr-section-num">04</span>
+              <div>
+                <h2>Date Range Criteria</h2>
+                <p className="cr-section-subtitle">Set date filtering column and active time window</p>
+              </div>
             </div>
             <div className="cr-form-grid">
               <div className="cr-field">
@@ -867,11 +911,14 @@ const CustomReport = () => {
             </div>
           </section>
 
-          {/* 5. Group By */}
-          <section className="cr-section">
+          {/* 05. Group By */}
+          <section id="cr-sec-05" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">5</span>
-              <h2>Group By</h2>
+              <span className="cr-section-num">05</span>
+              <div>
+                <h2>Group By Dimensions</h2>
+                <p className="cr-section-subtitle">Aggregate dataset rows by specific categorized fields</p>
+              </div>
             </div>
             <div className="cr-group-list">
               {groupRows.map((g, idx) => (
@@ -890,11 +937,14 @@ const CustomReport = () => {
             )}
           </section>
 
-          {/* 6. Sorting */}
-          <section className="cr-section">
+          {/* 06. Sorting */}
+          <section id="cr-sec-06" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">6</span>
-              <h2>Sorting</h2>
+              <span className="cr-section-num">06</span>
+              <div>
+                <h2>Sorting &amp; Ordering</h2>
+                <p className="cr-section-subtitle">Order dataset records by designated column and direction</p>
+              </div>
             </div>
             <div className="cr-form-grid">
               <div className="cr-field">
@@ -915,11 +965,14 @@ const CustomReport = () => {
             </div>
           </section>
 
-          {/* 7. Calculations */}
-          <section className="cr-section">
+          {/* 07. Calculations */}
+          <section id="cr-sec-07" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">7</span>
-              <h2>Calculations / Aggregation</h2>
+              <span className="cr-section-num">07</span>
+              <div>
+                <h2>Calculations &amp; Aggregations</h2>
+                <p className="cr-section-subtitle">Apply SUM, AVG, COUNT, MIN, MAX metric expressions</p>
+              </div>
             </div>
             <div className="cr-calc-table">
               <div className="cr-calc-header">
@@ -942,11 +995,14 @@ const CustomReport = () => {
             <button className="cr-add-link" onClick={addCalc}>+ Add Calculation</button>
           </section>
 
-          {/* 8. Visualization */}
-          <section className="cr-section">
+          {/* 08. Visualization */}
+          <section id="cr-sec-08" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">8</span>
-              <h2>Visualization</h2>
+              <span className="cr-section-num">08</span>
+              <div>
+                <h2>Visualization Layout</h2>
+                <p className="cr-section-subtitle">Choose chart representation type or tabular view</p>
+              </div>
             </div>
             <div className="cr-viz-grid">
               {VIZ_TYPES.map(v => (
@@ -959,11 +1015,14 @@ const CustomReport = () => {
             </div>
           </section>
 
-          {/* 10. KPI Configuration */}
-          <section className="cr-section">
+          {/* 09. KPI Configuration */}
+          <section id="cr-sec-09" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">10</span>
-              <h2>KPI Configuration <span className="cr-optional">Optional</span></h2>
+              <span className="cr-section-num">09</span>
+              <div>
+                <h2>KPI Configuration <span className="cr-optional">Optional</span></h2>
+                <p className="cr-section-subtitle">Define headline executive summary metric cards</p>
+              </div>
             </div>
             <div className="cr-toggle-row">
               <label className="cr-switch">
@@ -999,11 +1058,14 @@ const CustomReport = () => {
             )}
           </section>
 
-          {/* 11. Schedule Report */}
-          <section className="cr-section">
+          {/* 10. Schedule Report */}
+          <section id="cr-sec-10" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">11</span>
-              <h2>Schedule Report <span className="cr-optional">Optional</span></h2>
+              <span className="cr-section-num">10</span>
+              <div>
+                <h2>Schedule &amp; Automation <span className="cr-optional">Optional</span></h2>
+                <p className="cr-section-subtitle">Set recurring automatic report generation and email delivery</p>
+              </div>
             </div>
             <div className="cr-toggle-row">
               <label className="cr-switch">
@@ -1058,11 +1120,14 @@ const CustomReport = () => {
             )}
           </section>
 
-          {/* 12. Export Settings */}
-          <section className="cr-section">
+          {/* 11. Export Settings */}
+          <section id="cr-sec-11" className="cr-section">
             <div className="cr-section-head">
-              <span className="cr-section-num">12</span>
-              <h2>Export Settings</h2>
+              <span className="cr-section-num">11</span>
+              <div>
+                <h2>Export Settings</h2>
+                <p className="cr-section-subtitle">Configure supported document formats and header inclusions</p>
+              </div>
             </div>
             <div className="cr-export-cols">
               <div>
@@ -1084,11 +1149,14 @@ const CustomReport = () => {
             </div>
           </section>
 
-          {/* 13. Save & Permissions */}
-          <section className="cr-section cr-section-last">
+          {/* 12. Save & Permissions */}
+          <section id="cr-sec-12" className="cr-section cr-section-last">
             <div className="cr-section-head">
-              <span className="cr-section-num">13</span>
-              <h2>Save &amp; Permissions</h2>
+              <span className="cr-section-num">12</span>
+              <div>
+                <h2>Save, Review &amp; Permissions</h2>
+                <p className="cr-section-subtitle">Set access scope and share report definition with team</p>
+              </div>
             </div>
             <div className="cr-form-grid">
               <div className="cr-field cr-field-full">
@@ -1144,22 +1212,24 @@ const CustomReport = () => {
             )}
 
             <div className="cr-save-actions">
-              <button className="cr-btn-ghost" onClick={() => navigate(-1)}>Cancel</button>
+              <button className="cr-btn-ghost" onClick={onClose || (() => navigate(-1))}>Cancel</button>
               <button className="cr-btn-outline" onClick={handleSaveDraft}>Save Draft</button>
               <button className="cr-btn-dark" onClick={handleSaveReport}>Save Report</button>
             </div>
           </section>
+    </div>
+  );
 
-        </div>
-        {/* ══ end left ══ */}
-
-        {/* ══════════ RIGHT COLUMN — Preview (Section 9) ══════════ */}
+  const renderRightColumn = () => (
         <div className="cr-right">
           <div className="cr-preview-sticky">
-            <section className="cr-section cr-preview-section">
+            <section id="cr-sec-13" className="cr-section cr-preview-section">
               <div className="cr-section-head">
-                <span className="cr-section-num">9</span>
-                <h2>Report Preview</h2>
+                <span className="cr-section-num">13</span>
+                <div>
+                  <h2>Live Report Preview</h2>
+                  <p className="cr-section-subtitle">Real-time data query and chart rendering</p>
+                </div>
               </div>
 
               <div className="cr-preview-meta">
@@ -1247,12 +1317,155 @@ const CustomReport = () => {
             </section>
           </div>
         </div>
-        {/* ══ end right ══ */}
+  );
 
+  /* ═════════════════════════════════════════════════════════════════
+     MODAL / POPUP RENDERING (isModal = true)
+  ══════════════════════════════════════════════════════════════════ */
+  if (isModal) {
+    return (
+      <>
+        {/* Darkened backdrop */}
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
+          onClick={!loading ? (onClose || (() => {})) : undefined}
+        />
+
+        {/* Centered Modal Container */}
+        <div className="fixed left-1/2 top-1/2 z-[60] flex h-[90vh] max-h-[920px] w-[95vw] max-w-[1300px] -translate-x-1/2 -translate-y-1/2 flex-col rounded-[16px] border border-[#e2e0d8] bg-[#fbfaf7] shadow-2xl overflow-hidden animate-in fade-in-50 zoom-in-95">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between border-b border-[#e5e3dc] px-6 py-4 bg-[#fbfaf7] flex-shrink-0">
+            <div>
+              <h2 className="font-serif text-[20px] font-bold text-[#11130f]">
+                {reportId ? "Edit Custom Report" : "Custom Report"}
+              </h2>
+              <p className="font-mono text-[10px] text-[#8d9696] mt-0.5">
+                Create and configure a custom report
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={onClose || (() => {})}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e2e0d8] bg-[#fbfaf7] text-[#777a73] transition hover:bg-[#f0efe9] hover:text-[#11130f]"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Status Alerts */}
+          {error && (
+            <div className="mx-6 mt-4 flex items-center gap-2 rounded-[10px] border border-[#f5c6cb] bg-[#f8d7da] px-4 py-3 font-mono text-[11px] text-[#721c24] flex-shrink-0">
+              ⚠️ <span>{error}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="mx-6 mt-4 flex items-center gap-2 rounded-[10px] border border-[#c3e6cb] bg-[#d4edda] px-4 py-3 font-mono text-[11px] text-[#155724] flex-shrink-0">
+              ✅ <span>{successMsg}</span>
+            </div>
+          )}
+
+          {/* Scrollable Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 min-h-0">
+            <div className="cr-layout">
+              {renderLeftColumn()}
+              {renderRightColumn()}
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex items-center justify-between border-t border-[#e5e3dc] bg-white px-6 py-4 flex-shrink-0">
+            <div className="font-mono text-[10px] text-[#999b94]">
+              {saveStatus === "saved" ? "✅ Saved successfully" : saveStatus === "draft" ? "Draft saved" : "14 Configuration Sections"}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={onClose || (() => {})}
+                className="cr-btn-ghost"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleSaveDraft}
+                className="cr-btn-outline"
+              >
+                Save as Draft
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleSaveReport}
+                className="cr-btn-dark"
+              >
+                {loading ? "Saving..." : reportId ? "Update Report" : "Save / Create Report"}
+              </button>
+            </div>
+          </div>
+
+          {/* Inline CSS */}
+          <style>{CUSTOM_REPORT_STYLES}</style>
+        </div>
+      </>
+    );
+  }
+
+  /* ═════════════════════════════════════════════════════════════════
+     STANDALONE FULL-PAGE RENDERING (isModal = false)
+  ══════════════════════════════════════════════════════════════════ */
+  return (
+    <div className="cr-page">
+
+      {/* ── Page Header ── */}
+      <div className="cr-header">
+        <div>
+          <div className="cr-eyebrow">REPORTS &amp; ANALYTICS</div>
+          <h1 className="cr-title">Custom Report Builder</h1>
+        </div>
+        <div className="cr-header-actions">
+          {reportId && (
+            <button 
+              className="cr-btn-outline" 
+              onClick={handleDeleteReport} 
+              style={{ marginRight: '8px', borderColor: '#ff4d4f', color: '#ff4d4f', cursor: 'pointer' }}
+            >
+              Delete Report
+            </button>
+          )}
+          <button className="cr-btn-ghost" onClick={() => navigate(-1)}>
+            ← Back to Dashboard
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="cr-api-error-message" style={{ margin: '16px 24px', padding: '12px 16px', backgroundColor: '#fff2f0', border: '1px solid #ffccc7', borderRadius: '8px', color: '#ff4d4f', fontSize: '14px' }}>
+          ⚠️ {error}
+        </div>
+      )}
+      {successMsg && (
+        <div className="cr-api-success-message" style={{ margin: '16px 24px', padding: '12px 16px', backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: '8px', color: '#52c41a', fontSize: '14px' }}>
+          ✅ {successMsg}
+        </div>
+      )}
+
+      {/* ── Two-column layout ── */}
+      <div className="cr-layout">
+        {renderLeftColumn()}
+        {renderRightColumn()}
       </div>
 
       {/* ══ Inline CSS ══ */}
-      <style>{`
+      <style>{CUSTOM_REPORT_STYLES}</style>
+    </div>
+  );
+};
+
+const CUSTOM_REPORT_STYLES = `
 
         .cr-page {
           width: 100%;
@@ -1308,13 +1521,70 @@ const CustomReport = () => {
           top: 20px;
         }
 
+        /* Stepper Ribbon */
+        .cr-stepper-ribbon {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          background: #fff;
+          border: 1px solid #e2dfd7;
+          border-radius: 12px;
+          overflow-x: auto;
+          scrollbar-width: thin;
+          box-shadow: 0 1px 2px rgba(0,0,0,.02);
+        }
+        .cr-step-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          border: none;
+          background: none;
+          color: #6b6964;
+          font-family: var(--sans), 'DM Sans', sans-serif;
+          font-size: 11px;
+          font-weight: 500;
+          padding: 4px 6px;
+          border-radius: 6px;
+          white-space: nowrap;
+          cursor: pointer;
+          transition: background .15s, color .15s;
+        }
+        .cr-step-item:hover {
+          background: #f4f8f2;
+          color: #3e5c38;
+        }
+        .cr-step-num {
+          font-family: var(--mono), 'JetBrains Mono', monospace;
+          font-size: 10px;
+          font-weight: 700;
+          color: #3e5c38;
+          background: #e8f0e4;
+          padding: 2px 5px;
+          border-radius: 4px;
+        }
+        .cr-step-txt {
+          font-size: 11px;
+          color: #55534e;
+        }
+        .cr-step-item:hover .cr-step-txt {
+          color: #2e442a;
+        }
+        .cr-step-line {
+          width: 10px;
+          height: 1px;
+          background: #e4e1da;
+          flex-shrink: 0;
+        }
+
         /* Section card */
         .cr-section {
           background: #fff;
           border: 1px solid #e2dfd7;
-          border-radius: 15px;
-          overflow: visible;
+          border-radius: 14px;
+          overflow: hidden;
           box-sizing: border-box;
+          box-shadow: 0 1px 3px rgba(0,0,0,.02);
         }
         .cr-preview-section {
           max-height: calc(100vh - 80px);
@@ -1324,23 +1594,27 @@ const CustomReport = () => {
           display: flex;
           align-items: center;
           gap: 12px;
-          min-height: 52px;
-          padding: 0 20px;
-          border-bottom: 1px solid #e4e1da;
+          min-height: 56px;
+          padding: 12px 20px;
+          border-bottom: 1px solid #e8e6df;
           box-sizing: border-box;
+          background: #faf9f6;
         }
         .cr-section-num {
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
-          background: #f1f0ec;
-          border: 1px solid #e0ddd5;
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
+          background: #e8f0e4;
+          border: 1px solid #cce0c4;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 9px;
-          color: #888580;
+          font-family: var(--mono), 'JetBrains Mono', monospace;
+          font-size: 11px;
+          font-weight: 700;
+          color: #3e5c38;
           flex-shrink: 0;
+          letter-spacing: -0.5px;
         }
         .cr-section-head h2 {
           margin: 0;
@@ -1348,6 +1622,14 @@ const CustomReport = () => {
           font-size: 16px;
           font-weight: 400;
           color: #10130f;
+          line-height: 1.2;
+        }
+        .cr-section-subtitle {
+          margin: 2px 0 0 0;
+          font-family: var(--sans), 'DM Sans', sans-serif;
+          font-size: 10px;
+          color: #88857f;
+          line-height: 1.2;
         }
         .cr-optional {
           margin-left: 8px;
@@ -1423,6 +1705,46 @@ const CustomReport = () => {
         .cr-check-label {
           display: flex; align-items: center; gap: 8px;
           font-size: 11px; color: #4a4843; cursor: pointer; margin-bottom: 9px;
+        }
+
+        /* Chip / Pill group for horizontal module/sub-module alignment */
+        .cr-chip-group {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          width: 100%;
+          margin-top: 2px;
+        }
+        .cr-chip-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          height: 32px;
+          padding: 0 14px;
+          border-radius: 8px;
+          border: 1px solid #e0ddd5;
+          background: #fcfcf9;
+          font-family: var(--sans), 'DM Sans', sans-serif;
+          font-size: 11px;
+          font-weight: 500;
+          color: #4a4843;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: border-color .15s, background-color .15s, color .15s;
+        }
+        .cr-chip-btn:hover {
+          border-color: #9bb48c;
+          background: #f4f8f2;
+          color: #3e5c38;
+        }
+        .cr-chip-btn.active {
+          border-color: #9bb48c;
+          background: #e8f0e4;
+          color: #3e5c38;
+          font-weight: 600;
+          box-shadow: 0 1px 2px rgba(107, 138, 98, 0.12);
         }
 
         /* Toggle group */
@@ -1684,10 +2006,6 @@ const CustomReport = () => {
           .cr-calc-header, .cr-calc-row { grid-template-columns: 1fr 80px 1fr 32px; }
           .cr-kpi-cols { grid-template-columns: 1fr 1fr 70px 70px 50px 32px; }
         }
-
-      `}</style>
-    </div>
-  );
-};
+`;
 
 export default CustomReport;

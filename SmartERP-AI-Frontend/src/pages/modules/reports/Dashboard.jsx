@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReportsService from "../../../core/services/modules/reports.service";
+import CustomReport from "./CustomReport";
+import ReportActionMenu from "./components/ReportActionMenu";
+import ViewReportModal from "./components/ViewReportModal";
+import EditReportModal from "./components/EditReportModal";
+import DeleteReportModal from "./components/DeleteReportModal";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -47,16 +52,25 @@ const Dashboard = () => {
   const [revenueData, setRevenueData] = useState([]);
   const [revenueSplit, setRevenueSplit] = useState([]);
   const [reports, setReports] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Modal states
+  const [showCustomReportModal, setShowCustomReportModal] = useState(false);
+  const [editingCustomReportId, setEditingCustomReportId] = useState(null);
+  const [viewingReport, setViewingReport] = useState(null);
+  const [editingStandardReport, setEditingStandardReport] = useState(null);
+  const [deletingReport, setDeletingReport] = useState(null);
+  const [topExportMenuOpen, setTopExportMenuOpen] = useState(false);
 
   const capitalize = (s) => {
     if (!s) return "";
     return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   };
 
-  // Fetch Dashboard Stats on Mount
-  useEffect(() => {
+  // Fetch Dashboard Stats
+  const fetchDashboard = useCallback(() => {
     setLoading(true);
     setError("");
     ReportsService.getDashboard()
@@ -124,23 +138,19 @@ const Dashboard = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // Export Trigger Handler
-  const handleExport = (reportItem) => {
-    if (!reportItem.id) {
-      alert("Mock/pre-seeding reports cannot be exported. Create custom reports first or verify database seeder.");
-      return;
-    }
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
-    const formatInput = window.prompt("Enter export format (PDF, EXCEL, CSV):", "PDF");
-    if (!formatInput) return;
-    const format = formatInput.toUpperCase().trim();
-    if (format !== "PDF" && format !== "EXCEL" && format !== "CSV") {
-      alert("Invalid format. Please enter PDF, EXCEL, or CSV.");
+  // Export Trigger Handler with format
+  const handleExportFormat = (reportItem, format = "PDF") => {
+    if (!reportItem || !reportItem.id) {
+      alert("Please select a valid report to export.");
       return;
     }
 
     setLoading(true);
-    ReportsService.export(reportItem.id, { format, isCustom: reportItem.isCustom || false })
+    ReportsService.export(reportItem.id, { format: format.toUpperCase(), isCustom: reportItem.isCustom || false })
       .then(response => {
         const contentType = response.headers['content-type'] || 'application/octet-stream';
         const blob = new Blob([response.data], { type: contentType });
@@ -149,9 +159,9 @@ const Dashboard = () => {
         link.href = url;
         
         let ext = format.toLowerCase();
-        if (ext === 'excel') ext = 'xlsx';
+        if (ext === 'excel') ext = 'xls';
         
-        link.setAttribute('download', `${reportItem.name.replace(/\s+/g, '_')}_export.${ext}`);
+        link.setAttribute('download', `${reportItem.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_export.${ext}`);
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -178,6 +188,11 @@ const Dashboard = () => {
   };
 
   const currentKpis = getCurrentKpis();
+  const filteredReports = reports.filter(r => 
+    !searchTerm || 
+    r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    r.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="reports-page">
@@ -211,7 +226,7 @@ const Dashboard = () => {
             Schedule Report
           </button>
 
-          <button className="custom-btn" onClick={() => navigate('custom-report')}>
+          <button className="custom-btn" onClick={() => { setEditingCustomReportId(null); setShowCustomReportModal(true); }}>
             + Custom Report
           </button>
         </div>
@@ -431,17 +446,92 @@ const Dashboard = () => {
             Report Library
           </h2>
 
-          <div className="report-search">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="report-search">
+              <span>
+                ⌕
+              </span>
+              <input
+                type="text"
+                placeholder="Search reports..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-            <span>
-              ⌕
-            </span>
+            {/* Top-Level Export Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className="schedule-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', padding: '0 12px', fontSize: '11px', cursor: 'pointer' }}
+                onClick={() => setTopExportMenuOpen(!topExportMenuOpen)}
+              >
+                <span>↓ Export</span>
+                <span style={{ fontSize: '8px' }}>▼</span>
+              </button>
 
-            <input
-              type="text"
-              placeholder="Search reports..."
-            />
-
+              {topExportMenuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '100%',
+                    marginTop: '4px',
+                    zIndex: 1000,
+                    backgroundColor: '#fff',
+                    border: '1px solid #e2e0d8',
+                    borderRadius: '10px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
+                    width: '130px',
+                    padding: '4px 0'
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontSize: '11px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'monospace', color: '#2d3129' }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f4f8f2'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onClick={() => {
+                      setTopExportMenuOpen(false);
+                      const target = filteredReports[0] || reports[0];
+                      if (target) handleExportFormat(target, "CSV");
+                      else alert("No reports found to export.");
+                    }}
+                  >
+                    CSV
+                  </button>
+                  <button
+                    type="button"
+                    style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontSize: '11px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'monospace', color: '#2d3129' }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f4f8f2'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onClick={() => {
+                      setTopExportMenuOpen(false);
+                      const target = filteredReports[0] || reports[0];
+                      if (target) handleExportFormat(target, "PDF");
+                      else alert("No reports found to export.");
+                    }}
+                  >
+                    PDF
+                  </button>
+                  <button
+                    type="button"
+                    style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontSize: '11px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'monospace', color: '#2d3129' }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f4f8f2'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onClick={() => {
+                      setTopExportMenuOpen(false);
+                      const target = filteredReports[0] || reports[0];
+                      if (target) handleExportFormat(target, "EXCEL");
+                      else alert("No reports found to export.");
+                    }}
+                  >
+                    Excel
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
@@ -482,11 +572,11 @@ const Dashboard = () => {
 
         <div className="report-table">
 
-          {reports.length > 0 ? (
-            reports.map((report, index) => (
+          {filteredReports.length > 0 ? (
+            filteredReports.map((report, index) => (
               <div
                 className="report-row"
-                key={index}
+                key={report.id || index}
               >
 
                 <div className="report-name">
@@ -520,24 +610,37 @@ const Dashboard = () => {
                 </div>
 
 
-                <div className="report-actions-cell">
+                <div className="report-actions-cell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
 
                   <button 
                     className="run-btn" 
                     onClick={() => {
                       if (report.isCustom && report.id) {
-                        navigate(`custom-report?id=${report.id}`);
+                        setEditingCustomReportId(report.id);
+                        setShowCustomReportModal(true);
                       } else {
-                        alert(`Running standard report: ${report.name}`);
+                        setViewingReport(report);
                       }
                     }}
                   >
                     Run
                   </button>
 
-                  <button className="export-small-btn" onClick={() => handleExport(report)}>
-                    ↓ Export
-                  </button>
+                  <ReportActionMenu
+                    report={report}
+                    onView={(r) => setViewingReport(r)}
+                    onEdit={(r) => {
+                      if (r.isCustom) {
+                        setEditingCustomReportId(r.id);
+                        setShowCustomReportModal(true);
+                      } else {
+                        setEditingStandardReport(r);
+                      }
+                    }}
+                    onDelete={(r) => setDeletingReport(r)}
+                    onDownload={(r) => handleExportFormat(r, "PDF")}
+                    onExportFormat={(r, fmt) => handleExportFormat(r, fmt)}
+                  />
 
                 </div>
 
@@ -545,13 +648,60 @@ const Dashboard = () => {
             ))
           ) : (
             <div style={{ padding: '24px', textAlign: 'center', color: '#99978f', fontSize: '13px' }}>
-              No reports found in library. Click "+ Custom Report" to create a report.
+              {searchTerm ? "No reports match your search query." : "No reports found in library. Click \"+ Custom Report\" to create a report."}
             </div>
           )}
 
         </div>
 
       </section>
+
+      {/* ── Modals & Overlays ── */}
+      {showCustomReportModal && (
+        <CustomReport
+          isModal={true}
+          reportId={editingCustomReportId}
+          onClose={() => {
+            setShowCustomReportModal(false);
+            setEditingCustomReportId(null);
+          }}
+          onSaved={() => {
+            setShowCustomReportModal(false);
+            setEditingCustomReportId(null);
+            fetchDashboard();
+          }}
+        />
+      )}
+
+      {viewingReport && (
+        <ViewReportModal
+          report={viewingReport}
+          onClose={() => setViewingReport(null)}
+          onExportFormat={handleExportFormat}
+        />
+      )}
+
+      {editingStandardReport && (
+        <EditReportModal
+          report={editingStandardReport}
+          onClose={() => setEditingStandardReport(null)}
+          onSuccess={() => {
+            setEditingStandardReport(null);
+            fetchDashboard();
+          }}
+        />
+      )}
+
+      {deletingReport && (
+        <DeleteReportModal
+          report={deletingReport}
+          onClose={() => setDeletingReport(null)}
+          onSuccess={() => {
+            setDeletingReport(null);
+            fetchDashboard();
+          }}
+        />
+      )}
 
 
       {/* ================= CSS ================= */}

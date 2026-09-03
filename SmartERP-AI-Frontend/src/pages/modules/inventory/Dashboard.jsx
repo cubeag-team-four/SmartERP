@@ -15,6 +15,13 @@ import Warehouses from "./Warehouses";
 import Movements from "./Movements";
 import Replenishment from "./Replenishment";
 import InventoryService from "../../../core/services/modules/inventory.service";
+import ActionMenu from "./modals/ActionMenu";
+import EditItemModal from "./modals/EditItemModal";
+import RestockModal from "./modals/RestockModal";
+import AdjustStockModal from "./modals/AdjustStockModal";
+import StockHistoryModal from "./modals/StockHistoryModal";
+import TransferStockModal from "./modals/TransferStockModal";
+import DeleteItemModal from "./modals/DeleteItemModal";
 
 /* ============================================================
    CONSTANTS
@@ -97,16 +104,13 @@ export default function Stock() {
   const [viewLoading, setViewLoading] = useState(false);
   const [viewError, setViewError] = useState(null);
 
-  // Delete confirmation
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [deleteError, setDeleteError] = useState(null);
-
-  // Stock Adjustment modal
+  // Action Modals
+  const [editTarget, setEditTarget] = useState(null);
+  const [restockTarget, setRestockTarget] = useState(null);
   const [adjustTarget, setAdjustTarget] = useState(null);
-
-  // Stock Transfer modal
+  const [historyTarget, setHistoryTarget] = useState(null);
   const [transferTarget, setTransferTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // Stock Take modal
   const [showStockTakeModal, setShowStockTakeModal] = useState(false);
@@ -218,17 +222,40 @@ export default function Stock() {
   };
 
   /* ----------------------------------------------------------
-     EDIT ITEM
+     ACTIONS HANDLERS
   ---------------------------------------------------------- */
 
   const handleEdit = (item) => {
-    setEditItem(item);
-    setShowAddItem(true);
+    setEditTarget(item);
+    setViewItem(null);
+  };
+
+  const handleRestock = (item) => {
+    setRestockTarget(item);
+    setViewItem(null);
+  };
+
+  const handleAdjust = (item) => {
+    setAdjustTarget(item);
+    setViewItem(null);
+  };
+
+  const handleHistory = (item) => {
+    setHistoryTarget(item);
+  };
+
+  const handleTransfer = (item) => {
+    setTransferTarget(item);
+    setViewItem(null);
+  };
+
+  const handleDelete = (item) => {
+    setDeleteTarget(item);
     setViewItem(null);
   };
 
   /* ----------------------------------------------------------
-     ADD / EDIT ITEM SAVED
+     ADD ITEM SAVED
   ---------------------------------------------------------- */
 
   const handleSaved = useCallback(() => {
@@ -236,54 +263,6 @@ export default function Stock() {
     setEditItem(null);
     refresh();
   }, [refresh]);
-
-  /* ----------------------------------------------------------
-     DELETE ITEM
-  ---------------------------------------------------------- */
-
-  const handleDeleteRequest = (item) => {
-    setDeleteTarget(item);
-    setDeleteError(null);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    setDeleteError(null);
-    try {
-      await InventoryService.remove(deleteTarget.id);
-      setDeleteTarget(null);
-      setViewItem(null);
-      refresh();
-    } catch (err) {
-      const status = err?.response?.status;
-      if (status === 404) setDeleteError("Item not found — it may have been deleted already.");
-      else if (status === 403) setDeleteError("You do not have permission to delete this item.");
-      else setDeleteError("Delete failed. Please try again.");
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteTarget(null);
-    setDeleteError(null);
-  };
-
-  /* ----------------------------------------------------------
-     ADD / EDIT FORM VIEW
-  ---------------------------------------------------------- */
-
-  if (showAddItem) {
-    return (
-      <AddNewItem
-        initialData={editItem}
-        onBack={() => { setShowAddItem(false); setEditItem(null); }}
-        onCancel={() => { setShowAddItem(false); setEditItem(null); }}
-        onSaved={handleSaved}
-      />
-    );
-  }
 
   /* ----------------------------------------------------------
      KPI CARDS
@@ -319,33 +298,65 @@ export default function Stock() {
   return (
     <div className="min-h-full bg-[#f8f7f3] px-[35px] pb-[50px] pt-[35px]">
 
-      {/* ---- DELETE CONFIRM MODAL ---- */}
-      {deleteTarget && (
-        <DeleteModal
-          item={deleteTarget}
-          loading={deleteLoading}
-          error={deleteError}
-          onConfirm={handleDeleteConfirm}
-          onCancel={handleDeleteCancel}
+      {/* ---- ADD NEW ITEM MODAL ---- */}
+      {showAddItem && (
+        <AddNewItem
+          isModal={true}
+          initialData={editItem}
+          onBack={() => { setShowAddItem(false); setEditItem(null); }}
+          onCancel={() => { setShowAddItem(false); setEditItem(null); }}
+          onSaved={handleSaved}
         />
       )}
 
-      {/* ---- STOCK ADJUSTMENT MODAL ---- */}
+      {/* ---- 1. EDIT ITEM MODAL ---- */}
+      {editTarget && (
+        <EditItemModal
+          item={editTarget}
+          warehouses={warehousesList}
+          onClose={() => setEditTarget(null)}
+          onSuccess={() => {
+            setEditTarget(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {/* ---- 2. RESTOCK ITEM MODAL ---- */}
+      {restockTarget && (
+        <RestockModal
+          item={restockTarget}
+          warehouses={warehousesList}
+          onClose={() => setRestockTarget(null)}
+          onSuccess={() => {
+            setRestockTarget(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {/* ---- 3. STOCK ADJUSTMENT MODAL ---- */}
       {adjustTarget && (
         <AdjustStockModal
           item={adjustTarget}
           onClose={() => setAdjustTarget(null)}
           onSuccess={() => {
             setAdjustTarget(null);
-            if (viewItem && viewItem.id === adjustTarget.id) {
-              handleView(adjustTarget);
-            }
             refresh();
           }}
         />
       )}
 
-      {/* ---- STOCK TRANSFER MODAL ---- */}
+      {/* ---- 4. STOCK HISTORY MODAL ---- */}
+      {historyTarget && (
+        <StockHistoryModal
+          item={historyTarget}
+          warehouses={warehousesList}
+          onClose={() => setHistoryTarget(null)}
+        />
+      )}
+
+      {/* ---- 5. STOCK TRANSFER MODAL ---- */}
       {transferTarget && (
         <TransferStockModal
           item={transferTarget}
@@ -353,9 +364,18 @@ export default function Stock() {
           onClose={() => setTransferTarget(null)}
           onSuccess={() => {
             setTransferTarget(null);
-            if (viewItem && viewItem.id === transferTarget.id) {
-              handleView(transferTarget);
-            }
+            refresh();
+          }}
+        />
+      )}
+
+      {/* ---- 6. DELETE ITEM MODAL ---- */}
+      {deleteTarget && (
+        <DeleteItemModal
+          item={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onSuccess={() => {
+            setDeleteTarget(null);
             refresh();
           }}
         />
@@ -378,9 +398,9 @@ export default function Stock() {
           error={viewError}
           onClose={closeView}
           onEdit={() => handleEdit(viewItem)}
-          onDelete={() => handleDeleteRequest(viewItem)}
-          onAdjust={() => setAdjustTarget(viewItem)}
-          onTransfer={() => setTransferTarget(viewItem)}
+          onDelete={() => handleDelete(viewItem)}
+          onAdjust={() => handleAdjust(viewItem)}
+          onTransfer={() => handleTransfer(viewItem)}
         />
       )}
 
@@ -470,9 +490,11 @@ export default function Stock() {
           onFilterChange={handleFilterChange}
           onView={handleView}
           onEdit={handleEdit}
-          onDelete={handleDeleteRequest}
-          onAdjust={(it) => setAdjustTarget(it)}
-          onTransfer={(it) => setTransferTarget(it)}
+          onRestock={handleRestock}
+          onAdjust={handleAdjust}
+          onHistory={handleHistory}
+          onTransfer={handleTransfer}
+          onDelete={handleDelete}
           onRetry={() => fetchItems(search, filter)}
         />
       )}
@@ -502,9 +524,11 @@ function StockPanel({
   onFilterChange,
   onView,
   onEdit,
-  onDelete,
+  onRestock,
   onAdjust,
+  onHistory,
   onTransfer,
+  onDelete,
   onRetry,
 }) {
   return (
@@ -574,7 +598,7 @@ function StockPanel({
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse">
+            <table className="w-full min-w-[960px] border-collapse">
               <thead>
                 <tr className="border-b border-[#e1dfd7] bg-[#f4f3ee]">
                   <TableHeader>SKU</TableHeader>
@@ -586,6 +610,7 @@ function StockPanel({
                   <TableHeader>UNIT</TableHeader>
                   <TableHeader>VALUE</TableHeader>
                   <TableHeader>STATUS</TableHeader>
+                  <TableHeader className="text-right">ACTIONS</TableHeader>
                 </tr>
               </thead>
               <tbody>
@@ -593,6 +618,12 @@ function StockPanel({
                   <StockRow
                     key={item.id ?? item.sku}
                     item={item}
+                    onEdit={onEdit}
+                    onRestock={onRestock}
+                    onAdjust={onAdjust}
+                    onHistory={onHistory}
+                    onTransfer={onTransfer}
+                    onDelete={onDelete}
                   />
                 ))}
               </tbody>
@@ -618,7 +649,7 @@ function StockPanel({
 
 function StatCard({ value, label, description }) {
   return (
-    <div className="min-h-[72px] rounded-xl border border-[#e2e0d8] bg-[#fbfaf7] px-3.5 py-3">
+    <div className="min-h-72px rounded-xl border border-[#e2e0d8] bg-[#fbfaf7] px-3.5 py-3">
       <div className="font-serif text-[22px] leading-none text-[#20231f]">{value}</div>
       <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#989a93]">{label}</div>
       <div className="mt-1 font-mono text-[10px] text-[#a5a69f]">{description}</div>
@@ -631,9 +662,9 @@ function StatCard({ value, label, description }) {
    TABLE HEADER CELL
 ============================================================ */
 
-function TableHeader({ children }) {
+function TableHeader({ children, className = "" }) {
   return (
-    <th className="px-3 py-3 text-left font-mono text-[9px] font-medium uppercase tracking-[0.1em] text-[#999b94]">
+    <th className={`px-3 py-3 text-left font-mono text-[9px] font-medium uppercase tracking-[0.1em] text-[#999b94] ${className}`}>
       {children}
     </th>
   );
@@ -644,7 +675,15 @@ function TableHeader({ children }) {
    STOCK ROW
 ============================================================ */
 
-function StockRow({ item }) {
+function StockRow({
+  item,
+  onEdit,
+  onRestock,
+  onAdjust,
+  onHistory,
+  onTransfer,
+  onDelete,
+}) {
   const rawStatus = normalizeStatus(item.status);
   const labelText = STATUS_LABELS[rawStatus] ?? String(item.status ?? "");
 
@@ -654,6 +693,7 @@ function StockRow({ item }) {
     OUT_OF_STOCK: "bg-[#eadfdd] text-[#76534f]",
   };
   const badgeClass = statusStyle[rawStatus] ?? "bg-[#eee] text-[#555]";
+  const isLowOrOut = rawStatus === "LOW_STOCK" || rawStatus === "OUT_OF_STOCK";
 
   return (
     <tr className="border-b border-[#e5e3dc] transition hover:bg-[#f8f7f2]">
@@ -690,6 +730,47 @@ function StockRow({ item }) {
         <span className={`inline-flex rounded-lg px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.04em] ${badgeClass}`}>
           {labelText}
         </span>
+      </td>
+
+      {/* ACTIONS */}
+      <td className="px-3 py-3.5 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          {isLowOrOut ? (
+            <button
+              type="button"
+              onClick={() => onRestock(item)}
+              className="
+                inline-flex h-[28px] items-center justify-center rounded-[7px] border
+                border-[#cbe3ca] bg-[#eef7ed] px-2.5 font-mono text-[10px] font-medium
+                text-[#3d5940] transition hover:bg-[#e2f0e0]
+              "
+            >
+              Restock
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onEdit(item)}
+              className="
+                inline-flex h-[28px] items-center justify-center rounded-[7px] border
+                border-[#deddd5] bg-[#fbfaf7] px-2.5 font-mono text-[10px]
+                text-[#373a35] transition hover:bg-[#f0efe9]
+              "
+            >
+              Edit
+            </button>
+          )}
+
+          <ActionMenu
+            item={item}
+            onEdit={onEdit}
+            onRestock={onRestock}
+            onAdjust={onAdjust}
+            onHistory={onHistory}
+            onTransfer={onTransfer}
+            onDelete={onDelete}
+          />
+        </div>
       </td>
 
     </tr>
@@ -856,357 +937,7 @@ function DetailRow({ label, value, last = false }) {
 }
 
 
-/* ============================================================
-   STOCK ADJUSTMENT MODAL
-============================================================ */
 
-function AdjustStockModal({ item, onClose, onSuccess }) {
-  const currentQty = safeNum(item.quantity);
-  const [newQty, setNewQty] = useState(String(currentQty));
-  const [reason, setReason] = useState(ADJUSTMENT_REASONS[0]);
-  const [customReason, setCustomReason] = useState("");
-  const [reference, setReference] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const parsedNewQty = Number(newQty);
-  const variance = !isNaN(parsedNewQty) ? parsedNewQty - currentQty : 0;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isNaN(parsedNewQty) || parsedNewQty < 0) {
-      setError("Please enter a valid non-negative quantity.");
-      return;
-    }
-
-    const finalReason = reason === "Other" ? (customReason.trim() || "Manual Adjustment") : reason;
-
-    setLoading(true);
-    setError(null);
-    try {
-      await InventoryService.adjustStock({
-        itemId: item.id,
-        newQuantity: parsedNewQty,
-        reason: finalReason,
-        reference: reference.trim() || undefined,
-      });
-      onSuccess();
-    } catch (err) {
-      const res = err?.response?.data;
-      setError(res?.detail || res?.message || "Failed to adjust stock. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/30" onClick={!loading ? onClose : undefined} />
-      <div className="fixed left-1/2 top-1/2 z-[60] w-full max-w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-[#e2e0d8] bg-[#fbfaf7] p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#e5e3dc] pb-3">
-          <div>
-            <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#999b94]">
-              Stock Operation
-            </span>
-            <h3 className="font-serif text-[18px] text-[#20231f]">Stock Adjustment</h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-[#999b94] hover:text-[#20231f]"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
-          <div className="rounded-[10px] border border-[#e2e0d8] bg-white p-3 font-mono text-[10px]">
-            <div className="font-serif text-[14px] text-[#20231f]">{item.name}</div>
-            <div className="mt-1 flex items-center justify-between text-[#888c83]">
-              <span>SKU: {item.sku}</span>
-              <span>Warehouse: {item.warehouseCode}</span>
-              <span className="font-medium text-[#20231f]">Current: {currentQty} {item.unit}</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-mono text-[9px] uppercase tracking-[0.08em] text-[#6b7268]">
-              New Counted / Physical Quantity <span className="text-[#d9534f]">*</span>
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="any"
-              required
-              value={newQty}
-              onChange={(e) => setNewQty(e.target.value)}
-              className="mt-1 w-full rounded-[9px] border border-[#dedcd4] bg-white px-3 py-2 font-mono text-[11px] text-[#11130f] outline-none focus:border-[#11130f]"
-            />
-            <div className="mt-1 flex items-center justify-between font-mono text-[9px]">
-              <span className="text-[#999b94]">Difference from system:</span>
-              <span
-                className={`font-medium ${
-                  variance > 0
-                    ? "text-[#3d5940]"
-                    : variance < 0
-                    ? "text-[#8c6257]"
-                    : "text-[#777a73]"
-                }`}
-              >
-                {variance > 0 ? `+${variance}` : variance} {item.unit} (
-                {variance > 0 ? "Stock In" : variance < 0 ? "Stock Out" : "No Change"}
-                )
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-mono text-[9px] uppercase tracking-[0.08em] text-[#6b7268]">
-              Reason for Adjustment <span className="text-[#d9534f]">*</span>
-            </label>
-            <select
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="mt-1 w-full rounded-[9px] border border-[#dedcd4] bg-white px-3 py-2 font-mono text-[11px] text-[#11130f] outline-none focus:border-[#11130f]"
-            >
-              {ADJUSTMENT_REASONS.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-          </div>
-
-          {reason === "Other" && (
-            <div>
-              <label className="block font-mono text-[9px] uppercase tracking-[0.08em] text-[#6b7268]">
-                Custom Reason Note
-              </label>
-              <input
-                type="text"
-                value={customReason}
-                onChange={(e) => setCustomReason(e.target.value)}
-                placeholder="Enter reason details..."
-                className="mt-1 w-full rounded-[9px] border border-[#dedcd4] bg-white px-3 py-2 font-mono text-[11px] text-[#11130f] outline-none focus:border-[#11130f]"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block font-mono text-[9px] uppercase tracking-[0.08em] text-[#6b7268]">
-              Reference / Document ID
-            </label>
-            <input
-              type="text"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              placeholder="e.g. AUDIT-2026-03"
-              className="mt-1 w-full rounded-[9px] border border-[#dedcd4] bg-white px-3 py-2 font-mono text-[11px] text-[#11130f] outline-none focus:border-[#11130f]"
-            />
-          </div>
-
-          {error && (
-            <div className="rounded-[8px] border border-[#f5c6cb] bg-[#f8d7da] px-3 py-2 font-mono text-[9px] text-[#721c24]">
-              {error}
-            </div>
-          )}
-
-          <div className="mt-5 flex gap-2 pt-2">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onClose}
-              className="flex-1 rounded-[10px] border border-[#e2e0d8] bg-[#fbfaf7] py-2.5 font-mono text-[10px] text-[#666a63] transition hover:bg-[#f0efe9] disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 rounded-[10px] bg-[#20231f] py-2.5 font-mono text-[10px] text-white transition hover:bg-[#343731] disabled:opacity-50"
-            >
-              {loading ? "Adjusting…" : "Apply Adjustment"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </>
-  );
-}
-
-
-/* ============================================================
-   STOCK TRANSFER MODAL
-============================================================ */
-
-function TransferStockModal({ item, warehouses, onClose, onSuccess }) {
-  const currentQty = safeNum(item.quantity);
-  const [targetWhCode, setTargetWhCode] = useState("");
-  const [transferQty, setTransferQty] = useState("1");
-  const [reference, setReference] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const availableDestinations = (warehouses || []).filter(
-    (w) => w.code && !w.code.equalsIgnoreCase(item.warehouseCode)
-  );
-
-  // Set default target warehouse
-  useEffect(() => {
-    if (availableDestinations.length > 0 && !targetWhCode) {
-      setTargetWhCode(availableDestinations[0].code);
-    }
-  }, [availableDestinations, targetWhCode]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const qty = Number(transferQty);
-    if (isNaN(qty) || qty <= 0) {
-      setError("Please enter a valid transfer quantity greater than zero.");
-      return;
-    }
-    if (qty > currentQty) {
-      setError(`Transfer quantity exceeds available stock (${currentQty} ${item.unit}).`);
-      return;
-    }
-    if (!targetWhCode) {
-      setError("Please select a destination warehouse.");
-      return;
-    }
-
-    const targetObj = warehouses.find((w) => w.code === targetWhCode) || {
-      code: targetWhCode,
-      name: targetWhCode + " Warehouse",
-    };
-
-    setLoading(true);
-    setError(null);
-    try {
-      await InventoryService.transferStock({
-        itemId: item.id,
-        targetWarehouseCode: targetObj.code,
-        targetWarehouseName: targetObj.name || targetObj.code,
-        quantity: qty,
-        reference: reference.trim() || undefined,
-      });
-      onSuccess();
-    } catch (err) {
-      const res = err?.response?.data;
-      setError(res?.detail || res?.message || "Transfer failed. Please verify quantities.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/30" onClick={!loading ? onClose : undefined} />
-      <div className="fixed left-1/2 top-1/2 z-[60] w-full max-w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] border border-[#e2e0d8] bg-[#fbfaf7] p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#e5e3dc] pb-3">
-          <div>
-            <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#999b94]">
-              Inter-Warehouse Movement
-            </span>
-            <h3 className="font-serif text-[18px] text-[#20231f]">Transfer Stock</h3>
-          </div>
-          <button type="button" onClick={onClose} className="text-[#999b94] hover:text-[#20231f]">
-            <X size={16} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
-          <div className="rounded-[10px] border border-[#e2e0d8] bg-white p-3 font-mono text-[10px]">
-            <div className="font-serif text-[14px] text-[#20231f]">{item.name}</div>
-            <div className="mt-1 flex items-center justify-between text-[#888c83]">
-              <span>SKU: {item.sku}</span>
-              <span>Source: <strong className="text-[#20231f]">{item.warehouseCode}</strong></span>
-              <span>Available: <strong className="text-[#20231f]">{currentQty} {item.unit}</strong></span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-mono text-[9px] uppercase tracking-[0.08em] text-[#6b7268]">
-              Destination Warehouse <span className="text-[#d9534f]">*</span>
-            </label>
-            {availableDestinations.length > 0 ? (
-              <select
-                value={targetWhCode}
-                onChange={(e) => setTargetWhCode(e.target.value)}
-                className="mt-1 w-full rounded-[9px] border border-[#dedcd4] bg-white px-3 py-2 font-mono text-[11px] text-[#11130f] outline-none focus:border-[#11130f]"
-              >
-                {availableDestinations.map((w) => (
-                  <option key={w.code} value={w.code}>
-                    {w.code} – {w.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                placeholder="e.g. W2"
-                value={targetWhCode}
-                onChange={(e) => setTargetWhCode(e.target.value)}
-                required
-                className="mt-1 w-full rounded-[9px] border border-[#dedcd4] bg-white px-3 py-2 font-mono text-[11px] text-[#11130f] outline-none focus:border-[#11130f]"
-              />
-            )}
-          </div>
-
-          <div>
-            <label className="block font-mono text-[9px] uppercase tracking-[0.08em] text-[#6b7268]">
-              Transfer Quantity ({item.unit}) <span className="text-[#d9534f]">*</span>
-            </label>
-            <input
-              type="number"
-              min="0.001"
-              max={currentQty}
-              step="any"
-              required
-              value={transferQty}
-              onChange={(e) => setTransferQty(e.target.value)}
-              className="mt-1 w-full rounded-[9px] border border-[#dedcd4] bg-white px-3 py-2 font-mono text-[11px] text-[#11130f] outline-none focus:border-[#11130f]"
-            />
-          </div>
-
-          <div>
-            <label className="block font-mono text-[9px] uppercase tracking-[0.08em] text-[#6b7268]">
-              Transfer Reference / Dispatch Note
-            </label>
-            <input
-              type="text"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              placeholder="e.g. TR-2026-089"
-              className="mt-1 w-full rounded-[9px] border border-[#dedcd4] bg-white px-3 py-2 font-mono text-[11px] text-[#11130f] outline-none focus:border-[#11130f]"
-            />
-          </div>
-
-          {error && (
-            <div className="rounded-[8px] border border-[#f5c6cb] bg-[#f8d7da] px-3 py-2 font-mono text-[9px] text-[#721c24]">
-              {error}
-            </div>
-          )}
-
-          <div className="mt-5 flex gap-2 pt-2">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onClose}
-              className="flex-1 rounded-[10px] border border-[#e2e0d8] bg-[#fbfaf7] py-2.5 font-mono text-[10px] text-[#666a63] transition hover:bg-[#f0efe9] disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 rounded-[10px] bg-[#20231f] py-2.5 font-mono text-[10px] text-white transition hover:bg-[#343731] disabled:opacity-50"
-            >
-              {loading ? "Transferring…" : "Execute Transfer"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </>
-  );
-}
 
 
 /* ============================================================

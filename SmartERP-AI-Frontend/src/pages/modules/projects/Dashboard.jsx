@@ -6,10 +6,18 @@ import Tasks from "./Tasks";
 import TimeTracking from "./TimeTracking";
 import BudgetMonitoring from "./BudgetMonitoring";
 import NewProjectModal from "./NewProjectModal";
+import ViewProjectModal from "./ViewProjectModal";
+import DeleteProjectModal from "./DeleteProjectModal";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("projects");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewProject, setViewProject] = useState(null);
+  const [editProject, setEditProject] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteProject, setDeleteProject] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [projects, setProjects] = useState([]);
   const [dashboardStats, setDashboardStats] = useState(null);
   const [error, setError] = useState("");
@@ -48,7 +56,7 @@ const Dashboard = () => {
         description: form.description || null,
         customerName: form.client || null,
         managerUserId: Number.isInteger(Number(user?.id)) ? Number(user.id) : null,
-        managerName: form.projectManager || user.name,
+        managerName: form.projectManager || user?.name,
         startDate: form.startDate,
         endDate: form.expectedEnd,
         priority: (() => {
@@ -67,6 +75,80 @@ const Dashboard = () => {
     } catch (requestError) {
       const responseData = requestError.response?.data;
       setError(responseData?.detail || responseData?.message || responseData?.title || "Unable to create the project.");
+    }
+  };
+
+  const handleViewProject = async (project) => {
+    try {
+      const { data } = await ProjectsService.getById(project.id);
+      setViewProject(data);
+    } catch {
+      setViewProject(project);
+    }
+    setViewModalOpen(true);
+  };
+
+  const handleEditProject = (project) => {
+    setEditProject(project);
+  };
+
+  const handleDeleteProjectPrompt = (project) => {
+    setDeleteProject(project);
+    setDeleteModalOpen(true);
+  };
+
+  const handleProjectUpdated = async (id, form) => {
+    const user = storageService.getUser();
+    try {
+      const { data } = await ProjectsService.update(id, {
+        name: form.projectName,
+        description: form.description || null,
+        managerUserId: Number.isInteger(Number(user?.id)) ? Number(user.id) : null,
+        managerName: form.projectManager || user?.name,
+        startDate: form.startDate,
+        endDate: form.expectedEnd,
+        status: (() => {
+          const VALID = ["PLANNING", "ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED", "ARCHIVED"];
+          const resolved = (form.status || "Planning")
+            .toUpperCase()
+            .replaceAll(" ", "_");
+          return VALID.includes(resolved) ? resolved : "PLANNING";
+        })(),
+        priority: (() => {
+          const VALID = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+          const resolved = (form.priority || "Medium")
+            .toUpperCase()
+            .replaceAll(" ", "_");
+          return VALID.includes(resolved) ? resolved : "MEDIUM";
+        })(),
+        plannedBudget: Number(form.totalBudget),
+        progressPercent: Number(form.initialProgress || 0),
+      });
+
+      setProjects((current) => current.map((p) => (p.id === id ? data : p)));
+      fetchDashboardData();
+      setEditProject(null);
+      setError("");
+    } catch (requestError) {
+      const responseData = requestError.response?.data;
+      setError(responseData?.detail || responseData?.message || responseData?.title || "Unable to update the project.");
+    }
+  };
+
+  const handleConfirmDelete = async (id) => {
+    try {
+      setDeleting(true);
+      await ProjectsService.remove(id);
+      setProjects((current) => current.filter((p) => p.id !== id));
+      fetchDashboardData();
+      setDeleteModalOpen(false);
+      setDeleteProject(null);
+      setError("");
+    } catch (requestError) {
+      const responseData = requestError.response?.data;
+      setError(responseData?.detail || responseData?.message || "Unable to delete the project.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -140,7 +222,15 @@ const Dashboard = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "projects":
-        return <ProjectPlanning projects={projects} />;
+        return (
+          <ProjectPlanning
+            projects={projects}
+            onView={handleViewProject}
+            onEdit={handleEditProject}
+            onDelete={handleDeleteProjectPrompt}
+            onNewProject={() => setNewProjectOpen(true)}
+          />
+        );
 
       case "tasks":
         return <Tasks projects={projects} />;
@@ -152,7 +242,15 @@ const Dashboard = () => {
         return <BudgetMonitoring projects={projects} />;
 
       default:
-        return <ProjectPlanning projects={projects} />;
+        return (
+          <ProjectPlanning
+            projects={projects}
+            onView={handleViewProject}
+            onEdit={handleEditProject}
+            onDelete={handleDeleteProjectPrompt}
+            onNewProject={() => setNewProjectOpen(true)}
+          />
+        );
     }
   };
 
@@ -294,10 +392,45 @@ const Dashboard = () => {
         {renderTabContent()}
       </main>
 
+      {/* Create New Project Modal */}
       <NewProjectModal
         open={newProjectOpen}
         onClose={() => setNewProjectOpen(false)}
         onCreate={handleProjectCreated}
+      />
+
+      {/* Edit Project Modal */}
+      <NewProjectModal
+        open={Boolean(editProject)}
+        initialData={editProject}
+        onClose={() => setEditProject(null)}
+        onUpdate={handleProjectUpdated}
+      />
+
+      {/* View Project Details Modal */}
+      <ViewProjectModal
+        open={viewModalOpen}
+        project={viewProject}
+        onClose={() => {
+          setViewModalOpen(false);
+          setViewProject(null);
+        }}
+        onEdit={(proj) => {
+          setViewModalOpen(false);
+          setEditProject(proj);
+        }}
+      />
+
+      {/* Delete Project Confirmation Modal */}
+      <DeleteProjectModal
+        open={deleteModalOpen}
+        project={deleteProject}
+        deleting={deleting}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDeleteProject(null);
+        }}
+        onConfirm={handleConfirmDelete}
       />
 
 
