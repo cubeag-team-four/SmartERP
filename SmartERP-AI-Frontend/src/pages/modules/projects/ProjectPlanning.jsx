@@ -1,6 +1,7 @@
 import React from "react";
+import ProjectActionMenu from "./ProjectActionMenu";
 
-const ProjectPlanning = ({ projects }) => {
+const ProjectPlanning = ({ projects, onView, onEdit, onDelete, onNewProject }) => {
 
   return (
     <div className="projects-page">
@@ -25,10 +26,19 @@ const ProjectPlanning = ({ projects }) => {
                 </div>
               </div>
 
-              <div className="project-progress-value">
-                <strong>{project.progressPercent}%</strong>
-                <span>COMPLETE</span>
-                <button type="button" className="project-arrow" aria-label="Open project">›</button>
+              <div className="project-right-col">
+                <div className="project-action-top">
+                  <ProjectActionMenu
+                    project={project}
+                    onView={onView}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                  />
+                </div>
+                <div className="project-progress-value">
+                  <strong>{project.progressPercent}%</strong>
+                  <span>COMPLETE</span>
+                </div>
               </div>
 
               <div className="project-progress-track">
@@ -40,7 +50,11 @@ const ProjectPlanning = ({ projects }) => {
             </article>
           ))}
 
-          <button className="new-project-placeholder" type="button">
+          <button
+            className="new-project-placeholder"
+            type="button"
+            onClick={onNewProject}
+          >
             + New Project
           </button>
         </section>
@@ -78,10 +92,10 @@ const ProjectPlanning = ({ projects }) => {
           border: 1px solid #e1dfd8;
           border-radius: 15px;
           display: grid;
-          grid-template-columns: minmax(0, 1fr) 115px;
+          grid-template-columns: minmax(0, 1fr) 140px;
           gap: 20px;
           box-sizing: border-box;
-          overflow: hidden;
+          overflow: visible;
         }
 
         .project-meta {
@@ -164,12 +178,28 @@ const ProjectPlanning = ({ projects }) => {
           box-sizing: border-box;
         }
 
+        .project-right-col {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          justify-content: flex-start;
+          gap: 12px;
+          position: relative;
+          z-index: 5;
+        }
+
+        .project-action-top {
+          display: flex;
+          justify-content: flex-end;
+          width: 100%;
+        }
+
         .project-progress-value {
           position: relative;
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          padding-top: 2px;
+          padding-top: 0px;
         }
 
         .project-progress-value strong {
@@ -183,18 +213,6 @@ const ProjectPlanning = ({ projects }) => {
           margin-top: 4px;
           font-size: 8px;
           color: #aaa69f;
-        }
-
-        .project-arrow {
-          position: absolute;
-          top: 3px;
-          right: -2px;
-          border: 0;
-          background: transparent;
-          color: #c9c7c1;
-          font-size: 27px;
-          line-height: 1;
-          cursor: pointer;
         }
 
         .project-progress-track {

@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import useAuthStore from "../../../store/slices/auth.store";
+import DocumentsService from "../../../core/services/modules/documents.service";
+import "./documents.css";
 
 /* ================================================================
    CONSTANTS
@@ -30,7 +33,7 @@ const MODULES    = ["Finance", "HR", "Sales", "Purchase", "Projects", "CRM", "In
 const COMPANIES  = ["ABC Manufacturing Pvt Ltd", "XYZ Corp", "SmartERP Solutions"];
 const BRANCHES   = ["Pune Branch", "Mumbai Branch", "Delhi Branch", "Bangalore Branch"];
 const DEPARTMENTS= ["Finance", "HR", "IT", "Sales", "Operations", "Admin", "Legal"];
-const VENDORS    = ["Tata Steel Ltd", "Infosys BPO", "Hero MotoCorp", "Bajaj Auto", "Reliance Industries"];
+const VENDORS    = ["Tata Steel Ltd", "Infosys BPO", "Hero MotoCorp", "Bajaj Auto", "Reliance Industries", "Customer: Alpha Tech", "Customer: Zenith Global"];
 const EMPLOYEES  = ["Rohit Sharma", "Neha Verma", "Amit Patel", "Priya Singh", "Rahul Joshi"];
 const APPROVERS  = ["Amit Sharma", "Neha Verma", "Rahul Patil", "Sneha Shah"];
 const WORKFLOWS  = ["Standard Approval", "Finance Approval", "Legal Review", "HR Approval", "Two-Step Approval"];
@@ -65,8 +68,13 @@ const Sel = ({ children, className = "", ...props }) => (
 
 const DatePick = ({ value, onChange, placeholder }) => (
   <div className="doc-date-wrap">
-    <input type="date" value={value} onChange={onChange}
-      placeholder={placeholder} className="doc-input doc-date-input" />
+    <input
+      type="date"
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="doc-input doc-date-input"
+    />
     <svg className="doc-date-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
       <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.4"/>
       <path d="M5 1v3M11 1v3M2 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
@@ -87,20 +95,26 @@ const Toggle = ({ checked, onChange, label }) => (
 );
 
 const SectionBlock = ({ number, title, children }) => (
-  <div className="ndoc-section">
+  <div className="ndoc-section" style={{ flexShrink: 0, width: "100%", minHeight: "min-content", overflow: "visible" }}>
     <div className="ndoc-section-head">
       <span className="ndoc-section-num">{number}.</span>
       <span className="ndoc-section-title">{title}</span>
     </div>
-    <div className="ndoc-section-body">{children}</div>
+    <div className="ndoc-section-body" style={{ display: "block", height: "auto", minHeight: "min-content", overflow: "visible" }}>
+      {children}
+    </div>
   </div>
 );
 
 /* ================================================================
-   MODAL
+   MODAL COMPONENT
 ================================================================ */
-const NewDocumentModal = ({ open, onClose }) => {
-  /* ---- state ---- */
+const NewDocumentModal = ({ open, onClose, onSuccess, editDocument = null }) => {
+  const { user } = useAuthStore();
+  const uploadedByName = user?.name || "Current User";
+  const isEdit = Boolean(editDocument);
+
+  /* ---- Section 1 State ---- */
   const [title,          setTitle]          = useState("");
   const [docType,        setDocType]        = useState("");
   const [docNumber,      setDocNumber]      = useState("");
@@ -109,10 +123,12 @@ const NewDocumentModal = ({ open, onClose }) => {
   const [expiryDate,     setExpiryDate]     = useState("");
   const [description,    setDescription]    = useState("");
 
+  /* ---- Section 2 State ---- */
   const [file,           setFile]           = useState(null);
   const [dragging,       setDragging]       = useState(false);
   const [version,        setVersion]        = useState("1.0");
 
+  /* ---- Section 3 State ---- */
   const [category,       setCategory]       = useState("");
   const [subCategory,    setSubCategory]    = useState("");
   const [tags,           setTags]           = useState([]);
@@ -121,55 +137,110 @@ const NewDocumentModal = ({ open, onClose }) => {
   const [branch,         setBranch]         = useState("");
   const [department,     setDepartment]     = useState("");
 
+  /* ---- Section 4 State ---- */
   const [relatedModule,  setRelatedModule]  = useState("");
   const [relatedRecord,  setRelatedRecord]  = useState("");
   const [vendor,         setVendor]         = useState("");
   const [docOwner,       setDocOwner]       = useState("");
   const [employee,       setEmployee]       = useState("");
 
+  /* ---- Section 5 State ---- */
   const [enableOcr,      setEnableOcr]      = useState(true);
   const [autoExtract,    setAutoExtract]    = useState(true);
   const [ocrLang,        setOcrLang]        = useState("English");
   const [ocrTemplate,    setOcrTemplate]    = useState("");
 
+  /* ---- Section 6 State ---- */
   const [approvalRequired, setApprovalRequired] = useState(false);
   const [workflow,       setWorkflow]       = useState("");
   const [approver,       setApprover]       = useState("");
   const [accessLevel,    setAccessLevel]    = useState("");
   const [sharedWith,     setSharedWith]     = useState("");
 
+  /* ---- Section 7 State ---- */
   const [confidential,   setConfidential]   = useState(false);
   const [allowDownload,  setAllowDownload]  = useState(true);
   const [allowPrint,     setAllowPrint]     = useState(false);
   const [allowShare,     setAllowShare]     = useState(false);
 
+  /* ---- Section 8 State ---- */
   const [internalNotes,  setInternalNotes]  = useState("");
   const [comments,       setComments]       = useState("");
+
+  /* ---- Action States ---- */
+  const [saving,         setSaving]         = useState(false);
+  const [error,          setError]          = useState(null);
 
   const fileRef = useRef();
   const bodyRef = useRef();
 
-  /* reset on open */
+  /* reset / prefill on open */
   useEffect(() => {
     if (open) {
-      setTitle(""); setDocType(""); setDocNumber(""); setDocDate("");
-      setEffectiveDate(""); setExpiryDate(""); setDescription("");
-      setFile(null); setVersion("1.0"); setCategory(""); setSubCategory("");
-      setTags([]); setTagInput(""); setCompany(""); setBranch(""); setDepartment("");
-      setRelatedModule(""); setRelatedRecord(""); setVendor(""); setDocOwner(""); setEmployee("");
-      setEnableOcr(true); setAutoExtract(true); setOcrLang("English"); setOcrTemplate("");
-      setApprovalRequired(false); setWorkflow(""); setApprover(""); setAccessLevel(""); setSharedWith("");
-      setConfidential(false); setAllowDownload(true); setAllowPrint(false); setAllowShare(false);
-      setInternalNotes(""); setComments("");
+      if (editDocument) {
+        setTitle(editDocument.title || "");
+        const matchedType = DOC_TYPES.find(
+          (t) => t.toUpperCase().replace(/\s+/g, "_") === editDocument.type || t === editDocument.type
+        ) || editDocument.type || "";
+        setDocType(matchedType);
+        setDocNumber(editDocument.documentNumber || "");
+        setDocDate(editDocument.documentDate || "");
+        setEffectiveDate(editDocument.effectiveDate || "");
+        setExpiryDate(editDocument.expiryDate || "");
+        setDescription(editDocument.description || "");
+        setFile(null);
+        setVersion(editDocument.currentVersion || "1.0");
+        setCategory(editDocument.category || "");
+        setSubCategory(editDocument.subCategory || "");
+        setTags(editDocument.tags ? editDocument.tags.split(",").map((t) => t.trim()).filter(Boolean) : []);
+        setTagInput("");
+        setCompany(editDocument.companyName || "");
+        setBranch(editDocument.branchName || "");
+        setDepartment(editDocument.departmentName || "");
+        setRelatedModule(editDocument.relatedModule || "");
+        setRelatedRecord(editDocument.relatedRecord || "");
+        setVendor(editDocument.vendorName || "");
+        setDocOwner(editDocument.documentOwner || "");
+        setEmployee(editDocument.employeeName || "");
+        setEnableOcr(true);
+        setAutoExtract(true);
+        setOcrLang("English");
+        setOcrTemplate("");
+        setApprovalRequired(false);
+        setWorkflow("");
+        setApprover("");
+        setAccessLevel(editDocument.accessLevel || "Public");
+        setSharedWith(editDocument.sharedWith || "");
+        setConfidential(Boolean(editDocument.confidential));
+        setAllowDownload(editDocument.allowDownload !== false);
+        setAllowPrint(Boolean(editDocument.allowPrint));
+        setAllowShare(Boolean(editDocument.allowShare));
+        setInternalNotes(editDocument.internalNotes || "");
+        setComments(editDocument.comments || "");
+        setError(null);
+        setSaving(false);
+      } else {
+        setTitle(""); setDocType(""); setDocNumber(""); setDocDate("");
+        setEffectiveDate(""); setExpiryDate(""); setDescription("");
+        setFile(null); setVersion("1.0"); setCategory(""); setSubCategory("");
+        setTags([]); setTagInput(""); setCompany(""); setBranch(""); setDepartment("");
+        setRelatedModule(""); setRelatedRecord(""); setVendor(""); setDocOwner(""); setEmployee("");
+        setEnableOcr(true); setAutoExtract(true); setOcrLang("English"); setOcrTemplate("");
+        setApprovalRequired(false); setWorkflow(""); setApprover(""); setAccessLevel(""); setSharedWith("");
+        setConfidential(false); setAllowDownload(true); setAllowPrint(false); setAllowShare(false);
+        setInternalNotes(""); setComments(""); setError(null); setSaving(false);
+      }
     }
-  }, [open]);
+  }, [open, editDocument]);
 
   /* escape key */
   useEffect(() => {
-    const h = (e) => { if (e.key === "Escape") onClose(); };
-    if (open) document.addEventListener("keydown", h);
-    return () => document.removeEventListener("keydown", h);
-  }, [open, onClose]);
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && !saving) onClose();
+    };
+    if (open) document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose, saving]);
 
   if (!open) return null;
 
@@ -177,15 +248,152 @@ const NewDocumentModal = ({ open, onClose }) => {
   const handleFiles = (files) => {
     const f = Array.from(files)[0];
     if (!f) return;
-    if (f.size > 25 * 1024 * 1024) return;
-    setFile({ name: f.name, type: f.type || f.name.split(".").pop().toUpperCase(), size: (f.size / 1024).toFixed(0) + " KB", raw: f });
+    if (f.size > 25 * 1024 * 1024) {
+      setError("File exceeds 25 MB limit");
+      return;
+    }
+    setError(null);
+    setFile({
+      name: f.name,
+      type: f.type || f.name.split(".").pop().toUpperCase(),
+      size: (f.size / 1024).toFixed(0) + " KB",
+      raw: f
+    });
+    if (!title) {
+      setTitle(f.name.replace(/\.[^/.]+$/, ""));
+    }
   };
 
   /* tag handling */
   const addTag = (v) => {
     const t = v.trim();
-    if (t && !tags.includes(t)) setTags((p) => [...p, t]);
+    if (t && !tags.includes(t)) setTags((prev) => [...prev, t]);
     setTagInput("");
+  };
+
+  const handleSubmit = async (isDraft = false) => {
+    if (isEdit) {
+      if (!title) {
+        setError("Please enter a document title.");
+        return;
+      }
+      try {
+        setSaving(true);
+        setError(null);
+        const updatePayload = {
+          title,
+          type: docType ? docType.toUpperCase().replace(/\s+/g, "_") : editDocument.type,
+          documentNumber: docNumber || null,
+          documentDate: docDate || null,
+          effectiveDate: effectiveDate || null,
+          expiryDate: expiryDate || null,
+          description: description || null,
+          category: category || null,
+          subCategory: subCategory || null,
+          tags: tags.length ? tags.join(",") : null,
+          companyName: company || null,
+          branchName: branch || null,
+          departmentName: department || null,
+          relatedModule: relatedModule || null,
+          relatedRecord: relatedRecord || null,
+          vendorName: vendor || null,
+          employeeName: employee || null,
+          documentOwner: docOwner || null,
+          accessLevel: accessLevel || "Public",
+          sharedWith: sharedWith || null,
+          confidential,
+          allowDownload,
+          allowPrint,
+          allowShare,
+          internalNotes: internalNotes || null,
+          comments: comments || null,
+          status: editDocument.status
+            ? String(editDocument.status).toUpperCase()
+            : undefined,
+        };
+        await DocumentsService.update(editDocument.id, updatePayload);
+        if (file && file.raw) {
+          const vFormData = new FormData();
+          vFormData.append("file", file.raw);
+          vFormData.append("versionNumber", version || "1.1");
+          vFormData.append("changeSummary", "Updated file in document editor");
+          await DocumentsService.uploadVersion(editDocument.id, vFormData);
+        }
+        if (onSuccess) onSuccess();
+        onClose();
+      } catch (err) {
+        console.error("Error updating document:", err);
+        setError(err?.response?.data?.message || err?.message || "Failed to update document.");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    if (!file && !title) {
+      setError("Please select a file or enter a document title.");
+      return;
+    }
+    if (!docType && !isDraft) {
+      setError("Please select a document type.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const formData = new FormData();
+      if (file && file.raw) {
+        formData.append("file", file.raw);
+      } else {
+        const dummyBlob = new Blob([description || "Draft document created without binary file."], { type: "text/plain" });
+        formData.append("file", dummyBlob, `${title || "document"}.txt`);
+      }
+
+      formData.append("title", title || (file ? file.name : "Untitled Document"));
+      formData.append("type", docType || "OTHER");
+      if (docNumber) formData.append("documentNumber", docNumber);
+      if (docDate) formData.append("documentDate", docDate);
+      if (effectiveDate) formData.append("effectiveDate", effectiveDate);
+      if (expiryDate) formData.append("expiryDate", expiryDate);
+      if (description) formData.append("description", description);
+      if (category) formData.append("category", category);
+      if (subCategory) formData.append("subCategory", subCategory);
+      if (tags.length) formData.append("tags", tags.join(","));
+      if (company) formData.append("companyName", company);
+      if (branch) formData.append("branchName", branch);
+      if (department) formData.append("departmentName", department);
+      if (relatedModule) formData.append("relatedModule", relatedModule);
+      if (relatedRecord) formData.append("relatedRecord", relatedRecord);
+      if (vendor) formData.append("vendorName", vendor);
+      if (employee) formData.append("employeeName", employee);
+      if (docOwner) formData.append("documentOwner", docOwner);
+      formData.append("ocrEnabled", enableOcr);
+      formData.append("autoExtract", autoExtract);
+      if (ocrLang) formData.append("ocrLanguage", ocrLang);
+      if (ocrTemplate) formData.append("ocrTemplate", ocrTemplate);
+      formData.append("approvalRequired", isDraft ? false : approvalRequired);
+      if (workflow) formData.append("workflowName", workflow);
+      if (approver) formData.append("approverName", approver);
+      if (accessLevel) formData.append("accessLevel", accessLevel);
+      if (sharedWith) formData.append("sharedWith", sharedWith);
+      formData.append("confidential", confidential);
+      formData.append("allowDownload", allowDownload);
+      formData.append("allowPrint", allowPrint);
+      formData.append("allowShare", allowShare);
+      if (internalNotes) formData.append("internalNotes", internalNotes);
+      if (comments) formData.append("comments", comments);
+
+      await DocumentsService.create(formData);
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err) {
+      console.error("Error creating document:", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to upload document. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const subCatOptions = SUB_CATEGORIES[category] || [];
@@ -196,37 +404,44 @@ const NewDocumentModal = ({ open, onClose }) => {
   return (
     <div
       className="ndoc-backdrop"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}
     >
-      <div className="ndoc-modal">
+      <div className="ndoc-modal" style={{ maxHeight: "90vh", height: "90vh", display: "flex", flexDirection: "column" }}>
 
         {/* ---- TOP BAR ---- */}
         <div className="ndoc-topbar">
           <div>
-            <button className="ndoc-back" onClick={onClose}>← Back to Documents</button>
-            <h2 className="ndoc-title">New Document</h2>
-            <p className="ndoc-subtitle">Upload and manage a new document</p>
+            <button className="ndoc-back" onClick={onClose} disabled={saving}>← Back to Documents</button>
+            <h2 className="ndoc-title">{isEdit ? "Edit Document" : "New Document"}</h2>
+            <p className="ndoc-subtitle">
+              {isEdit
+                ? (editDocument?.documentNumber ? `Editing Document #${editDocument.documentNumber}` : "Update existing document metadata")
+                : "Upload and manage a new document"}
+            </p>
           </div>
           <div className="ndoc-topbar-actions">
-            <button className="ndoc-btn ndoc-btn-outline" onClick={onClose}>
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                <path d="M1 13V4.5L7 1l6 3.5V13H9v-4H5v4H1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-              </svg>
-              Save Draft
-            </button>
-            <button className="ndoc-btn ndoc-btn-dark" onClick={onClose}>
+            {error && <span style={{ color: "#d9534f", fontSize: 13, marginRight: 10 }}>{error}</span>}
+            {!isEdit && (
+              <button className="ndoc-btn ndoc-btn-outline" onClick={() => handleSubmit(true)} disabled={saving}>
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 13V4.5L7 1l6 3.5V13H9v-4H5v4H1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                </svg>
+                {saving ? "Saving..." : "Save Draft"}
+              </button>
+            )}
+            <button className="ndoc-btn ndoc-btn-dark" onClick={() => handleSubmit(false)} disabled={saving}>
               <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
                 <path d="M7 10V3m0 0L4 6m3-3 3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M1 11h12" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
-              Upload Document
+              {saving ? "Saving..." : (isEdit ? "Save Changes" : "Upload Document")}
             </button>
-            <button className="ndoc-close" onClick={onClose}>×</button>
+            <button className="ndoc-close" onClick={onClose} disabled={saving} title="Close">×</button>
           </div>
         </div>
 
-        {/* ---- BODY ---- */}
-        <div className="ndoc-body" ref={bodyRef}>
+        {/* ---- BODY (SCROLL CONTAINER) ---- */}
+        <div className="ndoc-body" ref={bodyRef} style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
 
           {/* ========== 1. DOCUMENT INFORMATION ========== */}
           <SectionBlock number="1" title="DOCUMENT INFORMATION">
@@ -237,11 +452,11 @@ const NewDocumentModal = ({ open, onClose }) => {
               <Field label="Document Type" required>
                 <Sel value={docType} onChange={(e) => setDocType(e.target.value)}>
                   <option value="">Select document type</option>
-                  {DOC_TYPES.map((t) => <option key={t}>{t}</option>)}
+                  {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </Sel>
               </Field>
               <Field label="Document Number">
-                <Input placeholder="Enter document number" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} />
+                <Input placeholder="Enter document number (auto if blank)" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} />
               </Field>
             </div>
             <div className="ndoc-grid-3 ndoc-mt">
@@ -260,136 +475,116 @@ const NewDocumentModal = ({ open, onClose }) => {
                 <textarea
                   className="ndoc-textarea"
                   rows={3}
-                  maxLength={500}
+                  placeholder="Enter a brief description of the document"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter document description..."
+                  style={{ minHeight: "76px", width: "100%" }}
                 />
-                <span className="ndoc-char-count">{description.length}/500</span>
               </Field>
             </div>
           </SectionBlock>
 
           {/* ========== 2. UPLOAD DOCUMENT ========== */}
           <SectionBlock number="2" title="UPLOAD DOCUMENT">
-            <div className="ndoc-upload-row">
-              {/* Drop zone */}
-              <div
-                className={`ndoc-dropzone ${dragging ? "ndoc-dropzone--active" : ""}`}
-                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={(e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files); }}
-                onClick={() => fileRef.current?.click()}
-              >
-                <svg width="36" height="36" viewBox="0 0 36 36" fill="none" className="ndoc-upload-icon">
-                  <path d="M18 26V16m0 0l-5 5m5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M30 24A6 6 0 0 0 28 13h-2A11 11 0 1 0 7 23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <div
+              className={`ndoc-dropzone ${dragging ? "ndoc-dropzone--drag" : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files); }}
+              onClick={() => fileRef.current?.click()}
+              style={{ minHeight: "110px", padding: "24px 20px" }}
+            >
+              <input
+                ref={fileRef}
+                type="file"
+                style={{ display: "none" }}
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+              <div className="ndoc-drop-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 16V8m0 0L8.5 11.5M12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20 16.5a4.5 4.5 0 0 0-1.5-8.74A6 6 0 0 0 7 9a4.5 4.5 0 0 0-3 4.24" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
                 </svg>
-                <p className="ndoc-drop-main">Drag & drop file here</p>
-                <p className="ndoc-drop-or">or</p>
-                <button type="button" className="ndoc-browse-btn" onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}>
-                  Browse Files
+              </div>
+              <p className="ndoc-drop-main">
+                Drag and drop files here, or <span className="ndoc-drop-link">browse</span>
+              </p>
+              <p className="ndoc-drop-sub">PDF, DOCX, XLSX, PNG, JPG, TXT up to 25 MB</p>
+            </div>
+
+            {file && (
+              <div className="ndoc-file-chip">
+                <span className="ndoc-file-chip-type">{file.type}</span>
+                <span className="ndoc-file-chip-name">{file.name}</span>
+                <span className="ndoc-file-chip-size">{file.size}</span>
+                <button
+                  type="button"
+                  className="ndoc-file-chip-del"
+                  onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                  title="Remove file"
+                >
+                  ×
                 </button>
-                <p className="ndoc-drop-hint">PDF, DOCX, XLSX, JPG, PNG up to 25 MB</p>
-                <input ref={fileRef} type="file" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" className="ndoc-hidden"
-                  onChange={(e) => handleFiles(e.target.files)} />
               </div>
+            )}
 
-              {/* File info panel */}
-              <div className="ndoc-file-panel">
-                <div className="ndoc-file-panel-head">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M4 2h6l4 4v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z" stroke="#91a0a0" strokeWidth="1.3"/>
-                    <path d="M9 2v4h4" stroke="#91a0a0" strokeWidth="1.3"/>
-                  </svg>
-                  {file ? (
-                    <span className="ndoc-file-name">{file.name}</span>
-                  ) : (
-                    <span className="ndoc-no-file">No file selected</span>
-                  )}
-                  {file && (
-                    <button onClick={() => setFile(null)} className="ndoc-file-remove">×</button>
-                  )}
-                </div>
-                {!file && <p className="ndoc-no-file-hint">Upload a file to view details</p>}
-
-                <div className="ndoc-file-meta">
-                  {[
-                    { label: "File Name", value: file?.name || "-" },
-                    { label: "File Type", value: file ? (file.raw?.name.split(".").pop().toUpperCase()) : "-" },
-                    { label: "File Size", value: file?.size || "-" },
-                  ].map(({ label, value }) => (
-                    <div className="ndoc-file-row" key={label}>
-                      <span className="ndoc-file-row-label">{label}</span>
-                      <span className="ndoc-file-row-value">{value}</span>
-                    </div>
-                  ))}
-                  <div className="ndoc-file-row">
-                    <span className="ndoc-file-row-label">Version</span>
-                    <input
-                      className="ndoc-version-input"
-                      value={version}
-                      onChange={(e) => setVersion(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
+            <div className="ndoc-grid-3 ndoc-mt">
+              <Field label="Version Number">
+                <Input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="1.0" />
+              </Field>
             </div>
           </SectionBlock>
 
           {/* ========== 3. DOCUMENT CLASSIFICATION ========== */}
           <SectionBlock number="3" title="DOCUMENT CLASSIFICATION">
             <div className="ndoc-grid-3">
-              <Field label="Category" required>
+              <Field label="Category">
                 <Sel value={category} onChange={(e) => { setCategory(e.target.value); setSubCategory(""); }}>
                   <option value="">Select category</option>
-                  {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </Sel>
               </Field>
               <Field label="Sub Category">
                 <Sel value={subCategory} onChange={(e) => setSubCategory(e.target.value)}>
-                  <option value="">Select sub category</option>
-                  {subCatOptions.map((s) => <option key={s}>{s}</option>)}
+                  <option value="">Select sub-category</option>
+                  {subCatOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                 </Sel>
               </Field>
               <Field label="Tags">
-                <div className="ndoc-tag-box">
+                <div className="ndoc-tags-box">
                   {tags.map((t) => (
-                    <span key={t} className="ndoc-tag">
+                    <span className="ndoc-tag" key={t}>
                       {t}
-                      <button onClick={() => setTags(tags.filter((x) => x !== t))}>×</button>
+                      <button type="button" onClick={() => setTags(tags.filter((x) => x !== t))}>×</button>
                     </span>
                   ))}
                   <input
                     className="ndoc-tag-input"
+                    placeholder="Add tag + Enter"
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(tagInput); }
-                      if (e.key === "Backspace" && !tagInput && tags.length) setTags(tags.slice(0, -1));
-                    }}
-                    placeholder={tags.length === 0 ? "Select or add tags" : ""}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(tagInput); } }}
                   />
                 </div>
               </Field>
             </div>
             <div className="ndoc-grid-3 ndoc-mt">
-              <Field label="Company" required>
+              <Field label="Company">
                 <Sel value={company} onChange={(e) => setCompany(e.target.value)}>
                   <option value="">Select company</option>
-                  {COMPANIES.map((c) => <option key={c}>{c}</option>)}
+                  {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </Sel>
               </Field>
               <Field label="Branch">
                 <Sel value={branch} onChange={(e) => setBranch(e.target.value)}>
                   <option value="">Select branch</option>
-                  {BRANCHES.map((b) => <option key={b}>{b}</option>)}
+                  {BRANCHES.map((b) => <option key={b} value={b}>{b}</option>)}
                 </Sel>
               </Field>
               <Field label="Department">
                 <Sel value={department} onChange={(e) => setDepartment(e.target.value)}>
                   <option value="">Select department</option>
-                  {DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}
+                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </Sel>
               </Field>
             </div>
@@ -401,54 +596,51 @@ const NewDocumentModal = ({ open, onClose }) => {
               <Field label="Related Module">
                 <Sel value={relatedModule} onChange={(e) => setRelatedModule(e.target.value)}>
                   <option value="">Select module</option>
-                  {MODULES.map((m) => <option key={m}>{m}</option>)}
+                  {MODULES.map((m) => <option key={m} value={m}>{m}</option>)}
                 </Sel>
               </Field>
               <Field label="Related Record">
-                <Input placeholder="Search and select record" value={relatedRecord} onChange={(e) => setRelatedRecord(e.target.value)} />
+                <Input placeholder="e.g. PO-2026-001" value={relatedRecord} onChange={(e) => setRelatedRecord(e.target.value)} />
               </Field>
               <Field label="Vendor / Customer">
                 <Sel value={vendor} onChange={(e) => setVendor(e.target.value)}>
-                  <option value="">Select vendor or customer</option>
-                  {VENDORS.map((v) => <option key={v}>{v}</option>)}
+                  <option value="">Select vendor / customer</option>
+                  {VENDORS.map((v) => <option key={v} value={v}>{v}</option>)}
                 </Sel>
               </Field>
             </div>
             <div className="ndoc-grid-3 ndoc-mt">
               <Field label="Document Owner">
-                <Sel value={docOwner} onChange={(e) => setDocOwner(e.target.value)}>
-                  <option value="">Select document owner</option>
-                  {EMPLOYEES.map((e) => <option key={e}>{e}</option>)}
-                </Sel>
+                <Input placeholder="Enter owner name" value={docOwner} onChange={(e) => setDocOwner(e.target.value)} />
               </Field>
               <Field label="Uploaded By">
-                <Input value="Auto (current user)" readOnly className="ndoc-input-readonly" />
+                <Input value={uploadedByName} readOnly className="ndoc-readonly" />
               </Field>
               <Field label="Employee (Optional)">
                 <Sel value={employee} onChange={(e) => setEmployee(e.target.value)}>
                   <option value="">Select employee</option>
-                  {EMPLOYEES.map((e) => <option key={e}>{e}</option>)}
+                  {EMPLOYEES.map((em) => <option key={em} value={em}>{em}</option>)}
                 </Sel>
               </Field>
             </div>
           </SectionBlock>
 
-          {/* ========== 5. AI OCR PROCESSING ========== */}
-          <SectionBlock number="5" title="AI OCR PROCESSING">
+          {/* ========== 5. AI & OCR PROCESSING ========== */}
+          <SectionBlock number="5" title="AI & OCR PROCESSING">
             <div className="ndoc-ocr-row">
               <div className="ndoc-ocr-toggles">
                 <Toggle checked={enableOcr}   onChange={setEnableOcr}   label="Enable OCR" />
                 <Toggle checked={autoExtract} onChange={setAutoExtract} label="Auto Extract Information" />
               </div>
               <Field label="OCR Language">
-                <Sel value={ocrLang} onChange={(e) => setOcrLang(e.target.value)}>
-                  {OCR_LANGS.map((l) => <option key={l}>{l}</option>)}
+                <Sel value={ocrLang} onChange={(e) => setOcrLang(e.target.value)} className={!enableOcr ? "ndoc-disabled" : ""}>
+                  {OCR_LANGS.map((l) => <option key={l} value={l}>{l}</option>)}
                 </Sel>
               </Field>
               <Field label="OCR Template">
-                <Sel value={ocrTemplate} onChange={(e) => setOcrTemplate(e.target.value)}>
+                <Sel value={ocrTemplate} onChange={(e) => setOcrTemplate(e.target.value)} className={!enableOcr ? "ndoc-disabled" : ""}>
                   <option value="">Select template</option>
-                  {OCR_TMPLS.map((t) => <option key={t}>{t}</option>)}
+                  {OCR_TMPLS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </Sel>
               </Field>
             </div>
@@ -457,15 +649,13 @@ const NewDocumentModal = ({ open, onClose }) => {
           {/* ========== 6. APPROVAL & ACCESS ========== */}
           <SectionBlock number="6" title="APPROVAL & ACCESS">
             <div className="ndoc-approval-row">
-              <Field label="Approval Required">
-                <div className="ndoc-mt-sm">
-                  <Toggle checked={approvalRequired} onChange={setApprovalRequired} />
-                </div>
-              </Field>
+              <div style={{ paddingTop: 22 }}>
+                <Toggle checked={approvalRequired} onChange={setApprovalRequired} label="Approval Required" />
+              </div>
               <Field label="Approval Workflow">
                 <Sel value={workflow} onChange={(e) => setWorkflow(e.target.value)} className={!approvalRequired ? "ndoc-disabled" : ""}>
                   <option value="">Select workflow</option>
-                  {WORKFLOWS.map((w) => <option key={w}>{w}</option>)}
+                  {WORKFLOWS.map((w) => <option key={w} value={w}>{w}</option>)}
                 </Sel>
               </Field>
               <Field label="Approver">
@@ -509,6 +699,7 @@ const NewDocumentModal = ({ open, onClose }) => {
                   value={internalNotes}
                   onChange={(e) => setInternalNotes(e.target.value)}
                   placeholder="Add internal notes..."
+                  style={{ minHeight: "84px", width: "100%" }}
                 />
                 <span className="ndoc-char-count">{internalNotes.length}/500</span>
               </Field>
@@ -520,6 +711,7 @@ const NewDocumentModal = ({ open, onClose }) => {
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
                   placeholder="Add comments..."
+                  style={{ minHeight: "84px", width: "100%" }}
                 />
                 <span className="ndoc-char-count">{comments.length}/500</span>
               </Field>
@@ -530,311 +722,22 @@ const NewDocumentModal = ({ open, onClose }) => {
 
         {/* ---- FOOTER ---- */}
         <div className="ndoc-footer">
-          <button className="ndoc-btn ndoc-btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="ndoc-btn ndoc-btn-outline" onClick={onClose}>Save Draft</button>
-          <button className="ndoc-btn ndoc-btn-dark" onClick={onClose}>
+          <button className="ndoc-btn ndoc-btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          {!isEdit && (
+            <button className="ndoc-btn ndoc-btn-outline" onClick={() => handleSubmit(true)} disabled={saving}>
+              {saving ? "Saving..." : "Save Draft"}
+            </button>
+          )}
+          <button className="ndoc-btn ndoc-btn-dark" onClick={() => handleSubmit(false)} disabled={saving}>
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <path d="M7 10V3m0 0L4 6m3-3 3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M1 11h12" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-            Upload Document
+            {saving ? "Saving..." : (isEdit ? "Save Changes" : "Upload Document")}
           </button>
         </div>
 
       </div>
-
-      {/* ---- STYLES ---- */}
-      <style>{`
-        /* ── Backdrop ── */
-        .ndoc-backdrop {
-          position: fixed; inset: 0; z-index: 50;
-          display: flex; align-items: center; justify-content: center;
-          background: rgba(0,0,0,.42);
-          padding: 16px;
-        }
-
-        /* ── Modal shell ── */
-        .ndoc-modal {
-          display: flex; flex-direction: column;
-          width: 100%; max-width: 780px; height: 92vh;
-          background: #f6f5f1;
-          border-radius: 20px;
-          box-shadow: 0 24px 60px rgba(0,0,0,.22);
-          overflow: hidden;
-          font-family: inherit;
-        }
-
-        /* ── Top bar ── */
-        .ndoc-topbar {
-          display: flex; align-items: flex-start; justify-content: space-between;
-          gap: 16px;
-          padding: 20px 28px 18px;
-          background: #fff;
-          border-bottom: 1px solid #e3e0d9;
-          flex-shrink: 0;
-        }
-        .ndoc-back {
-          background: none; border: none; cursor: pointer;
-          font-family: monospace; font-size: 11px; color: #91a0a0;
-          padding: 0; margin-bottom: 8px;
-          display: block;
-          transition: color .15s;
-        }
-        .ndoc-back:hover { color: #11130f; }
-        .ndoc-title {
-          margin: 0; font-size: 22px; line-height: 1;
-          font-family: var(--serif, Georgia, serif); font-weight: 400;
-          color: #11130f;
-        }
-        .ndoc-subtitle {
-          margin: 4px 0 0; font-family: monospace; font-size: 11px; color: #91a0a0;
-        }
-        .ndoc-topbar-actions {
-          display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-        }
-        .ndoc-close {
-          background: none; border: none; cursor: pointer;
-          width: 32px; height: 32px; border-radius: 50%;
-          font-size: 22px; line-height: 1; color: #91a0a0;
-          display: flex; align-items: center; justify-content: center;
-          transition: background .15s, color .15s;
-        }
-        .ndoc-close:hover { background: #f0efeb; color: #11130f; }
-
-        /* ── Buttons ── */
-        .ndoc-btn {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 9px 18px; border-radius: 11px; cursor: pointer;
-          font-family: monospace; font-size: 12px; font-weight: 500;
-          transition: background .15s, box-shadow .15s;
-          white-space: nowrap;
-        }
-        .ndoc-btn-ghost {
-          background: transparent; border: 1px solid #e3e0d9; color: #303531;
-        }
-        .ndoc-btn-ghost:hover { background: #f0efeb; }
-        .ndoc-btn-outline {
-          background: #fff; border: 1px solid #e3e0d9; color: #303531;
-        }
-        .ndoc-btn-outline:hover { background: #f0efeb; }
-        .ndoc-btn-dark {
-          background: #11130f; border: 1px solid #11130f; color: #fff;
-        }
-        .ndoc-btn-dark:hover { background: #292c27; }
-
-        /* ── Scrollable body ── */
-        .ndoc-body {
-          flex: 1; overflow-y: auto;
-          padding: 20px 24px 8px;
-        }
-
-        /* ── Section block ── */
-        .ndoc-section {
-          background: #fff;
-          border: 1px solid #e3e0d9;
-          border-radius: 14px;
-          overflow: hidden;
-          margin-bottom: 14px;
-        }
-        .ndoc-section-head {
-          display: flex; align-items: center; gap: 6px;
-          padding: 13px 20px;
-          border-bottom: 1px solid #f0efeb;
-        }
-        .ndoc-section-num  { font-family: monospace; font-size: 11px; color: #91a0a0; }
-        .ndoc-section-title{
-          font-family: monospace; font-size: 11px;
-          font-weight: 600; letter-spacing: .08em; color: #11130f;
-        }
-        .ndoc-section-body { padding: 18px 20px 20px; }
-
-        /* ── Grids ── */
-        .ndoc-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
-        .ndoc-grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
-        .ndoc-mt     { margin-top: 14px; }
-        .ndoc-mt-sm  { margin-top: 4px; }
-        @media (max-width: 640px) {
-          .ndoc-grid-3 { grid-template-columns: 1fr; }
-          .ndoc-grid-2 { grid-template-columns: 1fr; }
-        }
-
-        /* ── Field ── */
-        .doc-field { display: flex; flex-direction: column; gap: 5px; }
-        .doc-field-label { font-family: monospace; font-size: 11px; color: #8d9696; }
-        .doc-required { color: #d9534f; margin-left: 2px; }
-
-        /* ── Input ── */
-        .doc-input {
-          width: 100%; padding: 9px 12px;
-          border: 1px solid #e3e0d9; border-radius: 10px;
-          background: #fff; font-family: monospace; font-size: 12px;
-          color: #11130f; outline: none; transition: border-color .15s;
-          box-sizing: border-box;
-        }
-        .doc-input::placeholder { color: #c0c8c8; }
-        .doc-input:focus { border-color: #11130f; }
-        .ndoc-input-readonly { background: #f6f5f1; color: #91a0a0; }
-
-        /* ── Select ── */
-        .doc-select-wrap { position: relative; }
-        .doc-select {
-          width: 100%; padding: 9px 32px 9px 12px;
-          border: 1px solid #e3e0d9; border-radius: 10px;
-          background: #fff; font-family: monospace; font-size: 12px;
-          color: #11130f; outline: none; appearance: none;
-          transition: border-color .15s; cursor: pointer;
-          box-sizing: border-box;
-        }
-        .doc-select:focus { border-color: #11130f; }
-        .ndoc-disabled { opacity: .5; pointer-events: none; }
-        .doc-select-arrow {
-          position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
-          pointer-events: none; color: #91a0a0;
-        }
-
-        /* ── Date ── */
-        .doc-date-wrap { position: relative; }
-        .doc-date-input { padding-right: 34px !important; }
-        .doc-date-icon {
-          position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
-          pointer-events: none; color: #91a0a0;
-        }
-
-        /* ── Textarea ── */
-        .ndoc-textarea {
-          width: 100%; resize: none; padding: 9px 12px;
-          border: 1px solid #e3e0d9; border-radius: 10px;
-          background: #fff; font-family: monospace; font-size: 12px;
-          color: #11130f; outline: none; transition: border-color .15s;
-          box-sizing: border-box;
-        }
-        .ndoc-textarea::placeholder { color: #c0c8c8; }
-        .ndoc-textarea:focus { border-color: #11130f; }
-        .ndoc-char-count {
-          display: block; text-align: right;
-          font-family: monospace; font-size: 10px; color: #b0b8b8;
-          margin-top: 3px;
-        }
-
-        /* ── Upload ── */
-        .ndoc-upload-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        @media (max-width: 600px) { .ndoc-upload-row { grid-template-columns: 1fr; } }
-
-        .ndoc-dropzone {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 4px; min-height: 170px; cursor: pointer;
-          border: 2px dashed #d5d2ca; border-radius: 12px;
-          background: #fafaf8; transition: border-color .15s, background .15s;
-          padding: 20px;
-        }
-        .ndoc-dropzone:hover, .ndoc-dropzone--active {
-          border-color: #11130f; background: #f0efeb;
-        }
-        .ndoc-upload-icon { color: #91a0a0; margin-bottom: 4px; }
-        .ndoc-drop-main { font-family: monospace; font-size: 12px; color: #53605e; margin: 0; }
-        .ndoc-drop-or   { font-family: monospace; font-size: 11px; color: #b0b8b8; margin: 0; }
-        .ndoc-drop-hint { font-family: monospace; font-size: 10px; color: #b0b8b8; margin: 0; text-align: center; }
-        .ndoc-browse-btn {
-          padding: 7px 18px; border-radius: 9px;
-          border: 1px solid #e3e0d9; background: #fff; cursor: pointer;
-          font-family: monospace; font-size: 12px; color: #11130f;
-          transition: background .15s;
-        }
-        .ndoc-browse-btn:hover { background: #f0efeb; }
-        .ndoc-hidden { display: none; }
-
-        .ndoc-file-panel {
-          border: 1px solid #e3e0d9; border-radius: 12px;
-          background: #fff; padding: 16px;
-          display: flex; flex-direction: column; gap: 10px;
-        }
-        .ndoc-file-panel-head {
-          display: flex; align-items: center; gap: 8px;
-        }
-        .ndoc-no-file      { font-family: monospace; font-size: 12px; color: #91a0a0; }
-        .ndoc-no-file-hint { font-family: monospace; font-size: 11px; color: #b0b8b8; margin: 0; }
-        .ndoc-file-name    { font-family: monospace; font-size: 12px; color: #11130f; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ndoc-file-remove  { background: none; border: none; cursor: pointer; color: #d9534f; font-size: 16px; line-height: 1; }
-        .ndoc-file-meta    { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #f0efeb; padding-top: 10px; }
-        .ndoc-file-row     { display: flex; align-items: center; justify-content: space-between; }
-        .ndoc-file-row-label { font-family: monospace; font-size: 11px; color: #91a0a0; }
-        .ndoc-file-row-value { font-family: monospace; font-size: 11px; color: #11130f; }
-        .ndoc-version-input {
-          width: 56px; padding: 4px 8px; border: 1px solid #e3e0d9; border-radius: 7px;
-          font-family: monospace; font-size: 11px; color: #11130f; text-align: right; outline: none;
-        }
-        .ndoc-version-input:focus { border-color: #11130f; }
-
-        /* ── Tags ── */
-        .ndoc-tag-box {
-          min-height: 40px; padding: 6px 10px;
-          border: 1px solid #e3e0d9; border-radius: 10px; background: #fff;
-          display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
-          cursor: text; transition: border-color .15s;
-        }
-        .ndoc-tag-box:focus-within { border-color: #11130f; }
-        .ndoc-tag {
-          display: inline-flex; align-items: center; gap: 4px;
-          padding: 2px 8px; border-radius: 20px;
-          background: #f0efeb; font-family: monospace; font-size: 10px; color: #11130f;
-        }
-        .ndoc-tag button {
-          background: none; border: none; cursor: pointer;
-          color: #91a0a0; font-size: 13px; line-height: 1; padding: 0;
-          transition: color .15s;
-        }
-        .ndoc-tag button:hover { color: #d9534f; }
-        .ndoc-tag-input {
-          flex: 1; min-width: 80px; border: none; outline: none; background: transparent;
-          font-family: monospace; font-size: 12px; color: #11130f;
-        }
-        .ndoc-tag-input::placeholder { color: #c0c8c8; }
-
-        /* ── OCR row ── */
-        .ndoc-ocr-row {
-          display: grid; grid-template-columns: auto 1fr 1fr; gap: 20px; align-items: start;
-        }
-        .ndoc-ocr-toggles { display: flex; flex-direction: column; gap: 10px; padding-top: 22px; }
-        @media (max-width: 600px) { .ndoc-ocr-row { grid-template-columns: 1fr; } }
-
-        /* ── Approval row ── */
-        .ndoc-approval-row {
-          display: grid; grid-template-columns: auto 1fr 1fr; gap: 20px; align-items: start;
-        }
-        @media (max-width: 600px) { .ndoc-approval-row { grid-template-columns: 1fr; } }
-
-        /* ── Security row ── */
-        .ndoc-security-row {
-          display: flex; flex-wrap: wrap; gap: 24px; align-items: center;
-        }
-
-        /* ── Toggle ── */
-        .doc-toggle-row {
-          display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
-        }
-        .doc-toggle {
-          display: flex; align-items: center;
-          width: 38px; height: 22px; border-radius: 11px;
-          background: #d5d2ca; cursor: pointer; transition: background .2s;
-          padding: 2px; flex-shrink: 0;
-        }
-        .doc-toggle--on { background: #11130f; }
-        .doc-toggle-knob {
-          width: 18px; height: 18px; border-radius: 50%;
-          background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2);
-          transition: transform .2s;
-        }
-        .doc-toggle--on .doc-toggle-knob { transform: translateX(16px); }
-        .doc-toggle-label { font-family: monospace; font-size: 12px; color: #53605e; }
-
-        /* ── Footer ── */
-        .ndoc-footer {
-          display: flex; align-items: center; justify-content: flex-end;
-          gap: 10px; padding: 14px 24px;
-          background: #fff; border-top: 1px solid #e3e0d9;
-          flex-shrink: 0;
-        }
-      `}</style>
     </div>
   );
 };

@@ -13,6 +13,10 @@ export const attachInterceptors = (axiosInstance) => {
       config.headers['X-Tenant-Id'] = user.tenantId
     }
 
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+
     return config
   })
 

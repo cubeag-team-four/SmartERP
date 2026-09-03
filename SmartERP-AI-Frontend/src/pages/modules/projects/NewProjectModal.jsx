@@ -232,7 +232,7 @@ const emptyForm = () => ({
     internalNotes: "",
 });
 
-const NewProjectModal = ({ open, onClose, onCreate }) => {
+const NewProjectModal = ({ open, onClose, onCreate, onUpdate, initialData }) => {
     const [form, setForm]   = useState(emptyForm());
     const [tagInput, setTagInput] = useState("");
     const [users, setUsers] = useState([]);
@@ -248,10 +248,56 @@ const NewProjectModal = ({ open, onClose, onCreate }) => {
 
     const duration = calcDuration(form.startDate, form.expectedEnd);
 
+    const isEdit = Boolean(initialData?.id);
+
     /* Fetch real users, companies, branches, departments on open */
     useEffect(() => {
         if (open) {
-            setForm(emptyForm());
+            if (initialData) {
+                setForm({
+                    ...emptyForm(),
+                    projectName: initialData.name || "",
+                    projectCode: initialData.projectCode || `PRJ-${Date.now()}`,
+                    projectType: initialData.projectType || "Fixed Price",
+                    client: initialData.customerName || "",
+                    company: initialData.companyName || "",
+                    branch: initialData.branchName || "",
+                    department: initialData.departmentName || "",
+                    description: initialData.description || "",
+                    startDate: initialData.startDate || "",
+                    expectedEnd: initialData.endDate || "",
+                    actualEnd: initialData.actualEndDate || "",
+                    priority: initialData.priority
+                        ? initialData.priority.charAt(0).toUpperCase() + initialData.priority.slice(1).toLowerCase()
+                        : "Medium",
+                    status: initialData.status
+                        ? initialData.status.charAt(0).toUpperCase() + initialData.status.slice(1).toLowerCase().replaceAll("_", " ")
+                        : "Planning",
+                    projectManager: initialData.managerName || "",
+                    projectOwner: initialData.ownerName || "",
+                    projectSponsor: initialData.sponsorName || "",
+                    teamMembers: Array.isArray(initialData.teamMembers) ? initialData.teamMembers : [],
+                    budgetType: initialData.budgetType || "Fixed Budget",
+                    totalBudget: initialData.plannedBudget != null ? String(initialData.plannedBudget) : "",
+                    currency: initialData.currency || "INR - Indian Rupee",
+                    estimatedCost: initialData.estimatedCost != null ? String(initialData.estimatedCost) : "",
+                    billingType: initialData.billingType || "Fixed Price",
+                    contractValue: initialData.contractValue != null ? String(initialData.contractValue) : "",
+                    costCenter: initialData.costCenterName || "",
+                    category: initialData.category || "",
+                    riskLevel: initialData.riskLevel || "Low",
+                    tags: Array.isArray(initialData.tags) ? initialData.tags : [],
+                    initialProgress: initialData.progressPercent ?? 0,
+                    allowTaskCreation: true,
+                    allowExpenseTracking: false,
+                    allowEmployeeTimeTracking: true,
+                    enableNotifications: false,
+                    documents: [],
+                    internalNotes: initialData.internalNotes || "",
+                });
+            } else {
+                setForm(emptyForm());
+            }
             setTagInput("");
 
             const currentUser = storageService.getUser();
@@ -290,7 +336,7 @@ const NewProjectModal = ({ open, onClose, onCreate }) => {
                 })
                 .catch(() => setCompanies([]));
         }
-    }, [open]);
+    }, [open, initialData]);
 
     /* escape key */
     useEffect(() => {
@@ -316,6 +362,14 @@ const NewProjectModal = ({ open, onClose, onCreate }) => {
         setTagInput("");
     };
 
+    const handleSave = () => {
+        if (isEdit && onUpdate) {
+            onUpdate(initialData.id, form);
+        } else if (onCreate) {
+            onCreate(form);
+        }
+    };
+
     return (
         <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -332,8 +386,12 @@ const NewProjectModal = ({ open, onClose, onCreate }) => {
                         >
                             ← Back to Projects
                         </button>
-                        <h2 className="font-serif text-[24px] leading-none text-[#11130f]">Create New Project</h2>
-                        <p className="mt-1 font-mono text-[11px] text-[#91a0a0]">Fill in the details to create a new project</p>
+                        <h2 className="font-serif text-[24px] leading-none text-[#11130f]">
+                            {isEdit ? "Edit Project" : "Create New Project"}
+                        </h2>
+                        <p className="mt-1 font-mono text-[11px] text-[#91a0a0]">
+                            {isEdit ? `Update details for ${initialData.name || "the project"}` : "Fill in the details to create a new project"}
+                        </p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
@@ -343,13 +401,13 @@ const NewProjectModal = ({ open, onClose, onCreate }) => {
                             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
                                 <path d="M2 4h10M4 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M6 7v4M8 7v4M3 4l1 8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l1-8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                            Save as Draft
+                            Cancel
                         </button>
                         <button
-                            onClick={() => onCreate(form)}
+                            onClick={handleSave}
                             className="rounded-[12px] bg-[#11130f] px-5 py-2.5 font-mono text-[12px] text-white transition hover:bg-[#292c27]"
                         >
-                            Create Project
+                            {isEdit ? "Save Changes" : "Create Project"}
                         </button>
                         <button
                             onClick={onClose}

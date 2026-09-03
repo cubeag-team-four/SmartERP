@@ -248,7 +248,7 @@ const initialFormState = {
 /* ================================================================
    MAIN ADD NEW ITEM COMPONENT
 ================================================================ */
-export default function AddNewItem({ onBack, onCancel, onSaved, initialData }) {
+export default function AddNewItem({ onBack, onCancel, onSaved, initialData, isModal = false }) {
   const isEditMode = Boolean(initialData?.id);
 
   // Build form state — pre-fill from initialData when editing
@@ -589,100 +589,8 @@ export default function AddNewItem({ onBack, onCancel, onSaved, initialData }) {
     }
   };
 
-
-  const handleCancelClick = () => {
-    if (onCancel) onCancel();
-    else if (onBack) onBack();
-  };
-
-  return (
-    <div className="min-h-full bg-[#f8f7f3] px-[35px] pb-[50px] pt-[35px]">
-      {/* =====================================================
-          TOP BREADCRUMB & HEADER
-      ====================================================== */}
-      <div className="mb-4">
-        {/* Breadcrumb */}
-        <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em] text-[#8d9696]">
-          <span>Inventory</span>
-          <span>&gt;</span>
-          <span>Inventory Control</span>
-          <span>&gt;</span>
-          <span className="font-semibold text-[#11130f]">{isEditMode ? "Edit Item" : "Add New Item"}</span>
-        </div>
-
-        {/* Header bar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[#e5e3dc] pb-4">
-          <div>
-            <h1 className="font-serif text-[26px] font-bold text-[#11130f] tracking-tight">
-              {isEditMode ? "Edit Item" : "Add New Item"}
-            </h1>
-            <p className="font-mono text-[10px] text-[#8d9696] mt-0.5">
-              {isEditMode
-                ? `Editing SKU: ${initialData?.sku ?? ""}`
-                : "Fill in the specifications to register a new SKU into inventory"}
-            </p>
-          </div>
-
-          {/* Top Actions */}
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={onBack || handleCancelClick}
-              className="flex items-center gap-1.5 rounded-[10px] border border-[#dedcd4] bg-white px-4 py-2 font-mono text-[11px] font-medium text-[#41453d] shadow-sm transition hover:bg-[#f3f2ec]"
-            >
-              <ArrowLeft size={13} />
-              Back
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCancelClick}
-              className="rounded-[10px] border border-[#dedcd4] bg-white px-4 py-2 font-mono text-[11px] font-medium text-[#41453d] shadow-sm transition hover:bg-[#f3f2ec]"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleSave}
-              className="flex items-center gap-2 rounded-[10px] bg-[#11130f] px-5 py-2 font-mono text-[11px] font-medium text-white shadow-sm transition hover:bg-[#2b2f27] disabled:opacity-50"
-            >
-              {loading ? (
-                <span>{isEditMode ? "Updating..." : "Saving..."}</span>
-              ) : (
-                <>
-                  <Check size={13} />
-                  {isEditMode ? "Update Item" : "Save Item"}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Status Alerts */}
-      {error && (
-        <div className="mb-5 flex items-center gap-2 rounded-[10px] border border-[#f5c6cb] bg-[#f8d7da] px-4 py-3 font-mono text-[11px] text-[#721c24]">
-          <AlertCircle size={15} className="shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-5 flex items-center gap-2 rounded-[10px] border border-[#c3e6cb] bg-[#d4edda] px-4 py-3 font-mono text-[11px] text-[#155724]">
-          <Check size={15} className="shrink-0" />
-          <span>{success}</span>
-        </div>
-      )}
-
-      {/* =====================================================
-          FORM SECTIONS
-      ====================================================== */}
-      <form onSubmit={handleSave}>
-        {/* ================================================
-            SECTION 1: BASIC ITEM INFORMATION
-        ================================================ */}
+  const renderFormSections = () => (
+    <div className="space-y-5">
         <SectionCard number="1" title="BASIC ITEM INFORMATION">
           <div className="flex flex-col gap-4">
             {/* Row 1 */}
@@ -1409,10 +1317,189 @@ export default function AddNewItem({ onBack, onCancel, onSaved, initialData }) {
             </div>
           </SectionCard>
         </div>
+    </div>
+  );
 
-        {/* =====================================================
-            BOTTOM ACTION BUTTONS
-        ====================================================== */}
+  const handleCancelClick = () => {
+    if (onCancel) onCancel();
+    else if (onBack) onBack();
+  };
+
+  /* =====================================================
+      MODAL / POPUP RENDERING (isModal = true)
+  ====================================================== */
+  if (isModal) {
+    return (
+      <>
+        {/* Darkened backdrop */}
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
+          onClick={!loading ? handleCancelClick : undefined}
+        />
+
+        {/* Centered Modal Container */}
+        <div className="fixed left-1/2 top-1/2 z-[60] flex h-[90vh] max-h-[850px] w-full max-w-[960px] -translate-x-1/2 -translate-y-1/2 flex-col rounded-[16px] border border-[#e2e0d8] bg-[#fbfaf7] shadow-2xl overflow-hidden animate-in fade-in-50 zoom-in-95">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-[#e5e3dc] px-6 py-4 bg-[#fbfaf7]">
+            <div>
+              <h2 className="font-serif text-[20px] font-bold text-[#11130f]">
+                {isEditMode ? "Edit Item" : "Add New Item"}
+              </h2>
+              <p className="font-mono text-[10px] text-[#8d9696] mt-0.5">
+                {isEditMode
+                  ? `Editing SKU: ${initialData?.sku ?? ""}`
+                  : "Fill in the specifications to register a new SKU into inventory"}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleCancelClick}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e2e0d8] bg-[#fbfaf7] text-[#777a73] transition hover:bg-[#f0efe9] hover:text-[#11130f]"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Status Alerts */}
+          {error && (
+            <div className="mx-6 mt-4 flex items-center gap-2 rounded-[10px] border border-[#f5c6cb] bg-[#f8d7da] px-4 py-3 font-mono text-[11px] text-[#721c24]">
+              <AlertCircle size={15} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="mx-6 mt-4 flex items-center gap-2 rounded-[10px] border border-[#c3e6cb] bg-[#d4edda] px-4 py-3 font-mono text-[11px] text-[#155724]">
+              <Check size={15} className="shrink-0" />
+              <span>{success}</span>
+            </div>
+          )}
+
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <form onSubmit={handleSave}>
+              {renderFormSections()}
+            </form>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between border-t border-[#e5e3dc] bg-white px-6 py-4">
+            <div className="font-mono text-[10px] text-[#999b94]">
+              * Required fields
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleCancelClick}
+                className="rounded-[10px] border border-[#dedcd4] bg-[#fbfaf7] px-6 py-2.5 font-mono text-[11px] font-medium text-[#41453d] transition hover:bg-[#f0efe9] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleSave}
+                className="flex items-center gap-2 rounded-[10px] bg-[#11130f] px-7 py-2.5 font-mono text-[11px] font-medium text-white shadow-sm transition hover:bg-[#2b2f27] disabled:opacity-50"
+              >
+                {loading ? (
+                  <span>{isEditMode ? "Updating..." : "Saving..."}</span>
+                ) : (
+                  <>
+                    <Check size={14} />
+                    <span>{isEditMode ? "Update Item" : "Save Item"}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  /* =====================================================
+      STANDALONE FULL-PAGE RENDERING (isModal = false)
+  ====================================================== */
+  return (
+    <div className="min-h-full bg-[#f8f7f3] px-[35px] pb-[50px] pt-[35px]">
+      {/* Breadcrumb & Header */}
+      <div className="mb-4">
+        <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em] text-[#8d9696]">
+          <span>Inventory</span>
+          <span>&gt;</span>
+          <span>Inventory Control</span>
+          <span>&gt;</span>
+          <span className="font-semibold text-[#11130f]">{isEditMode ? "Edit Item" : "Add New Item"}</span>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[#e5e3dc] pb-4">
+          <div>
+            <h1 className="font-serif text-[26px] font-bold text-[#11130f] tracking-tight">
+              {isEditMode ? "Edit Item" : "Add New Item"}
+            </h1>
+            <p className="font-mono text-[10px] text-[#8d9696] mt-0.5">
+              {isEditMode
+                ? `Editing SKU: ${initialData?.sku ?? ""}`
+                : "Fill in the specifications to register a new SKU into inventory"}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={onBack || handleCancelClick}
+              className="flex items-center gap-1.5 rounded-[10px] border border-[#dedcd4] bg-white px-4 py-2 font-mono text-[11px] font-medium text-[#41453d] shadow-sm transition hover:bg-[#f3f2ec]"
+            >
+              <ArrowLeft size={13} />
+              Back
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancelClick}
+              className="rounded-[10px] border border-[#dedcd4] bg-white px-4 py-2 font-mono text-[11px] font-medium text-[#41453d] shadow-sm transition hover:bg-[#f3f2ec]"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleSave}
+              className="flex items-center gap-2 rounded-[10px] bg-[#11130f] px-5 py-2 font-mono text-[11px] font-medium text-white shadow-sm transition hover:bg-[#2b2f27] disabled:opacity-50"
+            >
+              {loading ? (
+                <span>{isEditMode ? "Updating..." : "Saving..."}</span>
+              ) : (
+                <>
+                  <Check size={13} />
+                  {isEditMode ? "Update Item" : "Save Item"}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-5 flex items-center gap-2 rounded-[10px] border border-[#f5c6cb] bg-[#f8d7da] px-4 py-3 font-mono text-[11px] text-[#721c24]">
+          <AlertCircle size={15} className="shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-5 flex items-center gap-2 rounded-[10px] border border-[#c3e6cb] bg-[#d4edda] px-4 py-3 font-mono text-[11px] text-[#155724]">
+          <Check size={15} className="shrink-0" />
+          <span>{success}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSave}>
+        {renderFormSections()}
+
         <div className="mt-8 flex items-center justify-end gap-3 border-t border-[#e5e3dc] pt-5">
           <button
             type="button"

@@ -1,64 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import DocumentsService from "../../../core/services/modules/documents.service";
 import "./documents.css";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const MOCK_APPROVALS = [
-  {
-    id: 1,
-    documentTitle:    "Tata Steel Purchase Bill — Aug 2026",
-    documentType:     "Vendor Invoice",
-    submittedByName:  "Arjun Mehta",
-    submittedAt:      "2026-08-10",
-    dueDate:          "2026-08-12",
-    status:           "pending",
-  },
-  {
-    id: 2,
-    documentTitle:    "Vendor Contract — Infosys BPO Services",
-    documentType:     "Contract",
-    submittedByName:  "Priya Sharma",
-    submittedAt:      "2026-08-08",
-    dueDate:          "2026-08-15",
-    status:           "pending",
-  },
-  {
-    id: 3,
-    documentTitle:    "Employee Offer Letter — Rohan Sharma",
-    documentType:     "HR Document",
-    submittedByName:  "Kavita Nair",
-    submittedAt:      "2026-08-06",
-    dueDate:          "2026-08-18",
-    status:           "pending",
-  },
-  {
-    id: 4,
-    documentTitle:    "MSME Vendor Invoice — Ram Steels",
-    documentType:     "Vendor Invoice",
-    submittedByName:  "Ravi Kumar",
-    submittedAt:      "2026-08-04",
-    dueDate:          "2026-08-20",
-    status:           "pending",
-  },
-];
+const fmt = (date) => {
+  if (!date) return "—";
+  try {
+    return new Date(date).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch (e) {
+    return String(date);
+  }
+};
 
-const fmt = (date) =>
-  new Date(date).toLocaleDateString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
-  });
-
-// ─── Component ────────────────────────────────────────────────────────────────
 export default function DigitalApprovals() {
-  const [approvals, setApprovals] = useState(MOCK_APPROVALS);
+  const [approvals, setApprovals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [actingId, setActingId] = useState(null);
 
-  const approve = (id) =>
-    setApprovals((prev) => prev.filter((a) => a.id !== id));
+  const fetchApprovals = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await DocumentsService.getApprovals();
+      setApprovals(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to load approvals:", err);
+      setError("Failed to load digital approvals.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const reject = (id) =>
-    setApprovals((prev) => prev.filter((a) => a.id !== id));
+  useEffect(() => {
+    fetchApprovals();
+  }, [fetchApprovals]);
+
+  const handleApprove = async (id) => {
+    try {
+      setActingId(id);
+      await DocumentsService.approve(id, "Approved digitally");
+      await fetchApprovals();
+    } catch (err) {
+      console.error("Failed to approve document:", err);
+      alert("Failed to approve document.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handleReject = async (id) => {
+    const comment = prompt("Please provide a reason for rejection:");
+    if (comment === null) return;
+    try {
+      setActingId(id);
+      await DocumentsService.reject(id, comment || "Rejected digitally");
+      await fetchApprovals();
+    } catch (err) {
+      console.error("Failed to reject document:", err);
+      alert("Failed to reject document.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handleViewDoc = async (approval) => {
+    try {
+      await DocumentsService.download(approval.documentId, approval.documentTitle || "document");
+    } catch (err) {
+      console.error("Failed to download document:", err);
+      alert("Failed to load document.");
+    }
+  };
 
   return (
     <div className="documents-page">
-
       {/* ── Header ── */}
       <div className="doc-title-row">
         <div>
@@ -77,48 +96,63 @@ export default function DigitalApprovals() {
       </div>
 
       {/* ── Approval list ── */}
-      <div className="doc-list">
-        {approvals.map((approval) => (
-          <div className="doc-row" key={approval.id}>
-            <div className="doc-row-left">
-              <div className="doc-file-icon">📋</div>
-              <div>
-                <h3>{approval.documentTitle}</h3>
-                <div className="doc-meta">
-                  <span>{approval.documentType}</span>
-                  <span>·</span>
-                  <span>Submitted by {approval.submittedByName}</span>
-                  <span>·</span>
-                  <span>{fmt(approval.submittedAt)}</span>
+      {loading && <div className="doc-empty">Loading pending approvals...</div>}
+      {error && (
+        <div className="doc-empty" style={{ color: "#d9534f" }}>
+          {error} <button className="doc-btn doc-btn-light" onClick={fetchApprovals} style={{ marginLeft: 10 }}>Retry</button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="doc-list">
+          {approvals.map((approval) => (
+            <div className="doc-row" key={approval.id}>
+              <div className="doc-row-left">
+                <div className="doc-file-icon">📋</div>
+                <div>
+                  <h3>{approval.documentTitle}</h3>
+                  <div className="doc-meta">
+                    <span>{approval.documentType}</span>
+                    <span>·</span>
+                    <span>Submitted by {approval.submittedByName || "User"}</span>
+                    <span>·</span>
+                    <span>{fmt(approval.submittedAt || approval.createdAt)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="approval-actions">
-              <span className="due-date">
-                Due: {fmt(approval.dueDate)}
-              </span>
-              <button className="doc-btn doc-btn-light">View Doc</button>
-              <button
-                className="doc-btn approve-button"
-                onClick={() => approve(approval.id)}
-              >
-                Approve
-              </button>
-              <button
-                className="doc-btn reject-button"
-                onClick={() => reject(approval.id)}
-              >
-                Reject
-              </button>
+              <div className="approval-actions">
+                {approval.dueDate && (
+                  <span className="due-date">
+                    Due: {fmt(approval.dueDate)}
+                  </span>
+                )}
+                <button className="doc-btn doc-btn-light" onClick={() => handleViewDoc(approval)}>
+                  View Doc
+                </button>
+                <button
+                  className="doc-btn approve-button"
+                  onClick={() => handleApprove(approval.id)}
+                  disabled={actingId === approval.id}
+                >
+                  {actingId === approval.id ? "Processing..." : "Approve"}
+                </button>
+                <button
+                  className="doc-btn reject-button"
+                  onClick={() => handleReject(approval.id)}
+                  disabled={actingId === approval.id}
+                >
+                  {actingId === approval.id ? "Processing..." : "Reject"}
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {!approvals.length && (
-          <div className="doc-empty">No pending approvals. You're all caught up!</div>
-        )}
-      </div>
+          {!approvals.length && (
+            <div className="doc-empty">No pending approvals. You're all caught up!</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
