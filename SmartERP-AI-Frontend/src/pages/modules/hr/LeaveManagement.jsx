@@ -248,7 +248,7 @@ export default function LeaveManagement() {
                                     text-[#9ca3ad]
                                 "
                             >
-                                {leave.id}
+                                {displayId}
                             </div>
 
 
@@ -260,7 +260,7 @@ export default function LeaveManagement() {
                                     text-[#171916]
                                 "
                             >
-                                {leave.employee}
+                                {displayEmployee}
                             </div>
 
 
@@ -271,7 +271,7 @@ export default function LeaveManagement() {
                                     text-[#68716a]
                                 "
                             >
-                                {leave.dept}
+                                {displayDept}
                             </div>
 
 
@@ -282,7 +282,7 @@ export default function LeaveManagement() {
                                     text-[#68716a]
                                 "
                             >
-                                {leave.type}
+                                {displayType}
                             </div>
 
 
@@ -293,7 +293,7 @@ export default function LeaveManagement() {
                                     text-[#858b85]
                                 "
                             >
-                                {leave.from}
+                                {displayFrom}
                             </div>
 
 
@@ -304,7 +304,7 @@ export default function LeaveManagement() {
                                     text-[#858b85]
                                 "
                             >
-                                {leave.to}
+                                {displayTo}
                             </div>
 
 
@@ -316,7 +316,7 @@ export default function LeaveManagement() {
                                     text-[#171916]
                                 "
                             >
-                                {leave.days}
+                                {displayDays}
                             </div>
 
 
@@ -343,10 +343,10 @@ export default function LeaveManagement() {
                                         py-2
                                         text-[8px]
                                         tracking-[0.08em]
-                                        ${statusStyle[leave.status]}
+                                        ${statusBadgeClass}
                                     `}
                                 >
-                                    {leave.status}
+                                    {displayStatus}
                                 </span>
 
 

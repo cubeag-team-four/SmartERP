@@ -1,8 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Sparkles,
   ArrowUpRight,
+  ChevronRight,
 } from "lucide-react";
+import financeService from "../../core/services/modules/finance.service";
+import storageService from "../../core/services/storage.service";
 
 /* =========================================================
    FINANCE DASHBOARD DATA
@@ -68,6 +71,13 @@ const initialApprovals = [
     urgent: true,
     status: "PENDING",
   },
+];
+
+const quickActions = [
+  "New Journal Entry",
+  "Record Expense",
+  "Generate Report",
+  "GST Summary",
 ];
 
 /* =========================================================
@@ -1000,10 +1010,164 @@ function PendingApprovals() {
 }
 
 /* =========================================================
+   QUICK ACTIONS
+========================================================= */
+
+function QuickActions() {
+  return (
+    <section
+      className="
+        overflow-hidden
+        rounded-[20px]
+        border
+        border-[#e3e0d9]
+        bg-white
+      "
+    >
+      <div
+        className="
+          border-b
+          border-[#e5e2db]
+          px-7
+          py-6
+        "
+      >
+        <h2
+          className="
+            font-serif
+            text-[22px]
+            leading-none
+            text-[#161815]
+          "
+        >
+          Quick Actions
+        </h2>
+      </div>
+
+      <div className="space-y-3 px-6 py-6">
+        {quickActions.map(
+          (action) => (
+            <button
+              key={action}
+              type="button"
+              className="
+                group
+                flex
+                w-full
+                items-center
+                justify-between
+                rounded-[15px]
+                border
+                border-[#e4e1da]
+                bg-white
+                px-4
+                py-4
+                text-left
+                font-sans
+                text-[13px]
+                text-[#777d78]
+                transition-all
+                duration-200
+                hover:-translate-y-[1px]
+                hover:border-[#d5d2ca]
+                hover:bg-[#f1f1ec]
+                hover:text-[#262a26]
+              "
+            >
+              <span>{action}</span>
+
+              <ChevronRight
+                size={14}
+                strokeWidth={1.6}
+                className="
+                  text-[#b7bbb7]
+                  transition-all
+                  duration-200
+                  group-hover:translate-x-1
+                  group-hover:text-[#656b65]
+                "
+              />
+            </button>
+          )
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
    FINANCE MANAGER DASHBOARD
 ========================================================= */
 
 export default function FinanceDashboard() {
+  const [
+    quickActionOpen,
+    setQuickActionOpen,
+  ] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+
+  const currentUser = storageService.getUser();
+  const userName = currentUser?.fullName || currentUser?.username || "Finance Manager";
+  const companyName = currentUser?.companyName || currentUser?.tenantName || "Acme Manufacturing Ltd";
+
+  useEffect(() => {
+    let isMounted = true;
+    financeService
+      .getDashboardSummary()
+      .then((data) => {
+        if (isMounted) setSummary(data);
+      })
+      .catch((err) => {
+        console.warn("Could not fetch finance summary:", err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingSummary(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const fmtCurrency = (val) => {
+    const num = Number(val || 0);
+    return "₹" + num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const dynamicStats = [
+    {
+      label: "TOTAL DEBITS",
+      value: loadingSummary ? "..." : (summary ? fmtCurrency(summary.totalDebits) : "₹0.00"),
+      footer: "From posted journals",
+    },
+    {
+      label: "TOTAL CREDITS",
+      value: loadingSummary ? "..." : (summary ? fmtCurrency(summary.totalCredits) : "₹0.00"),
+      footer: "From posted journals",
+    },
+    {
+      label: "NET MOVEMENT",
+      value: loadingSummary ? "..." : (summary ? fmtCurrency(summary.netMovement) : "₹0.00"),
+      footer: "Credits minus debits",
+    },
+    {
+      label: "JOURNAL ENTRIES",
+      value: loadingSummary ? "..." : String(summary?.journalEntries ?? 0),
+      footer: "Posted in ledger",
+    },
+    {
+      label: "RECEIVABLES",
+      value: "—",
+      footer: "Pending invoices module",
+      warning: true,
+    },
+    {
+      label: "PAYABLES",
+      value: "—",
+      footer: "Pending bills module",
+      warning: true,
+    },
+  ];
 
   return (
     <main
@@ -1063,7 +1227,7 @@ export default function FinanceDashboard() {
                 text-[#11130f]
               "
             >
-              Rahul Sharma
+              {userName}
             </h1>
 
             <p
@@ -1080,7 +1244,7 @@ export default function FinanceDashboard() {
                 ·
               </span>
 
-              Acme Manufacturing Ltd
+              {companyName}
             </p>
           </div>
 
@@ -1130,6 +1294,106 @@ export default function FinanceDashboard() {
               AI Active
             </button>
 
+            <button
+              type="button"
+              onClick={() =>
+                setQuickActionOpen(
+                  (value) => !value
+                )
+              }
+              className="
+                group
+                flex
+                h-[43px]
+                items-center
+                gap-2
+                rounded-[14px]
+                bg-[#151714]
+                px-5
+                font-sans
+                text-[10px]
+                font-medium
+                uppercase
+                tracking-[0.08em]
+                text-white
+                transition-all
+                duration-200
+                hover:-translate-y-[1px]
+                hover:bg-[#292c27]
+                hover:shadow-[0_7px_18px_rgba(20,23,20,0.12)]
+              "
+            >
+              + Quick Action
+
+              <ArrowUpRight
+                size={12}
+                strokeWidth={1.7}
+                className="
+                  transition-transform
+                  duration-200
+                  group-hover:-translate-y-[1px]
+                  group-hover:translate-x-[1px]
+                "
+              />
+            </button>
+
+            {/* QUICK ACTION MENU */}
+
+            {quickActionOpen && (
+              <div
+                className="
+                  absolute
+                  right-0
+                  top-[52px]
+                  z-30
+                  w-[215px]
+                  rounded-[16px]
+                  border
+                  border-[#e1ded7]
+                  bg-white
+                  p-2
+                  shadow-[0_14px_35px_rgba(20,24,20,0.12)]
+                "
+              >
+                {quickActions.map(
+                  (action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() =>
+                        setQuickActionOpen(
+                          false
+                        )
+                      }
+                      className="
+                        flex
+                        w-full
+                        items-center
+                        justify-between
+                        rounded-[10px]
+                        px-3
+                        py-3
+                        text-left
+                        font-sans
+                        text-[10px]
+                        text-[#737a74]
+                        transition-colors
+                        duration-150
+                        hover:bg-[#f1f1ec]
+                        hover:text-[#222620]
+                      "
+                    >
+                      {action}
+
+                      <ChevronRight
+                        size={12}
+                        strokeWidth={1.6}
+                      />
+                    </button>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -1148,7 +1412,7 @@ export default function FinanceDashboard() {
             xl:grid-cols-6
           "
         >
-          {stats.map(
+          {dynamicStats.map(
             (stat) => (
               <StatCard
                 key={stat.label}
@@ -1177,7 +1441,7 @@ export default function FinanceDashboard() {
         </section>
 
         {/* =====================================================
-            APPROVALS
+            APPROVALS + QUICK ACTIONS
         ====================================================== */}
 
         <section
@@ -1191,6 +1455,7 @@ export default function FinanceDashboard() {
         >
           <PendingApprovals />
 
+          <QuickActions />
         </section>
 
       </div>
