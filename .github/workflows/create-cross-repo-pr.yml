@@ -5,10 +5,7 @@ on:
     branches:
       - development
 
-  repository_dispatch:
-    types:
-      - development_updated
-
+  
   workflow_dispatch:
 
 permissions:
