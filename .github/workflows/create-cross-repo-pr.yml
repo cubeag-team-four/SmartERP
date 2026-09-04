@@ -1,6 +1,10 @@
 name: Create PR to Company Development
 
 on:
+  push:
+    branches:
+      - development
+
   repository_dispatch:
     types:
       - development_updated
