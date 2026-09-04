@@ -13,8 +13,9 @@ const Dashboard = () => {
     const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [refreshKey, setRefreshKey] = useState(0);
 
-    useEffect(() => {
+    const fetchDashboardData = () => {
         setLoading(true);
         hrApi.getDashboard()
             .then((res) => {
@@ -26,7 +27,16 @@ const Dashboard = () => {
             .finally(() => {
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchDashboardData();
     }, []);
+
+    const handleEmployeeCreated = () => {
+        setRefreshKey((prev) => prev + 1);
+        fetchDashboardData();
+    };
 
     const navigation = [
         {
@@ -63,7 +73,7 @@ const Dashboard = () => {
     const renderSection = () => {
         switch (activeSection) {
             case "employees":
-                return <EmployeeDatabase />;
+                return <EmployeeDatabase key={refreshKey} />;
 
             case "attendance":
                 return <Attendance />;
@@ -78,7 +88,7 @@ const Dashboard = () => {
                 return <PerformanceTracking />;
 
             default:
-                return <EmployeeDatabase />;
+                return <EmployeeDatabase key={refreshKey} />;
         }
     };
 
@@ -258,16 +268,15 @@ const Dashboard = () => {
                                 transition-all
                                 duration-200
 
-                                ${
-                                    activeSection === item.id
-                                        ? `
+                                ${activeSection === item.id
+                                    ? `
                                             border
                                             border-[#e3e0d9]
                                             bg-white
                                             text-[#11130f]
                                             shadow-[0_2px_5px_rgba(0,0,0,0.06)]
                                         `
-                                        : `
+                                    : `
                                             border
                                             border-transparent
                                             bg-transparent
@@ -307,6 +316,7 @@ const Dashboard = () => {
             <AddEmployeeModal
                 open={addEmployeeOpen}
                 onClose={() => setAddEmployeeOpen(false)}
+                onSuccess={handleEmployeeCreated}
             />
 
         </div>

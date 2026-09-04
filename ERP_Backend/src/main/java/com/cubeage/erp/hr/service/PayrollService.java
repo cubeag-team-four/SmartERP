@@ -106,15 +106,17 @@ public class PayrollService {
                 .map(e -> e.getSalary() != null ? e.getSalary() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Payroll payroll = Payroll.builder()
-                .tenantId(tenantId)
-                .payrollMonth(monthKey)
-                .formattedMonth(formattedMonth)
-                .totalEmployees(totalEmployees > 0 ? totalEmployees : (request != null && request.getTotalEmployees() != null ? request.getTotalEmployees() : 284))
-                .totalAmount(totalAmount.compareTo(BigDecimal.ZERO) > 0 ? totalAmount : (request != null && request.getTotalAmount() != null ? request.getTotalAmount() : new BigDecimal("9840000.00")))
-                .dueDate(request != null && request.getDueDate() != null ? request.getDueDate() : now.withDayOfMonth(now.lengthOfMonth()))
-                .status("PROCESSED")
-                .build();
+        Payroll payroll = payrollRepository.findByTenantIdAndPayrollMonth(tenantId, monthKey)
+                .orElseGet(() -> Payroll.builder()
+                        .tenantId(tenantId)
+                        .payrollMonth(monthKey)
+                        .build());
+
+        payroll.setFormattedMonth(formattedMonth);
+        payroll.setTotalEmployees(totalEmployees > 0 ? totalEmployees : (request != null && request.getTotalEmployees() != null ? request.getTotalEmployees() : 284));
+        payroll.setTotalAmount(totalAmount.compareTo(BigDecimal.ZERO) > 0 ? totalAmount : (request != null && request.getTotalAmount() != null ? request.getTotalAmount() : new BigDecimal("9840000.00")));
+        payroll.setDueDate(request != null && request.getDueDate() != null ? request.getDueDate() : now.withDayOfMonth(now.lengthOfMonth()));
+        payroll.setStatus("PROCESSED");
 
         return toResponse(payrollRepository.save(payroll));
     }

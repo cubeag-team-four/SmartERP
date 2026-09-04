@@ -15,6 +15,7 @@ import com.cubeage.erp.hr.dto.performance.PerformanceReviewRequest;
 import com.cubeage.erp.hr.dto.performance.PerformanceSummaryResponse;
 import com.cubeage.erp.hr.entity.Employee;
 import com.cubeage.erp.hr.entity.LeaveRequest;
+import com.cubeage.erp.hr.entity.Payroll;
 import com.cubeage.erp.hr.mapper.EmployeeMapper;
 import com.cubeage.erp.hr.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -239,6 +240,15 @@ class HRServiceTest {
         PayrollResponse processed = payrollService.processPayroll(1L, new PayrollRequest());
         assertNotNull(processed);
         assertEquals("PROCESSED", processed.getStatus());
+
+        Payroll existing = Payroll.builder().id(99L).tenantId(1L).payrollMonth("2026-08").status("DRAFT").build();
+        when(payrollRepository.findByTenantIdAndPayrollMonth(1L, "2026-08")).thenReturn(Optional.of(existing));
+
+        PayrollRequest updateReq = PayrollRequest.builder().payrollMonth("2026-08").build();
+        PayrollResponse updatedPayroll = payrollService.processPayroll(1L, updateReq);
+        assertNotNull(updatedPayroll);
+        assertEquals(99L, updatedPayroll.getId());
+        assertEquals("PROCESSED", updatedPayroll.getStatus());
     }
 
     @Test
