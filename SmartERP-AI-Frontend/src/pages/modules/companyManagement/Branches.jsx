@@ -18,8 +18,44 @@ const EMPTY = {
   gstNumber: "", status: "active",
 };
 
+// ─── Reusable field helpers (Module-level to prevent remounting/focus loss) ───
+const Input = ({ label, value, onChange, placeholder, required, icon, type = "text", error }) => (
+  <div className="abm-field">
+    <label>{label}{required && <span className="abm-req"> *</span>}</label>
+    <div className={icon ? "abm-icon-wrap" : ""}>
+      {icon && <span className="abm-fi">{icon}</span>}
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`abm-input${icon ? " abm-input--icon" : ""}${error ? " abm-input--err" : ""}`}
+      />
+    </div>
+    {error && <span className="abm-err">{error}</span>}
+  </div>
+);
+
+const Select = ({ label, value, onChange, options, placeholder, required, error }) => (
+  <div className="abm-field">
+    <label>{label}{required && <span className="abm-req"> *</span>}</label>
+    <div className="abm-sel-wrap">
+      <select
+        value={value}
+        onChange={onChange}
+        className={`abm-select${error ? " abm-input--err" : ""}`}
+      >
+        <option value="">{placeholder}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <span className="abm-chev">▾</span>
+    </div>
+    {error && <span className="abm-err">{error}</span>}
+  </div>
+);
+
 // ─── Add Branch Modal ─────────────────────────────────────────────────────────
-function AddBranchModal({ onClose, onSubmit }) {
+function AddBranchModal({ onClose, onSubmit, companyOptions = COMPANIES, companyName }) {
   const [form,   setForm]   = useState(EMPTY);
   const [errors, setErrors] = useState({});
 
@@ -52,42 +88,6 @@ function AddBranchModal({ onClose, onSubmit }) {
 
   const submit = () => { if (validate()) { onSubmit(form); onClose(); } };
 
-  /* ── Reusable field helpers ── */
-  const Input = ({ label, field, placeholder, required, icon, type = "text" }) => (
-    <div className="abm-field">
-      <label>{label}{required && <span className="abm-req"> *</span>}</label>
-      <div className={icon ? "abm-icon-wrap" : ""}>
-        {icon && <span className="abm-fi">{icon}</span>}
-        <input
-          type={type}
-          value={form[field]}
-          onChange={e => set(field, e.target.value)}
-          placeholder={placeholder}
-          className={`abm-input${icon ? " abm-input--icon" : ""}${errors[field] ? " abm-input--err" : ""}`}
-        />
-      </div>
-      {errors[field] && <span className="abm-err">{errors[field]}</span>}
-    </div>
-  );
-
-  const Select = ({ label, field, options, placeholder, required }) => (
-    <div className="abm-field">
-      <label>{label}{required && <span className="abm-req"> *</span>}</label>
-      <div className="abm-sel-wrap">
-        <select
-          value={form[field]}
-          onChange={e => set(field, e.target.value)}
-          className={`abm-select${errors[field] ? " abm-input--err" : ""}`}
-        >
-          <option value="">{placeholder}</option>
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <span className="abm-chev">▾</span>
-      </div>
-      {errors[field] && <span className="abm-err">{errors[field]}</span>}
-    </div>
-  );
-
   return (
     <div className="abm-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="abm-modal">
@@ -96,7 +96,7 @@ function AddBranchModal({ onClose, onSubmit }) {
         <div className="abm-head">
           <div>
             <h2>Add Branch</h2>
-            <p>Add a new branch under Acme Manufacturing Ltd</p>
+            <p>Add a new branch under {companyName || "selected company"}</p>
           </div>
           <button className="abm-close" onClick={onClose}>✕</button>
         </div>
@@ -116,25 +116,25 @@ function AddBranchModal({ onClose, onSubmit }) {
 
             {/* Row 1 */}
             <div className="abm-grid-2">
-              <Select label="Company"     field="company"    options={COMPANIES}    placeholder="Select company"   required />
-              <Input  label="Branch Name" field="branchName" placeholder="Enter branch name"                       required />
+              <Select label="Company"     value={form.company} onChange={e => set("company", e.target.value)} options={companyOptions} placeholder="Select company" required error={errors.company} />
+              <Input  label="Branch Name" value={form.branchName} onChange={e => set("branchName", e.target.value)} placeholder="Enter branch name" required error={errors.branchName} />
             </div>
 
             {/* Row 2 */}
             <div className="abm-grid-2">
-              <Input  label="Branch Code" field="branchCode" placeholder="Enter branch code" required />
-              <Select label="Branch Type" field="branchType" options={BRANCH_TYPES} placeholder="Select branch type" required />
+              <Input  label="Branch Code" value={form.branchCode} onChange={e => set("branchCode", e.target.value)} placeholder="Enter branch code" required error={errors.branchCode} />
+              <Select label="Branch Type" value={form.branchType} onChange={e => set("branchType", e.target.value)} options={BRANCH_TYPES} placeholder="Select branch type" required error={errors.branchType} />
             </div>
 
             {/* Row 3 */}
             <div className="abm-grid-2">
-              <Input label="Branch Manager"  field="manager"       placeholder="Enter branch manager name" icon="👤" />
-              <Input label="Contact Number"  field="contactNumber" placeholder="Enter contact number"      icon="📞" required />
+              <Input label="Branch Manager"  value={form.manager} onChange={e => set("manager", e.target.value)} placeholder="Enter branch manager name" icon="👤" error={errors.manager} />
+              <Input label="Contact Number"  value={form.contactNumber} onChange={e => set("contactNumber", e.target.value)} placeholder="Enter contact number" icon="📞" required error={errors.contactNumber} />
             </div>
 
             {/* Row 4 — Email half-width */}
             <div className="abm-grid-2">
-              <Input label="Email" field="email" placeholder="Enter branch email" icon="✉" type="email" required />
+              <Input label="Email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="Enter branch email" icon="✉" type="email" required error={errors.email} />
               <div />
             </div>
           </div>
@@ -150,15 +150,15 @@ function AddBranchModal({ onClose, onSubmit }) {
             </div>
 
             <div className="abm-grid-2">
-              <Input label="Address Line 1" field="address1" placeholder="Enter address line 1"          required />
-              <Input label="Address Line 2" field="address2" placeholder="Enter address line 2 (optional)" />
+              <Input label="Address Line 1" value={form.address1} onChange={e => set("address1", e.target.value)} placeholder="Enter address line 1" required error={errors.address1} />
+              <Input label="Address Line 2" value={form.address2} onChange={e => set("address2", e.target.value)} placeholder="Enter address line 2 (optional)" error={errors.address2} />
             </div>
 
             <div className="abm-grid-4">
-              <Select label="Country" field="country" options={COUNTRIES} placeholder="Select country" required />
-              <Select label="State"   field="state"   options={STATES}   placeholder="Select state"   required />
-              <Select label="City"    field="city"    options={CITIES}   placeholder="Select city"    required />
-              <Input  label="Pincode" field="pincode" placeholder="Enter pincode"                     required />
+              <Select label="Country" value={form.country} onChange={e => set("country", e.target.value)} options={COUNTRIES} placeholder="Select country" required error={errors.country} />
+              <Select label="State"   value={form.state} onChange={e => set("state", e.target.value)} options={STATES} placeholder="Select state" required error={errors.state} />
+              <Select label="City"    value={form.city} onChange={e => set("city", e.target.value)} options={CITIES} placeholder="Select city" required error={errors.city} />
+              <Input  label="Pincode" value={form.pincode} onChange={e => set("pincode", e.target.value)} placeholder="Enter pincode" required error={errors.pincode} />
             </div>
           </div>
 
@@ -174,7 +174,7 @@ function AddBranchModal({ onClose, onSubmit }) {
 
             <div className="abm-grid-2">
               {/* GST Number */}
-              <Input label="GST Number" field="gstNumber" placeholder="Enter GST number (optional)" />
+              <Input label="GST Number" value={form.gstNumber} onChange={e => set("gstNumber", e.target.value)} placeholder="Enter GST number (optional)" error={errors.gstNumber} />
 
               {/* Status */}
               <div className="abm-field">
@@ -441,10 +441,13 @@ function AddBranchModal({ onClose, onSubmit }) {
 
 // ─── Branches ─────────────────────────────────────────────────────────────────
 
-const Branches = ({ companyId: providedCompanyId }) => {
+const Branches = ({ companyId: providedCompanyId, companyName: providedCompanyName, companies: providedCompanies }) => {
   const { companyId, error: companyError } = useActiveCompany(providedCompanyId);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
+  const companyOptions = (providedCompanies && providedCompanies.length > 0)
+    ? providedCompanies.map(c => c.companyName || c.name)
+    : (providedCompanyName ? [providedCompanyName] : COMPANIES);
   const [branches, setBranches] = useState([
     {
       initials: "HM",
@@ -601,6 +604,8 @@ const Branches = ({ companyId: providedCompanyId }) => {
         <AddBranchModal
           onClose={() => setShowModal(false)}
           onSubmit={createBranch}
+          companyOptions={companyOptions}
+          companyName={providedCompanyName}
         />
       )}
 
