@@ -67,7 +67,12 @@ class HRServiceTest {
         performanceRepository = mock(PerformanceReviewRepository.class);
         performanceService = new PerformanceService(performanceRepository);
 
-        hrDashboardService = new HRDashboardService(employeeRepository);
+        hrDashboardService = new HRDashboardService(
+            employeeRepository,
+            attendanceRepository,
+            leaveRepository,
+            payrollRepository
+        );
 
         when(employeeRepository.save(any())).thenAnswer(invocation -> {
             Employee emp = invocation.getArgument(0);

@@ -4,10 +4,10 @@ import com.cubeage.erp.hr.dto.leave.LeaveRequestDto;
 import com.cubeage.erp.hr.dto.leave.LeaveResponse;
 import com.cubeage.erp.hr.service.LeaveService;
 import com.cubeage.erp.security.SecurityUtils;
-import com.cubeage.erp.tenant.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,64 +15,66 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/hr/leaves")
 @RequiredArgsConstructor
+@PreAuthorize(
+        "hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'HR_MANAGER', 'HR') " +
+                "or @permissionEvaluator.has(authentication, 'HR', 'VIEW')"
+)
 public class LeaveController {
 
     private final LeaveService leaveService;
 
-    private Long resolveTenantId(Long tenantId) {
-        if (tenantId != null) {
-            return tenantId;
-        }
-        Long contextTenantId = TenantContext.getTenantId();
-        if (contextTenantId != null) {
-            return contextTenantId;
-        }
-        try {
-            return SecurityUtils.currentTenantId();
-        } catch (Exception e) {
-            return 1L;
-        }
-    }
-
     @GetMapping
-    public List<LeaveResponse> getLeaves(
-            @RequestParam(required = false) Long tenantId
-    ) {
-        return leaveService.getLeaves(resolveTenantId(tenantId));
+    public List<LeaveResponse> getLeaves() {
+        return leaveService.getLeaves(SecurityUtils.currentTenantId());
     }
 
     @PostMapping
+    @PreAuthorize(
+            "hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'HR_MANAGER', 'HR') " +
+                    "or @permissionEvaluator.has(authentication, 'HR', 'CREATE')"
+    )
     public ResponseEntity<LeaveResponse> createLeave(
-            @RequestParam(required = false) Long tenantId,
             @RequestBody LeaveRequestDto request
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(leaveService.createLeave(resolveTenantId(tenantId), request));
+                .body(leaveService.createLeave(
+                        SecurityUtils.currentTenantId(),
+                        request
+                ));
     }
 
     @PatchMapping("/{id}/approve")
-    public LeaveResponse approveLeave(
-            @RequestParam(required = false) Long tenantId,
-            @PathVariable Long id
-    ) {
-        return leaveService.approveLeave(resolveTenantId(tenantId), id);
+    @PreAuthorize(
+            "hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'HR_MANAGER', 'HR') " +
+                    "or @permissionEvaluator.has(authentication, 'HR', 'EDIT')"
+    )
+    public LeaveResponse approveLeave(@PathVariable Long id) {
+        return leaveService.approveLeave(SecurityUtils.currentTenantId(), id);
     }
 
     @PatchMapping("/{id}/reject")
-    public LeaveResponse rejectLeave(
-            @RequestParam(required = false) Long tenantId,
-            @PathVariable Long id
-    ) {
-        return leaveService.rejectLeave(resolveTenantId(tenantId), id);
+    @PreAuthorize(
+            "hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'HR_MANAGER', 'HR') " +
+                    "or @permissionEvaluator.has(authentication, 'HR', 'EDIT')"
+    )
+    public LeaveResponse rejectLeave(@PathVariable Long id) {
+        return leaveService.rejectLeave(SecurityUtils.currentTenantId(), id);
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize(
+            "hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'HR_MANAGER', 'HR') " +
+                    "or @permissionEvaluator.has(authentication, 'HR', 'EDIT')"
+    )
     public LeaveResponse updateStatus(
-            @RequestParam(required = false) Long tenantId,
             @PathVariable Long id,
             @RequestParam String status
     ) {
-        return leaveService.updateStatus(resolveTenantId(tenantId), id, status);
+        return leaveService.updateStatus(
+                SecurityUtils.currentTenantId(),
+                id,
+                status
+        );
     }
 }

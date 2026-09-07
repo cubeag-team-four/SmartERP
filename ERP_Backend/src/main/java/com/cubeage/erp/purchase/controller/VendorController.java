@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/purchase/vendors")
 @RequiredArgsConstructor
-@PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','VIEW')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','VIEW')")
 public class VendorController {
 
     private final VendorService vendorService;
@@ -33,18 +33,34 @@ public class VendorController {
     }
 
     @PostMapping
-    @PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','CREATE')")
-    public ResponseEntity<VendorResponse> createVendor(@Valid @RequestBody VendorRequest request) {
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','CREATE')")
+    public ResponseEntity<VendorResponse> createVendor(
+            @Valid @RequestBody VendorRequest request
+    ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(vendorService.createVendor(SecurityUtils.currentTenantId(), request));
+                .body(vendorService.createVendor(
+                        SecurityUtils.currentTenantId(),
+                        request
+                ));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','EDIT')")
     public VendorResponse updateVendor(
             @PathVariable Long id,
             @Valid @RequestBody VendorRequest request
     ) {
-        return vendorService.updateVendor(SecurityUtils.currentTenantId(), id, request);
+        return vendorService.updateVendor(
+                SecurityUtils.currentTenantId(),
+                id,
+                request
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','DELETE')")
+    public ResponseEntity<Void> deleteVendor(@PathVariable Long id) {
+        vendorService.deleteVendor(SecurityUtils.currentTenantId(), id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,6 +3,7 @@ package com.cubeage.erp.manufacturing.dto.response;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public record BomDetailsResponse(
         Long id,
@@ -13,6 +14,7 @@ public record BomDetailsResponse(
         BigDecimal cost,
         String formattedCost,
         String notes,
+        Map<String, Object> details,
         List<BomItemResponse> items,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

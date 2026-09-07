@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/purchase")
 @RequiredArgsConstructor
-@PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','VIEW')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','VIEW')")
 public class PurchaseDashboardController {
 
     private final PurchaseDashboardService dashboardService;

@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import RoleDashboardService from "../../core/services/modules/roleDashboard.service";
 import {
   Sparkles,
   ArrowUpRight,
@@ -8,39 +9,26 @@ import {
    FINANCE DASHBOARD DATA
 ========================================================= */
 
-const stats = [
+const fallbackStats = [
   {
-    label: "REVENUE MTD",
-    value: "₹48.6M",
-    footer: "+12.4%",
+    label: "JOURNAL ENTRIES",
+    value: "0",
+    footer: "Loading unavailable",
   },
   {
-    label: "NET P&L",
-    value: "₹6.2M",
-    footer: "+8.1%",
+    label: "TOTAL DEBITS",
+    value: "₹0",
+    footer: "Loading unavailable",
   },
   {
-    label: "RECEIVABLES",
-    value: "₹8.2M",
-    footer: "12 invoices open",
-    warning: true,
+    label: "TOTAL CREDITS",
+    value: "₹0",
+    footer: "Loading unavailable",
   },
   {
-    label: "PAYABLES",
-    value: "₹5.4M",
-    footer: "Due in 15 days",
-    warning: true,
-  },
-  {
-    label: "GST DUE",
-    value: "₹1.8M",
-    footer: "Due 20 Aug",
-    warning: true,
-  },
-  {
-    label: "CASH POSITION",
-    value: "₹12.8M",
-    footer: "+3.2%",
+    label: "NET MOVEMENT",
+    value: "₹0",
+    footer: "Loading unavailable",
   },
 ];
 
@@ -1004,6 +992,82 @@ function PendingApprovals() {
 ========================================================= */
 
 export default function FinanceDashboard() {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setError("");
+
+        const response =
+          await RoleDashboardService.getFinanceDashboard();
+
+        setDashboardData(response.data);
+      } catch (requestError) {
+        console.error(
+          "Unable to load Finance dashboard:",
+          requestError
+        );
+
+        setError(
+          requestError?.response?.data?.message ||
+          "Unable to load finance dashboard data."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const formatAmount = (amount) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(Number(amount || 0));
+
+  const netMovement = Number(
+    dashboardData?.netMovement || 0
+  );
+
+  const stats = dashboardData
+    ? [
+        {
+          label: "JOURNAL ENTRIES",
+          value: Number(
+            dashboardData.journalEntries || 0
+          ).toLocaleString("en-IN"),
+          footer: "Entries posted for this tenant",
+        },
+        {
+          label: "TOTAL DEBITS",
+          value: formatAmount(
+            dashboardData.totalDebits
+          ),
+          footer: "Posted journal debit value",
+        },
+        {
+          label: "TOTAL CREDITS",
+          value: formatAmount(
+            dashboardData.totalCredits
+          ),
+          footer: "Posted journal credit value",
+        },
+        {
+          label: "NET MOVEMENT",
+          value: formatAmount(netMovement),
+          footer:
+            netMovement >= 0
+              ? "Credit movement exceeds debits"
+              : "Debit movement exceeds credits",
+          warning: netMovement < 0,
+        },
+      ]
+    : fallbackStats;
 
   return (
     <main
@@ -1024,6 +1088,18 @@ export default function FinanceDashboard() {
           max-w-[1540px]
         "
       >
+
+        {loading && (
+  <div className="rounded-[16px] border border-[#e3e0d9] bg-white px-5 py-4 text-sm text-[#6d7069]">
+    Loading finance dashboard…
+  </div>
+)}
+
+{error && (
+  <div className="mb-6 rounded-[16px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+    {error}
+  </div>
+)}
 
         {/* =====================================================
             HEADER

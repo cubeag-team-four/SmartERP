@@ -25,8 +25,9 @@ public class QualityServiceImpl implements QualityService {
 
     @Override
     public QualityInspectionResponse createInspection(Long tenantId, CreateQualityInspectionRequest request) {
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
         QualityInspection inspection = QualityInspection.builder()
-                .tenantId(tenantId)
+                .tenantId(effectiveTenantId)
                 .workOrderNumber(request.workOrderNumber().trim())
                 .productName(request.productName().trim())
                 .type(request.type())
@@ -42,7 +43,8 @@ public class QualityServiceImpl implements QualityService {
     @Override
     @Transactional(readOnly = true)
     public List<QualityInspectionResponse> getInspections(Long tenantId) {
-        return inspectionRepository.findByTenantIdOrderByCreatedAtDesc(tenantId)
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        return inspectionRepository.findByTenantIdOrderByCreatedAtDesc(effectiveTenantId)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -51,17 +53,18 @@ public class QualityServiceImpl implements QualityService {
     @Override
     @Transactional(readOnly = true)
     public QualitySummaryResponse getQualityControlSummary(Long tenantId) {
-        long total = inspectionRepository.countByTenantId(tenantId);
-        long pass = inspectionRepository.countByTenantIdAndResult(tenantId, QualityResult.PASS);
-        long rework = inspectionRepository.countByTenantIdAndResult(tenantId, QualityResult.REWORK);
-        long reject = inspectionRepository.countByTenantIdAndResult(tenantId, QualityResult.REJECT);
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        long total = inspectionRepository.countByTenantId(effectiveTenantId);
+        long pass = inspectionRepository.countByTenantIdAndResult(effectiveTenantId, QualityResult.PASS);
+        long rework = inspectionRepository.countByTenantIdAndResult(effectiveTenantId, QualityResult.REWORK);
+        long reject = inspectionRepository.countByTenantIdAndResult(effectiveTenantId, QualityResult.REJECT);
 
         double passRate = total == 0 ? 98.2 : ((double) pass / total) * 100.0;
         double reworkRate = total == 0 ? 1.4 : ((double) rework / total) * 100.0;
         double rejectionRate = total == 0 ? 0.4 : ((double) reject / total) * 100.0;
 
         List<RejectionResponse> recentRejections = inspectionRepository
-                .findTop5ByTenantIdAndResultInOrderByCreatedAtDesc(tenantId, List.of(QualityResult.REJECT, QualityResult.REWORK))
+                .findTop5ByTenantIdAndResultInOrderByCreatedAtDesc(effectiveTenantId, List.of(QualityResult.REJECT, QualityResult.REWORK))
                 .stream()
                 .map(mapper::toRejectionResponse)
                 .toList();

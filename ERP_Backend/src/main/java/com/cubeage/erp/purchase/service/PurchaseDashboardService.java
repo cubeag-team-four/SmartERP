@@ -30,6 +30,7 @@ public class PurchaseDashboardService {
     private final GoodsReceiptRepository grnRepository;
 
     public PurchaseDashboardResponse getDashboard(Long tenantId) {
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
         LocalDate today = LocalDate.now();
         LocalDate currentMonthStart = today.withDayOfMonth(1);
         LocalDate previousMonthStart = currentMonthStart.minusMonths(1);
@@ -37,35 +38,35 @@ public class PurchaseDashboardService {
 
         // Purchase MTD
         BigDecimal purchaseMtd = purchaseOrderRepository.sumPurchaseAmountBetween(
-                tenantId, currentMonthStart, today);
+                effectiveTenantId, currentMonthStart, today);
         BigDecimal purchasePrev = purchaseOrderRepository.sumPurchaseAmountBetween(
-                tenantId, previousMonthStart, previousMonthEnd);
+                effectiveTenantId, previousMonthStart, previousMonthEnd);
         BigDecimal purchaseChange = percentageChange(purchaseMtd, purchasePrev);
 
         // Payables
-        BigDecimal totalPayables = payableRepository.totalOutstandingPayables(tenantId);
+        BigDecimal totalPayables = payableRepository.totalOutstandingPayables(effectiveTenantId);
         long pendingPayableCount = payableRepository
-                .findByTenantIdAndStatusIn(tenantId,
+                .findByTenantIdAndStatusIn(effectiveTenantId,
                         List.of(PaymentStatus.UNPAID, PaymentStatus.PARTIALLY_PAID, PaymentStatus.OVERDUE))
                 .size();
 
         // Active Vendors
-        long activeVendorCount = vendorRepository.countByTenantIdAndStatus(tenantId, VendorStatus.ACTIVE);
+        long activeVendorCount = vendorRepository.countByTenantIdAndStatus(effectiveTenantId, VendorStatus.ACTIVE);
 
         // On-Time Receipt
-        List<GoodsReceipt> currentGrns = grnRepository.findByTenantIdOrderByCreatedAtDesc(tenantId)
+        List<GoodsReceipt> currentGrns = grnRepository.findByTenantIdOrderByCreatedAtDesc(effectiveTenantId)
                 .stream()
                 .filter(g -> !g.getReceivedDate().isBefore(currentMonthStart)
                         && !g.getReceivedDate().isAfter(today))
                 .toList();
-        List<GoodsReceipt> previousGrns = grnRepository.findByTenantIdOrderByCreatedAtDesc(tenantId)
+        List<GoodsReceipt> previousGrns = grnRepository.findByTenantIdOrderByCreatedAtDesc(effectiveTenantId)
                 .stream()
                 .filter(g -> !g.getReceivedDate().isBefore(previousMonthStart)
                         && !g.getReceivedDate().isAfter(previousMonthEnd))
                 .toList();
 
-        BigDecimal currentOnTime = onTimeReceiptPercentage(currentGrns, tenantId);
-        BigDecimal previousOnTime = onTimeReceiptPercentage(previousGrns, tenantId);
+        BigDecimal currentOnTime = onTimeReceiptPercentage(currentGrns, effectiveTenantId);
+        BigDecimal previousOnTime = onTimeReceiptPercentage(previousGrns, effectiveTenantId);
 
         return new PurchaseDashboardResponse(
                 money(purchaseMtd),
@@ -81,12 +82,14 @@ public class PurchaseDashboardService {
 
     private BigDecimal onTimeReceiptPercentage(List<GoodsReceipt> grns, Long tenantId) {
         if (grns.isEmpty()) return BigDecimal.ZERO;
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
         // On-time: received on or before expected delivery date of the PO
         long onTime = grns.stream()
                 .filter(grn -> {
-                    return purchaseOrderRepository.findByIdAndTenantId(grn.getPurchaseOrderId(), tenantId)
+                    return purchaseOrderRepository.findByIdAndTenantId(grn.getPurchaseOrderId(), effectiveTenantId)
+                            .or(() -> purchaseOrderRepository.findById(grn.getPurchaseOrderId()))
                             .map(po -> po.getExpectedDeliveryDate() == null
-                                    || !grn.getReceivedDate().isAfter(po.getExpectedDeliveryDate()))
+                                     || !grn.getReceivedDate().isAfter(po.getExpectedDeliveryDate()))
                             .orElse(false);
                 })
                 .count();
@@ -96,7 +99,8 @@ public class PurchaseDashboardService {
     }
 
     private BigDecimal percentageChange(BigDecimal current, BigDecimal previous) {
-        if (previous.signum() == 0) {
+        if (current == null) current = BigDecimal.ZERO;
+        if (previous == null || previous.signum() == 0) {
             return current.signum() == 0 ? BigDecimal.ZERO : HUNDRED;
         }
         return current.subtract(previous)
@@ -105,6 +109,6 @@ public class PurchaseDashboardService {
     }
 
     private BigDecimal money(BigDecimal value) {
-        return value.setScale(2, RoundingMode.HALF_UP);
+        return value == null ? BigDecimal.ZERO.setScale(2) : value.setScale(2, RoundingMode.HALF_UP);
     }
 }

@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
+import RoleDashboardService from "../../core/services/modules/roleDashboard.service";
 
 const SuperAdminDashboard = () => {
     const [period, setPeriod] = useState("6M");
     const [hoverIndex, setHoverIndex] = useState(null);
     const [animationStarted, setAnimationStarted] = useState(false);
+    const [dashboardData, setDashboardData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -13,48 +17,111 @@ const SuperAdminDashboard = () => {
         return () => clearTimeout(timer);
     }, []);
 
+    useEffect(() => {
+        const loadDashboard = async () => {
+            try {
+                setError("");
+
+                const response =
+                    await RoleDashboardService.getSuperAdminDashboard();
+
+                setDashboardData(response.data);
+            } catch (requestError) {
+                console.error(
+                    "Unable to load Super Admin dashboard:",
+                    requestError
+                );
+
+                setError(
+                    requestError?.response?.data?.message ||
+                    "Unable to load dashboard data."
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadDashboard();
+    }, []);
+
     /* =========================================================
        KPI DATA
     ========================================================= */
 
-    const kpis = [
+const formatAmount = (amount, currency = "INR") => {
+    const value = Number(amount || 0);
+
+    return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 0,
+    }).format(value);
+};
+
+const revenueByCurrency =
+    dashboardData?.currentMonthRevenueByCurrency || {};
+
+const totalRevenueByCurrency =
+    dashboardData?.totalSubscriptionRevenueByCurrency || {};
+
+const primaryCurrency =
+    Object.keys(revenueByCurrency)[0] ||
+    Object.keys(totalRevenueByCurrency)[0] ||
+    "INR";
+
+const kpis = dashboardData
+    ? [
         {
-            label: "REVENUE MTD",
-            value: "₹48.6M",
-            change: "+12.4%",
+            label: "TOTAL TENANTS",
+            value: Number(
+                dashboardData.totalTenants || 0
+            ).toLocaleString("en-IN"),
+            change: `${dashboardData.activeTenants || 0} active`,
             positive: true,
         },
         {
-            label: "NET PROFIT",
-            value: "₹6.2M",
-            change: "+8.1%",
+            label: "TRIAL TENANTS",
+            value: Number(
+                dashboardData.trialTenants || 0
+            ).toLocaleString("en-IN"),
+            change: `${dashboardData.suspendedTenants || 0} suspended`,
+            positive: dashboardData.suspendedTenants === 0,
+        },
+        {
+            label: "ACTIVE USERS",
+            value: Number(
+                dashboardData.activeUsers || 0
+            ).toLocaleString("en-IN"),
+            change: "Across all tenants",
             positive: true,
         },
         {
-            label: "CASH POSITION",
-            value: "₹12.8M",
-            change: "+3.2%",
+            label: "ACTIVE SUBSCRIPTIONS",
+            value: Number(
+                dashboardData.activeSubscriptions || 0
+            ).toLocaleString("en-IN"),
+            change: "Currently valid",
             positive: true,
         },
         {
-            label: "90D FORECAST",
-            value: "₹61.4M",
-            change: "87% confidence",
+            label: "REVENUE THIS MONTH",
+            value: formatAmount(
+                revenueByCurrency[primaryCurrency],
+                primaryCurrency
+            ),
+            change: primaryCurrency,
             positive: true,
         },
         {
-            label: "OPEN ORDERS",
-            value: "1,284",
-            change: "+8.6%",
+            label: "ENABLED MODULES",
+            value: Number(
+                dashboardData.enabledModules || 0
+            ).toLocaleString("en-IN"),
+            change: "Tenant module assignments",
             positive: true,
         },
-        {
-            label: "INVENTORY HEALTH",
-            value: "94.2%",
-            change: "-0.8%",
-            positive: false,
-        },
-    ];
+    ]
+    : [];
 
     /* =========================================================
        REVENUE DATA
@@ -261,6 +328,18 @@ const SuperAdminDashboard = () => {
         <div className="min-h-screen w-full bg-[#f6f5f1] px-4 py-6 font-mono text-[#11130f] sm:px-6 lg:px-7">
 
             <div className="mx-auto w-full max-w-[1540px]">
+
+                {loading && (
+    <div className="rounded-[16px] border border-[#e3e1db] bg-white px-5 py-4 text-sm text-[#6d7069]">
+        Loading platform dashboard…
+    </div>
+)}
+
+{error && (
+    <div className="mb-6 rounded-[16px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+        {error}
+    </div>
+)}
 
                 {/* =====================================================
                     HEADER

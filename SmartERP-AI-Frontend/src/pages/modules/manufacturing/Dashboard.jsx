@@ -336,7 +336,7 @@ function StatCard({ value, label, description, type }) {
   );
 }
 
-function PageContent({ activeTab, workOrdersRefreshKey }) {
+function PageContent({ activeTab, workOrdersRefreshKey, machineCreateRequest }) {
   switch (activeTab) {
     case "work-orders":
       return <WorkOrders refreshKey={workOrdersRefreshKey} />;
@@ -345,7 +345,7 @@ function PageContent({ activeTab, workOrdersRefreshKey }) {
       return <BillOfMaterials />;
 
     case "machines":
-      return <MachineTracking />;
+      return <MachineTracking createRequest={machineCreateRequest} />;
 
     case "quality":
       return <QualityControl />;
@@ -359,6 +359,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("work-orders");
   const [showModal, setShowModal] = useState(false);
   const [workOrdersRefreshKey, setWorkOrdersRefreshKey] = useState(0);
+  const [machineCreateRequest, setMachineCreateRequest] = useState(0);
 
   const [dashboardStats, setDashboardStats] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -452,8 +453,9 @@ const stats = loadingStats
         </section>
 
         {/* Manufacturing Tabs */}
-        <nav className="mt-6 flex flex-wrap items-center gap-1.5 sm:mt-8 sm:gap-2">
-          {tabs.map((tab) => {
+        <nav className="mt-6 flex flex-wrap items-center justify-between gap-3 sm:mt-8">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {tabs.map((tab) => {
             const isActive = activeTab === tab.key;
 
             return (
@@ -483,13 +485,23 @@ const stats = loadingStats
                 {tab.label}
               </button>
             );
-          })}
+            })}
+          </div>
+          {activeTab === "machines" && (
+            <button
+              type="button"
+              onClick={() => setMachineCreateRequest((request) => request + 1)}
+              className="shrink-0 rounded-[14px] bg-[#151714] px-4 py-2.5 font-mono text-[11px] text-white hover:bg-[#2b2d28] hover:shadow-sm"
+            >
+              + Add Machine
+            </button>
+          )}
         </nav>
       </section>
 
       {/* Selected Page Content */}
       <section className="mt-0 overflow-x-hidden">
-        <PageContent activeTab={activeTab} workOrdersRefreshKey={workOrdersRefreshKey} />
+        <PageContent activeTab={activeTab} workOrdersRefreshKey={workOrdersRefreshKey} machineCreateRequest={machineCreateRequest} />
       </section>
 
       {/* New Work Order Modal */}

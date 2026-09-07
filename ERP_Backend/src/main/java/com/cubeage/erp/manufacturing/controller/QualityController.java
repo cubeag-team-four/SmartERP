@@ -17,13 +17,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/quality")
 @RequiredArgsConstructor
-@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class QualityController {
 
     private final QualityService qualityService;
 
     @PostMapping("/inspections")
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<QualityInspectionResponse> createInspection(@Valid @RequestBody CreateQualityInspectionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(qualityService.createInspection(SecurityUtils.currentTenantId(), request));

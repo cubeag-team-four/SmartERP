@@ -25,23 +25,24 @@ public class ManufacturingDashboardServiceImpl implements ManufacturingDashboard
 
     @Override
     public ManufacturingDashboardResponse getDashboard(Long tenantId) {
-        long activeWorkOrders = workOrderRepository.countByTenantIdAndStatus(tenantId, WorkOrderStatus.IN_PROGRESS);
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        long activeWorkOrders = workOrderRepository.countByTenantIdAndStatus(effectiveTenantId, WorkOrderStatus.IN_PROGRESS);
 
-        long completingToday = workOrderRepository.findByTenantIdAndStatusOrderByCreatedAtDesc(tenantId, WorkOrderStatus.IN_PROGRESS)
+        long completingToday = workOrderRepository.findByTenantIdAndStatusOrderByCreatedAtDesc(effectiveTenantId, WorkOrderStatus.IN_PROGRESS)
                 .stream()
                 .filter(wo -> wo.getDueDate() != null && wo.getDueDate().equals(LocalDate.now()))
                 .count();
 
-        long downMachines = machineRepository.countByTenantIdAndStatus(tenantId, MachineStatus.MAINTENANCE)
-                + machineRepository.countByTenantIdAndStatus(tenantId, MachineStatus.DOWN);
+        long downMachines = machineRepository.countByTenantIdAndStatus(effectiveTenantId, MachineStatus.MAINTENANCE)
+                + machineRepository.countByTenantIdAndStatus(effectiveTenantId, MachineStatus.DOWN);
 
-        double avgUtilization = machineRepository.findByTenantIdOrderByCodeAsc(tenantId)
+        double avgUtilization = machineRepository.findByTenantIdOrderByCodeAsc(effectiveTenantId)
                 .stream()
                 .mapToInt(m -> m.getUtilization() != null ? m.getUtilization() : 0)
                 .average()
                 .orElse(0.0);
 
-        var qualitySummary = qualityService.getQualityControlSummary(tenantId);
+        var qualitySummary = qualityService.getQualityControlSummary(effectiveTenantId);
         double passRate = qualitySummary.passRate() != null ? qualitySummary.passRate() : 0.0;
 
         List<ManufacturingDashboardResponse.StatCardDto> stats = List.of(

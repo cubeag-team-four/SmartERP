@@ -41,30 +41,85 @@ public class Vendor {
     private String contactName;
 
     private String phone;
-
     private String email;
-
     private String city;
 
+    @Column(columnDefinition = "TEXT")
     private String address;
 
     private String category;
-
     private String gstin;
-
     private String pan;
-
     private String paymentTerms;
 
     @Column(precision = 19, scale = 2)
     private BigDecimal creditLimit;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 3, scale = 2)
     private BigDecimal rating;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private VendorStatus status;
+
+    /* Vendor details */
+    private String vendorType;
+    private String website;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    /* Contact details */
+    private String designation;
+    private String alternatePhone;
+    private String contactWebsite;
+
+    /* Address details */
+    @Column(name = "address_line_2", columnDefinition = "TEXT")
+    private String addressLine2;
+
+    private String country;
+    private String state;
+    private String pinCode;
+
+    /* Tax details */
+    private String gstType;
+    private String tan;
+    private String cin;
+    private String msme;
+    private String taxState;
+
+    /* Purchase settings */
+    private Integer creditPeriodDays;
+    private String currency;
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal minimumOrderValue;
+
+    private Integer deliveryDays;
+    private String purchaseCategory;
+
+    /* Bank details */
+    private String accountHolder;
+    private String bankName;
+
+    /*
+     * Encrypt this value before production use.
+     * Plain-text account numbers must not be stored in production.
+     */
+    private String accountNumber;
+
+    private String ifsc;
+    private String bankBranch;
+    private String accountType;
+    private String upiId;
+
+    /* Additional details */
+    @Column(length = 1000)
+    private String tags;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

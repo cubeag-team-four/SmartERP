@@ -3,43 +3,30 @@ package com.cubeage.erp.hr.controller;
 import com.cubeage.erp.hr.dto.dashboard.HRDashboardResponse;
 import com.cubeage.erp.hr.service.HRDashboardService;
 import com.cubeage.erp.security.SecurityUtils;
-import com.cubeage.erp.tenant.context.TenantContext;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/hr/dashboard")
 @RequiredArgsConstructor
+@PreAuthorize(
+        "hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'HR_MANAGER', 'HR') " +
+                "or @permissionEvaluator.has(authentication, 'HR', 'VIEW')"
+)
 public class HRDashboardController {
 
     private final HRDashboardService dashboardService;
 
-    private Long resolveTenantId(Long tenantId) {
-        if (tenantId != null) {
-            return tenantId;
-        }
-        Long contextTenantId = TenantContext.getTenantId();
-        if (contextTenantId != null) {
-            return contextTenantId;
-        }
-        try {
-            return SecurityUtils.currentTenantId();
-        } catch (Exception e) {
-            return 1L;
-        }
-    }
-
     @GetMapping
-    public HRDashboardResponse getDashboard(
-            @RequestParam(required = false) Long tenantId
-    ) {
-        return dashboardService.getDashboardSummary(resolveTenantId(tenantId));
+    public HRDashboardResponse getDashboard() {
+        return dashboardService.getDashboardSummary(SecurityUtils.currentTenantId());
     }
 
     @GetMapping("/summary")
-    public HRDashboardResponse getSummary(
-            @RequestParam(required = false) Long tenantId
-    ) {
-        return dashboardService.getDashboardSummary(resolveTenantId(tenantId));
+    public HRDashboardResponse getSummary() {
+        return dashboardService.getDashboardSummary(SecurityUtils.currentTenantId());
     }
 }

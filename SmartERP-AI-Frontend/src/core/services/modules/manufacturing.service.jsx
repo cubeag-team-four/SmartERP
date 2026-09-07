@@ -34,6 +34,8 @@ const ManufacturingService = {
 
   // Quality Control
   getQualitySummary: () => apiService.get("/manufacturing/quality/summary"),
+  getInspections: (params) => apiService.get("/manufacturing/quality/inspections", params),
+  createInspection: (payload) => apiService.post("/manufacturing/quality/inspections", payload),
   
 };
 

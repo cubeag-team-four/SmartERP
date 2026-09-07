@@ -122,69 +122,40 @@ const QualityControl = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchQualitySummary();
+    loadData();
   }, []);
 
-  const fetchQualitySummary = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-
-      const response =
-        await ManufacturingService.getQualitySummary();
-
-      console.log("Quality Summary:", response.data);
-
+      const response = await ManufacturingService.getQualitySummary();
       setSummary(response.data);
     } catch (error) {
-      console.error(
-        "Error fetching quality summary:",
-        error
-      );
-
-      console.error(
-        "Response:",
-        error.response?.data
-      );
-
-      setSummary(null);
+      console.error("Error fetching quality data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+  return (
+    <main className="min-h-screen bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
+
+      {loading ? (
         <div className="flex items-center justify-center py-20">
           <span className="font-mono text-xs text-[#8a8f80]">
             Loading quality data...
           </span>
         </div>
-      </main>
-    );
-  }
+      ) : (
+        <div className="space-y-6">
+          {/* Summary & Rejections Grid */}
+          <section className="grid grid-cols-1 gap-4 sm:gap-[20px] xl:grid-cols-2">
+            <QualityOverview summary={summary} />
+            <RecentRejections rejections={summary?.recentRejections || []} />
+          </section>
 
-  if (!summary) {
-    return (
-      <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
-        <div className="flex items-center justify-center py-20">
-          <span className="font-mono text-xs text-[#8a8f80]">
-            Unable to load quality data.
-          </span>
         </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="bg-[#f7f6f2] px-4 py-4 text-[#171815] sm:px-6 sm:py-[18px] lg:px-[30px]">
-      <section className="grid grid-cols-1 gap-4 sm:gap-[20px] xl:grid-cols-2">
-        <QualityOverview summary={summary} />
-
-        <RecentRejections
-          rejections={summary.recentRejections || []}
-        />
-      </section>
+      )}
     </main>
   );
 };

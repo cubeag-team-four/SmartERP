@@ -73,6 +73,7 @@ function StatCard({ value, label, description }) {
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("purchase-orders");
   const [showCreatePO, setShowCreatePO] = useState(false);
+  const [editingPO, setEditingPO] = useState(null);
   const [purchaseOrdersRefresh, setPurchaseOrdersRefresh] = useState(0);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -241,7 +242,13 @@ const handleSavePO = () => { setPurchaseOrdersRefresh((prev) => prev + 1); setSh
       <section>
 
         {activeTab === "purchase-orders" && (
-          <PurchaseOrders refreshTrigger={purchaseOrdersRefresh} />
+          <PurchaseOrders
+            refreshTrigger={purchaseOrdersRefresh}
+            onEdit={(order) => {
+              setEditingPO(order);
+              setShowCreatePO(true);
+            }}
+          />
         )}
 
         {activeTab === "vendors" && <Vendors />}
@@ -260,8 +267,15 @@ const handleSavePO = () => { setPurchaseOrdersRefresh((prev) => prev + 1); setSh
       {showCreatePO && (
         <CreatePurchaseOrder
           vendors={vendors}
-          onClose={() => setShowCreatePO(false)}
-          onSave={handleSavePO}
+          onClose={() => {
+            setShowCreatePO(false);
+            setEditingPO(null);
+          }}
+          onSave={() => {
+            handleSavePO();
+            setEditingPO(null);
+          }}
+          editOrder={editingPO}
         />
       )}
 

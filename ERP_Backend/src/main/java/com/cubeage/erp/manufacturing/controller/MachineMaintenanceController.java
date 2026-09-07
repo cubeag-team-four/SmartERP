@@ -16,13 +16,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/maintenances")
 @RequiredArgsConstructor
-@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class MachineMaintenanceController {
 
     private final MachineMaintenanceService maintenanceService;
 
     @PostMapping
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<MachineMaintenanceResponse> create(@Valid @RequestBody CreateMaintenanceRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(maintenanceService.create(SecurityUtils.currentTenantId(), request));
@@ -37,7 +37,7 @@ public class MachineMaintenanceController {
     }
 
     @PatchMapping("/{id}/complete")
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
     public MachineMaintenanceResponse complete(@PathVariable Long id) {
         return maintenanceService.completeMaintenance(SecurityUtils.currentTenantId(), id);
     }
