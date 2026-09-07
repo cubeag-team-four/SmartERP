@@ -1022,7 +1022,7 @@ const emptyData = () => ({
     documents: [],
 });
 
-const AddEmployeeModal = ({ open, onClose }) => {
+const AddEmployeeModal = ({ open, onClose, onSuccess }) => {
     const [step, setStep]   = useState(1);
     const [data, setData]   = useState(emptyData());
     const [error, setError] = useState("");
@@ -1156,19 +1156,22 @@ const AddEmployeeModal = ({ open, onClose }) => {
                                     onClick={async () => {
                                         try {
                                             const payload = {
-                                                employeeCode: data.job?.employeeId || data.job?.empCode || `EMP-${Date.now().toString().slice(-4)}`,
+                                                employeeCode: data.personal?.employeeCode || data.job?.empId || data.job?.employeeId || data.job?.empCode || `EMP-${Date.now().toString().slice(-4)}`,
                                                 firstName: data.personal?.firstName || "New",
                                                 lastName: data.personal?.lastName || "Employee",
                                                 email: data.personal?.email || `employee-${Date.now()}@company.com`,
-                                                phone: data.personal?.phone || "+91 00000 00000",
+                                                phone: data.personal?.mobile || data.personal?.phone || "+91 00000 00000",
                                                 department: data.job?.department || "General",
                                                 designation: data.job?.designation || "Staff",
                                                 branch: data.job?.branch || "Main Branch",
                                                 joiningDate: data.job?.joiningDate || new Date().toISOString().split("T")[0],
-                                                salary: parseFloat(data.salary?.basic) || parseFloat(data.salary?.gross) || 50000,
-                                                status: data.job?.status || "Active",
+                                                salary: parseFloat(data.salary?.basicSalary) || parseFloat(data.salary?.monthlyGross) || parseFloat(data.salary?.annualCTC) || parseFloat(data.salary?.basic) || parseFloat(data.salary?.gross) || 50000,
+                                                status: data.job?.empStatus || data.job?.status || "Active",
                                             };
                                             await hrApi.createEmployee(payload);
+                                            if (onSuccess) {
+                                                onSuccess();
+                                            }
                                             onClose();
                                         } catch (err) {
                                             console.error("Failed to create employee:", err);

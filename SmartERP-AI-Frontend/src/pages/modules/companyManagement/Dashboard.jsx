@@ -725,7 +725,15 @@ const Dashboard = () => {
     try {
       const payload = { ...form, gstNumber: form.taxGst, logo: undefined, status: form.status.toUpperCase() };
       const { data } = await CompanyManagementService.create(payload);
-      setCompanies((current) => [...current, data]);
+      try {
+        const res = await CompanyManagementService.getAll();
+        setCompanies(res.data);
+      } catch {
+        setCompanies((current) => {
+          const exists = current.some((c) => c.id === data.id);
+          return exists ? current : [...current, data];
+        });
+      }
       setCompanyId(data.id);
       setShowModal(false);
       setError("");
@@ -753,10 +761,10 @@ const Dashboard = () => {
         return <Overview company={company} dashboard={dashboard} />;
 
       case "branches":
-        return <Branches companyId={companyId} />;
+        return <Branches companyId={companyId} companyName={company?.companyName} companies={companies} />;
 
       case "departments":
-        return <Departments companyId={companyId} companyName={company?.companyName} />;
+        return <Departments companyId={companyId} companyName={company?.companyName} companies={companies} />;
 
       case "users":
         return <Users />;
@@ -794,6 +802,26 @@ const Dashboard = () => {
         </div>
 
         <div className="company-actions">
+          <div className="company-select-wrap">
+            <select
+              aria-label="Select Company"
+              className="company-select"
+              value={companyId || ""}
+              onChange={(e) => {
+                const selectedId = Number(e.target.value);
+                if (selectedId) setCompanyId(selectedId);
+              }}
+            >
+              {companies.length === 0 && <option value="">Select Company</option>}
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.companyName || c.name}
+                </option>
+              ))}
+            </select>
+            <span className="company-select-chevron">▾</span>
+          </div>
+
           <button className="export-btn">
             Export
           </button>
@@ -1002,6 +1030,48 @@ const Dashboard = () => {
           align-items: center;
 
           gap: 9px;
+        }
+
+        .company-select-wrap {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .company-select {
+          height: 38px;
+          padding: 0 32px 0 14px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          box-sizing: border-box;
+          background: #fff;
+          border: 1px solid #e0ddd5;
+          color: #20221e;
+          appearance: none;
+          outline: none;
+          min-width: 170px;
+          max-width: 260px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          overflow: hidden;
+          transition: border-color 0.15s, background 0.15s;
+        }
+
+        .company-select:focus {
+          border-color: #10130f;
+          background: #fff;
+        }
+
+        .company-select-chevron {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 10px;
+          color: #9a9890;
+          pointer-events: none;
         }
 
 

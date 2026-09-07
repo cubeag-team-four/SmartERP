@@ -13,8 +13,43 @@ const EMPTY = {
   description: "", status: "active",
 };
 
+// ─── Reusable field components (Module-level to prevent remounting/focus loss) ───
+const Input = ({ label, value, onChange, placeholder, required, icon, error }) => (
+  <div className="adm-field">
+    <label>{label}{required && <span className="adm-req"> *</span>}</label>
+    <div className={icon ? "adm-icon-wrap" : ""}>
+      {icon && <span className="adm-icon">{icon}</span>}
+      <input
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`adm-input${icon ? " adm-input--icon" : ""}${error ? " adm-input--err" : ""}`}
+      />
+    </div>
+    {error && <span className="adm-err">{error}</span>}
+  </div>
+);
+
+const Select = ({ label, value, onChange, options, placeholder, required, error }) => (
+  <div className="adm-field">
+    <label>{label}{required && <span className="adm-req"> *</span>}</label>
+    <div className="adm-sel-wrap">
+      <select
+        value={value}
+        onChange={onChange}
+        className={`adm-select${error ? " adm-input--err" : ""}`}
+      >
+        <option value="">{placeholder}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <span className="adm-chevron">▾</span>
+    </div>
+    {error && <span className="adm-err">{error}</span>}
+  </div>
+);
+
 // ─── Add Department Modal ─────────────────────────────────────────────────────
-function AddDepartmentModal({ onClose, onSubmit, branchOptions, companyName }) {
+function AddDepartmentModal({ onClose, onSubmit, branchOptions, companyName, companyOptions = (companyName ? [companyName] : COMPANIES) }) {
   const [form, setForm] = useState(() => ({
     ...EMPTY,
     company: companyName || "",
@@ -38,41 +73,6 @@ function AddDepartmentModal({ onClose, onSubmit, branchOptions, companyName }) {
   };
 
   const submit = () => { if (validate()) { onSubmit(form); onClose(); } };
-
-  /* ── Reusable field components ── */
-  const Input = ({ label, field, placeholder, required, icon }) => (
-    <div className="adm-field">
-      <label>{label}{required && <span className="adm-req"> *</span>}</label>
-      <div className={icon ? "adm-icon-wrap" : ""}>
-        {icon && <span className="adm-icon">{icon}</span>}
-        <input
-          value={form[field]}
-          onChange={e => set(field, e.target.value)}
-          placeholder={placeholder}
-          className={`adm-input${icon ? " adm-input--icon" : ""}${errors[field] ? " adm-input--err" : ""}`}
-        />
-      </div>
-      {errors[field] && <span className="adm-err">{errors[field]}</span>}
-    </div>
-  );
-
-  const Select = ({ label, field, options, placeholder, required }) => (
-    <div className="adm-field">
-      <label>{label}{required && <span className="adm-req"> *</span>}</label>
-      <div className="adm-sel-wrap">
-        <select
-          value={form[field]}
-          onChange={e => set(field, e.target.value)}
-          className={`adm-select${errors[field] ? " adm-input--err" : ""}`}
-        >
-          <option value="">{placeholder}</option>
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <span className="adm-chevron">▾</span>
-      </div>
-      {errors[field] && <span className="adm-err">{errors[field]}</span>}
-    </div>
-  );
 
   return (
     <div className="adm-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -104,12 +104,12 @@ function AddDepartmentModal({ onClose, onSubmit, branchOptions, companyName }) {
             </div>
 
             <div className="adm-grid-2">
-              <Select label="Company" field="company" options={companyName ? [companyName] : COMPANIES} placeholder="Select company" required />
-              <Select label="Branch" field="branch" options={branchOptions.map((branch) => branch.name)} placeholder="Select branch" required />
-              <Input  label="Department Name" field="name" placeholder="Enter department name" required />
-              <Input  label="Department Code" field="code" placeholder="Enter department code" required />
-              <Input  label="Department Head" field="head" placeholder="Select or enter department head" icon="👤" />
-              <Select label="Department Type" field="type" options={DEPT_TYPES} placeholder="Select department type" />
+              <Select label="Company" value={form.company} onChange={e => set("company", e.target.value)} options={companyOptions} placeholder="Select company" required error={errors.company} />
+              <Select label="Branch" value={form.branch} onChange={e => set("branch", e.target.value)} options={branchOptions.map((branch) => branch.name)} placeholder="Select branch" required error={errors.branch} />
+              <Input  label="Department Name" value={form.name} onChange={e => set("name", e.target.value)} placeholder="Enter department name" required error={errors.name} />
+              <Input  label="Department Code" value={form.code} onChange={e => set("code", e.target.value)} placeholder="Enter department code" required error={errors.code} />
+              <Input  label="Department Head" value={form.head} onChange={e => set("head", e.target.value)} placeholder="Select or enter department head" icon="👤" error={errors.head} />
+              <Select label="Department Type" value={form.type} onChange={e => set("type", e.target.value)} options={DEPT_TYPES} placeholder="Select department type" error={errors.type} />
             </div>
 
             <div className="adm-field" style={{ marginTop: 4 }}>
@@ -424,10 +424,13 @@ function AddDepartmentModal({ onClose, onSubmit, branchOptions, companyName }) {
 
 // ─── Departments ──────────────────────────────────────────────────────────────
 
-const Departments = ({ companyId: providedCompanyId, companyName: providedCompanyName }) => {
+const Departments = ({ companyId: providedCompanyId, companyName: providedCompanyName, companies: providedCompanies }) => {
   const activeCompany = useActiveCompany(providedCompanyId);
   const companyId = providedCompanyId || activeCompany.companyId;
   const companyName = providedCompanyName || activeCompany.company?.companyName;
+  const companyOptions = (providedCompanies && providedCompanies.length > 0)
+    ? providedCompanies.map(c => c.companyName || c.name)
+    : (companyName ? [companyName] : COMPANIES);
   const [showModal, setShowModal] = useState(false);
   const [branchOptions, setBranchOptions] = useState([]);
   const [error, setError] = useState("");
@@ -592,6 +595,7 @@ const Departments = ({ companyId: providedCompanyId, companyName: providedCompan
           onSubmit={createDepartment}
           branchOptions={branchOptions}
           companyName={companyName}
+          companyOptions={companyOptions}
         />
       )}
 

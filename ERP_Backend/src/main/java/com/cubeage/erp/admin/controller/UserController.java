@@ -24,7 +24,7 @@ import java.util.Set;
 )
 @RequiredArgsConstructor
 @PreAuthorize(
-        "hasRole('TENANT_ADMIN')"
+        "hasAnyRole('SUPER_ADMIN','TENANT_ADMIN')"
 )
 public class UserController {
 

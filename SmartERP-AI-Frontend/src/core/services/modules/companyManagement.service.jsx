@@ -36,6 +36,16 @@ const CompanyManagementService = {
 
   getSettings: (companyId) => apiService.get(`${BASE_URL}/${companyId}/settings`),
   updateSettings: (companyId, payload) => apiService.put(`${BASE_URL}/${companyId}/settings`, payload),
+
+  // User & Role Management APIs
+  getUsers: (tenantId) => apiService.get('/admin/users', { tenantId }),
+  getUser: (id, tenantId) => apiService.get(`/admin/users/${id}`, { tenantId }),
+  createUser: (payload) => apiService.post('/admin/users', payload),
+  changeUserStatus: (id, tenantId, active) =>
+    apiService.patch(`/admin/users/${id}/status?tenantId=${tenantId}&active=${active}`),
+  assignUserRoles: (id, tenantId, roleIds) =>
+    apiService.put(`/admin/users/${id}/roles?tenantId=${tenantId}`, roleIds),
+  getRoles: (tenantId) => apiService.get('/admin/roles', { tenantId }),
 }
 
 export default CompanyManagementService
