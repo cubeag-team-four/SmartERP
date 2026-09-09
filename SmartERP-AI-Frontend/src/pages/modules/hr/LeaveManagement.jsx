@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import hrApi from "./hrApiClient";
+import ViewLeaveModal from "../employee/ViewLeaveModal";
 
 const statusStyle = {
     PENDING: "bg-[#eeeef2] text-[#717389]",
@@ -9,10 +10,11 @@ const statusStyle = {
 
 export default function LeaveManagement() {
     const [leaves, setLeaves] = useState([]);
+    const [selectedLeave, setSelectedLeave] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
+    const fetchLeaves = () => {
         setLoading(true);
         hrApi.getLeaves()
             .then((res) => {
@@ -26,53 +28,39 @@ export default function LeaveManagement() {
             .finally(() => {
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchLeaves();
     }, []);
 
     const handleApprove = (id) => {
+        if (!window.confirm("Are you sure you want to approve this leave request?")) {
+            return;
+        }
         hrApi.approveLeave(id)
             .then(() => {
-                setLeaves((currentLeaves) =>
-                    currentLeaves.map((leave) =>
-                        leave.id === id || leave.leaveCode === id
-                            ? { ...leave, status: "APPROVED" }
-                            : leave
-                    )
-                );
+                fetchLeaves();
             })
             .catch((err) => {
                 console.error("Failed to approve leave:", err);
-                // Fallback optimistic update
-                setLeaves((currentLeaves) =>
-                    currentLeaves.map((leave) =>
-                        leave.id === id || leave.leaveCode === id
-                            ? { ...leave, status: "APPROVED" }
-                            : leave
-                    )
-                );
+                const msg = err.response?.data?.detail || err.response?.data?.message || err.message || "Failed to approve leave";
+                alert(`Approval failed: ${msg}`);
             });
     };
 
     const handleReject = (id) => {
+        if (!window.confirm("Are you sure you want to reject this leave request?")) {
+            return;
+        }
         hrApi.rejectLeave(id)
             .then(() => {
-                setLeaves((currentLeaves) =>
-                    currentLeaves.map((leave) =>
-                        leave.id === id || leave.leaveCode === id
-                            ? { ...leave, status: "REJECTED" }
-                            : leave
-                    )
-                );
+                fetchLeaves();
             })
             .catch((err) => {
                 console.error("Failed to reject leave:", err);
-                // Fallback optimistic update
-                setLeaves((currentLeaves) =>
-                    currentLeaves.map((leave) =>
-                        leave.id === id || leave.leaveCode === id
-                            ? { ...leave, status: "REJECTED" }
-                            : leave
-                    )
-                );
+                const msg = err.response?.data?.detail || err.response?.data?.message || err.message || "Failed to reject leave";
+                alert(`Rejection failed: ${msg}`);
             });
     };
 
@@ -350,29 +338,39 @@ export default function LeaveManagement() {
                                 </span>
 
 
-                                {/* ACTION BUTTONS
-                                    ONLY FOR PENDING
-                                    AND ONLY VISIBLE ON HOVER
-                                */}
-                                {leave.status === "PENDING" && (
+                                {/* ACTION BUTTONS — ALWAYS VISIBLE */}
+                                <div
+                                    className="
+                                        flex
+                                        items-center
+                                        gap-1.5
+                                    "
+                                >
 
-                                    <div
+                                    {/* VIEW */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedLeave(leave)}
                                         className="
-                                            flex
-                                            items-center
-                                            gap-1.5
-                                            opacity-0
-                                            pointer-events-none
-                                            translate-x-1
-                                            transition-all
-                                            duration-200
-                                            group-hover:translate-x-0
-                                            group-hover:opacity-100
-                                            group-hover:pointer-events-auto
+                                            shrink-0
+                                            rounded-[9px]
+                                            border
+                                            border-[#d8d5cc]
+                                            bg-white
+                                            px-2.5
+                                            py-2
+                                            text-[8px]
+                                            text-[#4d5350]
+                                            transition-colors
+                                            duration-150
+                                            hover:bg-[#f1f1ec]
                                         "
                                     >
+                                        View
+                                    </button>
 
-                                        {/* APPROVE */}
+                                    {/* APPROVE */}
+                                    {leave.status === "PENDING" && (
                                         <button
                                             type="button"
                                             onClick={() =>
@@ -395,9 +393,10 @@ export default function LeaveManagement() {
                                         >
                                             Approve
                                         </button>
+                                    )}
 
-
-                                        {/* REJECT */}
+                                    {/* REJECT */}
+                                    {leave.status === "PENDING" && (
                                         <button
                                             type="button"
                                             onClick={() =>
@@ -420,10 +419,9 @@ export default function LeaveManagement() {
                                         >
                                             Reject
                                         </button>
+                                    )}
 
-                                    </div>
-
-                                )}
+                                </div>
 
                             </div>
 
@@ -434,6 +432,12 @@ export default function LeaveManagement() {
                 </div>
 
             </section>
+
+            <ViewLeaveModal
+                isOpen={!!selectedLeave}
+                onClose={() => setSelectedLeave(null)}
+                leave={selectedLeave}
+            />
 
         </div>
     );

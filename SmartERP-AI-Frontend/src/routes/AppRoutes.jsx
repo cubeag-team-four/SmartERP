@@ -186,7 +186,6 @@ const ReportGenerator      = lazy(() => import('../pages/modules/aiAssistant/Rep
 // Employee self-service — reuse HR module pages until dedicated pages are created
 const EmployeeProfile       = lazy(() => import('../pages/modules/hr/EmployeeDatabase'))
 const EmployeeAttendance    = lazy(() => import('../pages/modules/hr/Attendance'))
-const EmployeeLeave         = lazy(() => import('../pages/modules/hr/LeaveManagement'))
 const EmployeePayroll       = lazy(() => import('../pages/modules/hr/Payroll'))
 const EmployeeTasks         = lazy(() => import('../pages/modules/projects/Tasks'))
 const EmployeeDocuments     = lazy(() => import('../pages/modules/documents/Dashboard'))
@@ -655,7 +654,6 @@ const AppRoutes = () => {
             <Route path={ROUTES.EMPLOYEE_AI}            element={<BusinessAssistant />} />
             <Route path={ROUTES.EMPLOYEE_PROFILE}       element={<EmployeeProfile />} />
             <Route path={ROUTES.EMPLOYEE_ATTENDANCE}    element={<EmployeeAttendance />} />
-            <Route path={ROUTES.EMPLOYEE_LEAVE}         element={<EmployeeLeave />} />
             <Route path={ROUTES.EMPLOYEE_PAYROLL}       element={<EmployeePayroll />} />
             <Route path={ROUTES.EMPLOYEE_TASKS}         element={<EmployeeTasks />} />
             <Route path={ROUTES.EMPLOYEE_DOCUMENTS}     element={<EmployeeDocuments />} />

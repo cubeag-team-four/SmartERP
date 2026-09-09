@@ -35,7 +35,11 @@ export const hrApi = {
 
   // Leaves
   getLeaves: (params) => hrAxios.get('/leaves', { params }),
+  getLeaveBalance: (year, params) => hrAxios.get('/leaves/balance', { params: { ...(params || {}), ...(year ? { year } : {}) } }),
   createLeave: (data, params) => hrAxios.post('/leaves', data, { params }),
+  updateLeave: (id, data, params) => hrAxios.put(`/leaves/${id}`, data, { params }),
+  deleteLeave: (id, params) => hrAxios.delete(`/leaves/${id}`, { params }),
+  exportLeaves: (year, params) => hrAxios.get('/leaves/export', { params: { ...(params || {}), ...(year ? { year } : {}) }, responseType: 'blob' }),
   approveLeave: (id, params) => hrAxios.patch(`/leaves/${id}/approve`, null, { params }),
   rejectLeave: (id, params) => hrAxios.patch(`/leaves/${id}/reject`, null, { params }),
 
