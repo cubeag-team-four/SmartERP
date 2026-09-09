@@ -1,22 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import SalesService from '../../../core/services/modules/sales.service'
 
-const MONTHLY_REVENUE = [
-  { month: 'Mar', revenue: 2800000 },
-  { month: 'Apr', revenue: 3200000 },
-  { month: 'May', revenue: 2950000 },
-  { month: 'Jun', revenue: 3800000 },
-  { month: 'Jul', revenue: 4100000 },
-  { month: 'Aug', revenue: 4260000 },
-]
-
-const TOP_CUSTOMERS = [
-  { rank: 1, customerName: 'Reliance Industries',   revenue: 12000000 },
-  { rank: 2, customerName: 'L&T Construction',       revenue: 8500000  },
-  { rank: 3, customerName: 'Tata Steel Ltd',         revenue: 6200000  },
-  { rank: 4, customerName: 'Adani Enterprises',      revenue: 4800000  },
-  { rank: 5, customerName: 'Hero MotoCorp',          revenue: 3900000  },
-]
-
+/* ── hardcoded pipeline + type data (no backend data for these) ── */
 const PIPELINE = [
   { stage: 'Prospecting',    count: 24, value: '₹48 L',  color: '#c8d8f0' },
   { stage: 'Qualified',      count: 18, value: '₹72 L',  color: '#a8c4e8' },
@@ -31,14 +16,41 @@ const SALES_BY_TYPE = [
   { label: 'Recurring', pct: 15, color: '#b5cfa8' },
 ]
 
+/* ── number formatter ── */
 const fmt = (n) =>
   n >= 10000000 ? `₹${(n / 10000000).toFixed(1)} Cr`
   : n >= 100000  ? `₹${(n / 100000).toFixed(1)} L`
-  : `₹${n.toLocaleString('en-IN')}`
+  : `₹${Number(n).toLocaleString('en-IN')}`
+
+const fmtMonth = (yearMonth) => {
+  // yearMonth from backend is a YearMonth object serialized as e.g. "2026-08" or { year:2026, monthValue:8 }
+  if (typeof yearMonth === 'string') {
+    const [, m] = yearMonth.split('-')
+    return new Date(yearMonth + '-01').toLocaleDateString('en-US', { month: 'short' })
+  }
+  if (yearMonth && typeof yearMonth === 'object') {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return months[(yearMonth.monthValue ?? yearMonth.month ?? 1) - 1] || '?'
+  }
+  return '?'
+}
 
 const Analytics = () => {
-  const maxRevenue     = Math.max(...MONTHLY_REVENUE.map((m) => m.revenue))
-  const maxCustomer    = TOP_CUSTOMERS[0]?.revenue ?? 1
+  const [data,    setData]    = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState(false)
+
+  useEffect(() => {
+    SalesService.getAnalytics()
+      .then(r => setData(r.data))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const monthlyRevenue = data?.monthlyRevenue ?? []
+  const topCustomers   = data?.topCustomers   ?? []
+  const maxRevenue     = Math.max(...monthlyRevenue.map(m => Number(m.revenue)), 1)
+  const maxCustomer    = topCustomers[0] ? Number(topCustomers[0].revenue) : 1
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -56,27 +68,37 @@ const Analytics = () => {
           <p style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#11130f', margin: '0 0 20px' }}>
             Monthly Revenue
           </p>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160 }}>
-            {MONTHLY_REVENUE.map((m) => {
-              const heightPct = (m.revenue / maxRevenue) * 100
-              return (
-                <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#53605e' }}>
-                    {fmt(m.revenue)}
-                  </span>
-                  <div style={{
-                    width: '100%',
-                    height: `${heightPct}%`,
-                    minHeight: 8,
-                    background: m.month === 'Aug' ? '#9b8050' : '#e3ddd4',
-                    borderRadius: '5px 5px 0 0',
-                    transition: 'background .2s',
-                  }} />
-                  <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#91a0a0' }}>{m.month}</span>
-                </div>
-              )
-            })}
-          </div>
+          {loading && <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#91a0a0' }}>Loading…</p>}
+          {error   && <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#d9534f' }}>Failed to load analytics</p>}
+          {!loading && !error && (
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160 }}>
+              {monthlyRevenue.length === 0 && (
+                <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#91a0a0' }}>No revenue data yet</p>
+              )}
+              {monthlyRevenue.map((m, i) => {
+                const heightPct = (Number(m.revenue) / maxRevenue) * 100
+                const isLast    = i === monthlyRevenue.length - 1
+                return (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#53605e' }}>
+                      {fmt(Number(m.revenue))}
+                    </span>
+                    <div style={{
+                      width: '100%',
+                      height: `${heightPct}%`,
+                      minHeight: 8,
+                      background: isLast ? '#9b8050' : '#e3ddd4',
+                      borderRadius: '5px 5px 0 0',
+                      transition: 'background .2s',
+                    }} />
+                    <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#91a0a0' }}>
+                      {fmtMonth(m.month)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Top Customers */}
@@ -89,41 +111,48 @@ const Analytics = () => {
           <p style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#11130f', margin: '0 0 18px' }}>
             Top Customers
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {TOP_CUSTOMERS.map((c) => {
-              const pct = Math.round((c.revenue / maxCustomer) * 100)
-              return (
-                <div key={c.rank} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#91a0a0', width: 16, flexShrink: 0 }}>
-                    {c.rank}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#11130f', fontWeight: 600 }}>
-                        {c.customerName}
-                      </span>
-                      <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#53605e' }}>
-                        {fmt(c.revenue)}
-                      </span>
-                    </div>
-                    <div style={{ height: 5, background: '#f0efeb', borderRadius: 10, overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${pct}%`,
-                        height: '100%',
-                        background: '#9b8050',
-                        borderRadius: 10,
-                      }} />
+          {loading && <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#91a0a0' }}>Loading…</p>}
+          {error   && <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#d9534f' }}>Failed to load</p>}
+          {!loading && !error && topCustomers.length === 0 && (
+            <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#91a0a0' }}>No customer data yet</p>
+          )}
+          {!loading && !error && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {topCustomers.map((c) => {
+                const pct = Math.round((Number(c.revenue) / maxCustomer) * 100)
+                return (
+                  <div key={c.rank} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#91a0a0', width: 16, flexShrink: 0 }}>
+                      {c.rank}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#11130f', fontWeight: 600 }}>
+                          {c.customerName}
+                        </span>
+                        <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#53605e' }}>
+                          {fmt(Number(c.revenue))}
+                        </span>
+                      </div>
+                      <div style={{ height: 5, background: '#f0efeb', borderRadius: 10, overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: '#9b8050',
+                          borderRadius: 10,
+                        }} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
       </div>
 
-      {/* Row 2 — sales pipeline + sales by type */}
+      {/* Row 2 — sales pipeline + sales by type (static) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
         {/* Sales Pipeline */}

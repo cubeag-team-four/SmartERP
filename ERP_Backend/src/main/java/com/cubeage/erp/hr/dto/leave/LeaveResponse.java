@@ -32,6 +32,10 @@ public class LeaveResponse {
     private String to;
 
     private String days;
+    private Double numberOfDays;
     private String reason;
     private String status;
+    private String contactDuringLeave;
+    private String attachmentUrl;
+    private LocalDate appliedOn;
 }

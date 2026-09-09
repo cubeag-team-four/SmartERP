@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import SalesService from '../../../core/services/modules/sales.service'
 
 /* ─── tokens ─────────────────────────────────────────────────────────────── */
 const C = {
@@ -140,7 +141,47 @@ const CreateQuotationModal = ({ open, onClose }) => {
   const delItem = (id) => setItems(p => p.filter(i => i.id !== id))
 
   const [attachments, setAttachments] = useState([])
-  const [dragOver, setDragOver] = useState(false)
+  const [dragOver,    setDragOver]    = useState(false)
+
+  /* ── saving state ── */
+  const [saving,    setSaving]    = useState(false)
+  const [saveError, setSaveError] = useState(null)
+
+  /* ── build backend payload from form state ── */
+  const buildPayload = () => ({
+    customerId:   Number(String(q.customerId).replace(/\D/g, '')) || 0,
+    customerName: (q.companyName || q.customer || 'Unknown Customer').trim(),
+    validUntil:   q.validUntil,
+    notes:        [q.customerMsg, q.internalNotes].filter(Boolean).join('\n\n') || null,
+    items: items.map(i => ({
+      productId:   null,
+      description: (i.product || i.description || 'Item').trim(),
+      quantity:    i.qty,
+      unitPrice:   i.unitPrice,
+      taxRate:     i.tax,
+    })),
+  })
+
+  /* ── save as draft ── */
+  const saveDraft = () => {
+    setSaving(true)
+    setSaveError(null)
+    SalesService.createQuotation(buildPayload())
+      .then(() => onClose())
+      .catch(err => setSaveError(err?.response?.data?.message || 'Save failed. Check required fields.'))
+      .finally(() => setSaving(false))
+  }
+
+  /* ── save & send (create DRAFT then transition to SENT) ── */
+  const saveAndSend = () => {
+    setSaving(true)
+    setSaveError(null)
+    SalesService.createQuotation(buildPayload())
+      .then(r => SalesService.updateQuotation(r.data.id, { status: 'SENT' }))
+      .then(() => onClose())
+      .catch(err => setSaveError(err?.response?.data?.message || 'Save failed. Check required fields.'))
+      .finally(() => setSaving(false))
+  }
 
   /* ── price summary ── */
   const subtotal           = items.reduce((s, i) => s + i.amount, 0)
@@ -156,7 +197,7 @@ const CreateQuotationModal = ({ open, onClose }) => {
   if (!open) return null
 
   /* ── button styles ── */
-  const btnBase   = { padding: '8px 18px', borderRadius: 10, fontFamily: 'monospace', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all .15s' }
+  const btnBase   = { padding: '8px 18px', borderRadius: 10, fontFamily: 'monospace', fontSize: 11, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', transition: 'all .15s', opacity: saving ? 0.6 : 1 }
   const btnCancel = { ...btnBase, border: `1px solid ${C.border}`, background: C.white, color: C.muted }
   const btnDraft  = { ...btnBase, border: `1px solid ${C.border}`, background: C.white, color: C.text }
   const btnPrev   = { ...btnBase, border: `1px solid ${C.border}`, background: C.white, color: C.text }
@@ -218,12 +259,21 @@ const CreateQuotationModal = ({ open, onClose }) => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
-            <button style={btnCancel} onClick={onClose}>Cancel</button>
-            <button style={btnDraft}>Save as Draft</button>
-            <button style={btnPrev}>Preview</button>
-            <button style={btnSend}>💾 Save &amp; Send</button>
+            <button style={btnCancel} onClick={onClose} disabled={saving}>Cancel</button>
+            <button style={btnDraft}  onClick={saveDraft}    disabled={saving}>{saving ? 'Saving…' : 'Save as Draft'}</button>
+            <button style={btnPrev}   disabled>Preview</button>
+            <button style={btnSend}   onClick={saveAndSend}  disabled={saving}>{saving ? 'Saving…' : '💾 Save & Send'}</button>
           </div>
         </div>
+
+        {/* ── save error banner ── */}
+        {saveError && (
+          <div style={{ background: '#fde8e8', borderBottom: '1px solid #f5c6c6', padding: '10px 20px' }}>
+            <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#d9534f', margin: 0 }}>
+              ⚠ {saveError}
+            </p>
+          </div>
+        )}
 
         {/* ── scrollable body ── */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 40px' }}>
@@ -527,10 +577,10 @@ const CreateQuotationModal = ({ open, onClose }) => {
 
           {/* ── bottom action bar ── */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 6 }}>
-            <button style={btnCancel} onClick={onClose}>Cancel</button>
-            <button style={btnDraft}>Save as Draft</button>
-            <button style={btnPrev}>Preview</button>
-            <button style={btnSend}>💾 Save &amp; Send</button>
+            <button style={btnCancel} onClick={onClose}     disabled={saving}>Cancel</button>
+            <button style={btnDraft}  onClick={saveDraft}   disabled={saving}>{saving ? 'Saving…' : 'Save as Draft'}</button>
+            <button style={btnPrev}   disabled>Preview</button>
+            <button style={btnSend}   onClick={saveAndSend} disabled={saving}>{saving ? 'Saving…' : '💾 Save & Send'}</button>
           </div>
 
         </div>{/* /scrollable body */}

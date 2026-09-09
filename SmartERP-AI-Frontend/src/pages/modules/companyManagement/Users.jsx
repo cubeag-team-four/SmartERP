@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import storageService from "../../../core/services/storage.service";
 import CompanyManagementService from "../../../core/services/modules/companyManagement.service";
+import useAuthStore from "../../../store/slices/auth.store";
 
 // ─── Dropdown options ─────────────────────────────────────────────────────────
 const COUNTRY_CODES = ["+91", "+1", "+44", "+971", "+65"];
@@ -398,13 +399,14 @@ const Users = () => {
   const [togglingId, setTogglingId] = useState(null);
 
   // Authenticated user & tenant detection
-  const currentUser = storageService.getUser();
+  const authUser = useAuthStore((state) => state.user);
+  const currentUser = authUser || storageService.getUser();
   const tenantId = currentUser?.tenantId;
 
-  // RBAC validation: Check if user has ROLE_TENANT_ADMIN
-  const isTenantAdmin = useCallback(() => {
+  // RBAC validation: Check if user has TENANT_ADMIN or SUPER_ADMIN role
+  const isAuthorizedAdmin = useCallback(() => {
     if (!currentUser) return false;
-    const roles = Array.isArray(currentUser.roles)
+    const rawRoles = Array.isArray(currentUser.roles)
       ? currentUser.roles
       : typeof currentUser.roles === "string"
       ? [currentUser.roles]
@@ -413,17 +415,25 @@ const Users = () => {
         ? currentUser.role
         : [currentUser.role]
       : [];
-    return roles.some((r) => {
-      const normalized = String(r).toUpperCase().replace(/^ROLE_/, "");
-      return normalized === "TENANT_ADMIN";
+    return rawRoles.some((r) => {
+      const normalized = String(r)
+        .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+        .toUpperCase()
+        .replace(/^ROLE_/, "")
+        .replace(/[\s-]/g, "_");
+      return (
+        normalized === "TENANT_ADMIN" ||
+        normalized === "SUPER_ADMIN" ||
+        normalized === "ADMIN"
+      );
     });
   }, [currentUser]);
 
-  const hasTenantAdmin = isTenantAdmin();
+  const hasAdminAccess = isAuthorizedAdmin();
 
   // Load live users from backend
   const loadUsers = useCallback(async () => {
-    if (!hasTenantAdmin || !tenantId) return;
+    if (!hasAdminAccess || !tenantId) return;
     setLoading(true);
     setErrorMsg("");
     try {
@@ -434,27 +444,27 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  }, [hasTenantAdmin, tenantId]);
+  }, [hasAdminAccess, tenantId]);
 
   // Load live roles from backend
   const loadRoles = useCallback(async () => {
-    if (!hasTenantAdmin || !tenantId) return;
+    if (!hasAdminAccess || !tenantId) return;
     try {
       const { data } = await CompanyManagementService.getRoles(tenantId);
       setRolesList(Array.isArray(data) ? data : []);
     } catch {
       // Non-blocking: Roles will retry or show empty list
     }
-  }, [hasTenantAdmin, tenantId]);
+  }, [hasAdminAccess, tenantId]);
 
   useEffect(() => {
-    if (hasTenantAdmin) {
+    if (hasAdminAccess) {
       loadUsers();
       loadRoles();
     } else {
       setLoading(false);
     }
-  }, [hasTenantAdmin, loadUsers, loadRoles]);
+  }, [hasAdminAccess, loadUsers, loadRoles]);
 
   // Activate / Deactivate user status
   const handleToggleStatus = async (user) => {
@@ -507,8 +517,8 @@ const Users = () => {
     return name.includes(q) || email.includes(q) || role.includes(q) || branch.includes(q);
   });
 
-  // Non-Tenant Admin UI: Clean permission restriction state
-  if (!hasTenantAdmin) {
+  // Non-Admin UI: Clean permission restriction state
+  if (!hasAdminAccess) {
     return (
       <div className="users-content">
         <section className="users-card">
@@ -521,7 +531,7 @@ const Users = () => {
             <div className="upd-icon">🔒</div>
             <h3>Access Restricted</h3>
             <p>
-              Only Tenant Administrators have permission to view and manage company users.
+              Only Administrators have permission to view and manage company users.
               <br />
               Please contact your organization administrator if you need access.
             </p>

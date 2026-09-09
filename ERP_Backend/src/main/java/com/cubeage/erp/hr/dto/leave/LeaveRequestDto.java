@@ -20,5 +20,9 @@ public class LeaveRequestDto {
     private String from;
     private String to;
     private String days;
+    private Double numberOfDays;
     private String reason;
+    private String contactDuringLeave;
+    private String attachmentUrl;
+    private LocalDate appliedOn;
 }
