@@ -149,8 +149,6 @@ public class GoodsReceiptService {
 
     private String generateGrnNumber(Long tenantId) {
         int year = Year.now().getValue();
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
-        long count = grnRepository.findByTenantIdOrderByCreatedAtDesc(effectiveTenantId).size();
         return "GRN-%d-%s".formatted(year,
                 java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase());
     }

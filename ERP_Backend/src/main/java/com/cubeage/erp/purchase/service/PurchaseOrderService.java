@@ -150,8 +150,6 @@ public class PurchaseOrderService {
 
     private String generateOrderNumber(Long tenantId) {
         int year = Year.now().getValue();
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
-        long count = purchaseOrderRepository.countByTenantId(effectiveTenantId);
         return "PO-%d-%s".formatted(year,
                 java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase());
     }

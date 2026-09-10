@@ -6,7 +6,6 @@ import com.cubeage.erp.purchase.dto.vendor.VendorRequest;
 import com.cubeage.erp.purchase.dto.vendor.VendorResponse;
 import com.cubeage.erp.purchase.dto.vendor.VendorSummaryResponse;
 import com.cubeage.erp.purchase.entity.Vendor;
-import com.cubeage.erp.purchase.enums.VendorStatus;
 import com.cubeage.erp.purchase.mapper.VendorMapper;
 import com.cubeage.erp.purchase.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
