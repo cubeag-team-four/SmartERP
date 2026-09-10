@@ -1,17 +1,5 @@
-import React, { useState } from 'react'
-
-const MOCK_ORDERS = [
-  { id: 1,  orderNumber: 'SO-2026-001', customerName: 'Tata Steel Ltd',       orderDate: '02 Aug 2026', expectedDeliveryDate: '20 Aug 2026', totalAmount: '₹3,20,000',  status: 'CONFIRMED'   },
-  { id: 2,  orderNumber: 'SO-2026-002', customerName: 'Infosys BPO',           orderDate: '04 Aug 2026', expectedDeliveryDate: '22 Aug 2026', totalAmount: '₹85,000',    status: 'IN_PROGRESS' },
-  { id: 3,  orderNumber: 'SO-2026-003', customerName: 'Hero MotoCorp',         orderDate: '06 Aug 2026', expectedDeliveryDate: '25 Aug 2026', totalAmount: '₹7,50,000',  status: 'COMPLETED'   },
-  { id: 4,  orderNumber: 'SO-2026-004', customerName: 'Bajaj Auto Ltd',        orderDate: '07 Aug 2026', expectedDeliveryDate: '28 Aug 2026', totalAmount: '₹1,40,000',  status: 'INVOICED'    },
-  { id: 5,  orderNumber: 'SO-2026-005', customerName: 'Reliance Industries',   orderDate: '09 Aug 2026', expectedDeliveryDate: '30 Aug 2026', totalAmount: '₹12,00,000', status: 'IN_PROGRESS' },
-  { id: 6,  orderNumber: 'SO-2026-006', customerName: 'Mahindra & Mahindra',   orderDate: '11 Aug 2026', expectedDeliveryDate: '—',           totalAmount: '₹45,000',    status: 'CANCELLED'   },
-  { id: 7,  orderNumber: 'SO-2026-007', customerName: 'Wipro Technologies',    orderDate: '13 Aug 2026', expectedDeliveryDate: '01 Sep 2026', totalAmount: '₹2,60,000',  status: 'CONFIRMED'   },
-  { id: 8,  orderNumber: 'SO-2026-008', customerName: 'L&T Construction',      orderDate: '15 Aug 2026', expectedDeliveryDate: '05 Sep 2026', totalAmount: '₹18,50,000', status: 'IN_PROGRESS' },
-  { id: 9,  orderNumber: 'SO-2026-009', customerName: 'Adani Enterprises',     orderDate: '17 Aug 2026', expectedDeliveryDate: '08 Sep 2026', totalAmount: '₹5,80,000',  status: 'COMPLETED'   },
-  { id: 10, orderNumber: 'SO-2026-010', customerName: 'Sun Pharmaceutical',    orderDate: '19 Aug 2026', expectedDeliveryDate: '—',           totalAmount: '₹95,000',    status: 'CANCELLED'   },
-]
+import React, { useState, useEffect } from 'react'
+import SalesService from '../../../core/services/modules/sales.service'
 
 const STATUS_STYLE = {
   CONFIRMED:    { background: '#e8f0fe', color: '#2563eb' },
@@ -19,6 +7,12 @@ const STATUS_STYLE = {
   COMPLETED:    { background: '#e6f4ea', color: '#3a7d44' },
   INVOICED:     { background: '#f3e8ff', color: '#7c3aed' },
   CANCELLED:    { background: '#fde8e8', color: '#d9534f' },
+}
+
+/* Allowed next statuses per current status */
+const NEXT_STATUS = {
+  CONFIRMED:   ['IN_PROGRESS', 'CANCELLED'],
+  IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
 }
 
 const StatusBadge = ({ status }) => {
@@ -55,8 +49,53 @@ const TH = ({ children, right }) => (
   </th>
 )
 
-const SalesOrders = () => {
-  const [hoveredRow, setHovered] = useState(null)
+const fmtDate = (d) => {
+  if (!d) return '—'
+  try {
+    return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  } catch { return d }
+}
+
+const fmtAmt = (n) => {
+  const v = Number(n) || 0
+  return '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+const SalesOrders = ({ refresh }) => {
+  const [rows,      setRows]      = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState(null)
+  const [hoveredRow,setHovered]   = useState(null)
+  const [search,    setSearch]    = useState('')
+  const [statusFlt, setStatusFlt] = useState('')
+  const [busy,      setBusy]      = useState({})
+
+  const load = () => {
+    setLoading(true)
+    setError(null)
+    SalesService.getOrders()
+      .then(r => setRows(r.data ?? []))
+      .catch(() => setError('Failed to load orders'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [refresh]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filtered = rows.filter(o => {
+    const matchSearch = !search ||
+      o.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      o.customerName?.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = !statusFlt || o.status === statusFlt
+    return matchSearch && matchStatus
+  })
+
+  const doStatusChange = (o, newStatus) => {
+    setBusy(b => ({ ...b, [o.id]: true }))
+    SalesService.updateOrderStatus(o.id, { status: newStatus })
+      .then(() => load())
+      .catch(err => alert(err?.response?.data?.message || `Could not change status to ${newStatus}`))
+      .finally(() => setBusy(b => ({ ...b, [o.id]: false })))
+  }
 
   return (
     <div style={{
@@ -83,11 +122,13 @@ const SalesOrders = () => {
             padding: '2px 8px',
             fontSize: 10,
           }}>
-            {MOCK_ORDERS.length}
+            {filtered.length}
           </span>
         </p>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             placeholder="Search orders..."
             style={{
               padding: '7px 12px',
@@ -100,87 +141,125 @@ const SalesOrders = () => {
               width: 200,
             }}
           />
-          <select style={{
-            padding: '7px 12px',
-            borderRadius: 10,
-            border: '1px solid #e3e0d9',
-            fontFamily: 'monospace',
-            fontSize: 11,
-            color: '#11130f',
-            outline: 'none',
-            background: '#fff',
-          }}>
+          <select
+            value={statusFlt}
+            onChange={e => setStatusFlt(e.target.value)}
+            style={{
+              padding: '7px 12px',
+              borderRadius: 10,
+              border: '1px solid #e3e0d9',
+              fontFamily: 'monospace',
+              fontSize: 11,
+              color: '#11130f',
+              outline: 'none',
+              background: '#fff',
+            }}
+          >
             <option value="">All Status</option>
             {Object.keys(STATUS_STYLE).map((s) => <option key={s}>{s}</option>)}
           </select>
         </div>
       </div>
 
+      {/* Loading / Error */}
+      {loading && (
+        <p style={{ padding: '24px 20px', fontFamily: 'monospace', fontSize: 12, color: '#91a0a0', margin: 0 }}>
+          Loading orders…
+        </p>
+      )}
+      {error && (
+        <p style={{ padding: '24px 20px', fontFamily: 'monospace', fontSize: 12, color: '#d9534f', margin: 0 }}>
+          {error} — <button onClick={load} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontFamily: 'monospace', fontSize: 12 }}>Retry</button>
+        </p>
+      )}
+
       {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <TH>Order #</TH>
-              <TH>Customer</TH>
-              <TH>Order Date</TH>
-              <TH>Delivery Date</TH>
-              <TH right>Amount</TH>
-              <TH>Status</TH>
-              <TH></TH>
-            </tr>
-          </thead>
-          <tbody>
-            {MOCK_ORDERS.map((o) => (
-              <tr
-                key={o.id}
-                onMouseEnter={() => setHovered(o.id)}
-                onMouseLeave={() => setHovered(null)}
-                style={{
-                  borderBottom: '1px solid #f6f5f1',
-                  background: hoveredRow === o.id ? '#fafaf8' : '#fff',
-                  transition: 'background .12s',
-                }}
-              >
-                <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 11, color: '#91a0a0' }}>
-                  {o.orderNumber}
-                </td>
-                <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#11130f' }}>
-                  {o.customerName}
-                </td>
-                <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 11, color: '#53605e' }}>
-                  {o.orderDate}
-                </td>
-                <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 11, color: '#53605e' }}>
-                  {o.expectedDeliveryDate}
-                </td>
-                <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#11130f', textAlign: 'right' }}>
-                  {o.totalAmount}
-                </td>
-                <td style={{ padding: '14px 16px' }}>
-                  <StatusBadge status={o.status} />
-                </td>
-                <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                  <button style={{
-                    padding: '5px 14px',
-                    borderRadius: 8,
-                    border: '1px solid #e3e0d9',
-                    background: '#fff',
-                    fontFamily: 'monospace',
-                    fontSize: 10,
-                    color: '#53605e',
-                    cursor: 'pointer',
-                    opacity: hoveredRow === o.id ? 1 : 0,
-                    transition: 'opacity .12s',
-                  }}>
-                    View
-                  </button>
-                </td>
+      {!loading && !error && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <TH>Order #</TH>
+                <TH>Customer</TH>
+                <TH>Order Date</TH>
+                <TH>Delivery Date</TH>
+                <TH right>Amount</TH>
+                <TH>Status</TH>
+                <TH></TH>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ padding: '24px 16px', fontFamily: 'monospace', fontSize: 12, color: '#91a0a0', textAlign: 'center' }}>
+                    No orders found
+                  </td>
+                </tr>
+              )}
+              {filtered.map((o) => (
+                <tr
+                  key={o.id}
+                  onMouseEnter={() => setHovered(o.id)}
+                  onMouseLeave={() => setHovered(null)}
+                  style={{
+                    borderBottom: '1px solid #f6f5f1',
+                    background: hoveredRow === o.id ? '#fafaf8' : '#fff',
+                    transition: 'background .12s',
+                    opacity: busy[o.id] ? 0.6 : 1,
+                  }}
+                >
+                  <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 11, color: '#91a0a0' }}>
+                    {o.orderNumber}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#11130f' }}>
+                    {o.customerName}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 11, color: '#53605e' }}>
+                    {fmtDate(o.orderDate)}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 11, color: '#53605e' }}>
+                    {fmtDate(o.expectedDeliveryDate)}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#11130f', textAlign: 'right' }}>
+                    {fmtAmt(o.totalAmount)}
+                  </td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <StatusBadge status={o.status} />
+                  </td>
+                  <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                    <div style={{
+                      display: 'flex', gap: 6, justifyContent: 'flex-end',
+                      opacity: hoveredRow === o.id ? 1 : 0,
+                      transition: 'opacity .12s',
+                    }}>
+                      {(NEXT_STATUS[o.status] || []).map(ns => (
+                        <button
+                          key={ns}
+                          disabled={busy[o.id]}
+                          onClick={() => doStatusChange(o, ns)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 7,
+                            border: '1px solid #e3e0d9',
+                            background: '#fff',
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                            color: '#53605e',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          → {ns.replace('_', ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

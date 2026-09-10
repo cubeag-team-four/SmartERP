@@ -1,16 +1,30 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ProjectsService from "../../../core/services/modules/projects.service";
 import storageService from "../../../core/services/storage.service";
 import ProjectPlanning from "./ProjectPlanning";
 import Tasks from "./Tasks";
 import TimeTracking from "./TimeTracking";
 import BudgetMonitoring from "./BudgetMonitoring";
+import LeaveManagement from "../employee/LeaveManagement";
 import NewProjectModal from "./NewProjectModal";
 import ViewProjectModal from "./ViewProjectModal";
 import DeleteProjectModal from "./DeleteProjectModal";
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("projects");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    queryTab && ["projects", "tasks", "timeline", "budget", "leave"].includes(queryTab)
+      ? queryTab
+      : "projects"
+  );
+
+  useEffect(() => {
+    if (queryTab && ["projects", "tasks", "timeline", "budget", "leave"].includes(queryTab)) {
+      setActiveTab(queryTab);
+    }
+  }, [queryTab]);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewProject, setViewProject] = useState(null);
@@ -23,6 +37,14 @@ const Dashboard = () => {
   const [error, setError] = useState("");
 
   const fetchDashboardData = async () => {
+    const user = storageService.getUser();
+    const role = String(user?.role || user?.roles?.[0] || "").toUpperCase().replace(/^ROLE_/, "");
+    const AUTHORIZED_ROLES = ["SUPER_ADMIN", "TENANT_ADMIN", "PROJECT_MANAGER", "EXECUTIVE_OWNER"];
+
+    if (!AUTHORIZED_ROLES.includes(role)) {
+      return;
+    }
+
     try {
       const { data } = await ProjectsService.getDashboard();
       setDashboardStats(data);
@@ -217,6 +239,7 @@ const Dashboard = () => {
     { id: "tasks", label: "TASKS", enabled: true },
     { id: "timeline", label: "TIMELINE", enabled: true },
     { id: "budget", label: "BUDGET", enabled: true },
+    { id: "leave", label: "LEAVE", enabled: true },
   ];
 
   const renderTabContent = () => {
@@ -240,6 +263,9 @@ const Dashboard = () => {
 
       case "budget":
         return <BudgetMonitoring projects={projects} />;
+
+      case "leave":
+        return <LeaveManagement />;
 
       default:
         return (
@@ -370,6 +396,11 @@ const Dashboard = () => {
             onClick={() => {
               if (tab.enabled) {
                 setActiveTab(tab.id);
+                if (tab.id === "projects") {
+                  setSearchParams({});
+                } else {
+                  setSearchParams({ tab: tab.id });
+                }
               }
             }}
             aria-current={

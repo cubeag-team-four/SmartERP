@@ -60,6 +60,15 @@ public class LeaveRequest {
     @Column(name = "status", length = 30)
     private String status;
 
+    @Column(name = "contact_during_leave", length = 100)
+    private String contactDuringLeave;
+
+    @Column(name = "attachment_url", length = 255)
+    private String attachmentUrl;
+
+    @Column(name = "applied_on")
+    private LocalDate appliedOn;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
