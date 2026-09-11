@@ -18,13 +18,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/bom")
 @RequiredArgsConstructor
-@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class BomController {
 
     private final BomService bomService;
 
     @PostMapping
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<BomResponse> create(@Valid @RequestBody CreateBomRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(bomService.create(SecurityUtils.currentTenantId(), request));
@@ -41,14 +41,14 @@ public class BomController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
     public BomResponse update(@PathVariable Long id, @Valid @RequestBody UpdateBomRequest request) {
         return bomService.update(SecurityUtils.currentTenantId(), id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','DELETE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','DELETE')")
     public void delete(@PathVariable Long id) {
         bomService.delete(SecurityUtils.currentTenantId(), id);
     }

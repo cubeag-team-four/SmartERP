@@ -24,8 +24,9 @@ public class MachineServiceImpl implements MachineService {
 
     @Override
     public MachineResponse create(Long tenantId, CreateMachineRequest request) {
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
         Machine machine = Machine.builder()
-                .tenantId(tenantId)
+                .tenantId(effectiveTenantId)
                 .code(request.code().trim().toUpperCase())
                 .name(request.name().trim())
                 .shopFloor(request.shopFloor().trim())
@@ -41,7 +42,8 @@ public class MachineServiceImpl implements MachineService {
     @Override
     @Transactional(readOnly = true)
     public List<MachineResponse> getAll(Long tenantId) {
-        return machineRepository.findByTenantIdOrderByCodeAsc(tenantId)
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        return machineRepository.findByTenantIdOrderByCodeAsc(effectiveTenantId)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -74,7 +76,9 @@ public class MachineServiceImpl implements MachineService {
     }
 
     private Machine getEntity(Long tenantId, Long id) {
-        return machineRepository.findByIdAndTenantId(id, tenantId)
+        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        return machineRepository.findByIdAndTenantId(id, effectiveTenantId)
+                .or(() -> machineRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Machine not found: " + id));
     }
 }

@@ -16,15 +16,41 @@ public interface PayableRepository extends JpaRepository<Payable, Long> {
 
     Optional<Payable> findByIdAndTenantId(Long id, Long tenantId);
 
-    boolean existsByTenantIdAndInvoiceReference(Long tenantId, String invoiceReference);
+    boolean existsByTenantIdAndInvoiceReference(
+            Long tenantId,
+            String invoiceReference
+    );
 
-    @Query("select coalesce(sum(p.balanceDue), 0) from Payable p " +
-            "where p.tenantId = :tenantId and p.status <> com.cubeage.erp.purchase.enums.PaymentStatus.PAID")
+    boolean existsByTenantIdAndPaymentReference(Long tenantId, String paymentReference);
+
+    boolean existsByTenantIdAndPurchaseOrderId(Long tenantId, Long purchaseOrderId);
+
+    List<Payable> findByTenantIdAndPurchaseOrderId(Long tenantId, Long purchaseOrderId);
+
+    long countByTenantIdAndVendorId(Long tenantId, Long vendorId);
+
+    List<Payable> findByTenantIdAndVendorId(Long tenantId, Long vendorId);
+
+    @Query("""
+        select coalesce(sum(p.balanceDue), 0)
+        from Payable p
+        where p.tenantId = :tenantId
+          and p.status <>
+              com.cubeage.erp.purchase.enums.PaymentStatus.PAID
+    """)
     BigDecimal totalOutstandingPayables(@Param("tenantId") Long tenantId);
 
-    @Query("select coalesce(sum(p.balanceDue), 0) from Payable p " +
-            "where p.tenantId = :tenantId and p.status = com.cubeage.erp.purchase.enums.PaymentStatus.OVERDUE")
+    @Query("""
+        select coalesce(sum(p.balanceDue), 0)
+        from Payable p
+        where p.tenantId = :tenantId
+          and p.status =
+              com.cubeage.erp.purchase.enums.PaymentStatus.OVERDUE
+    """)
     BigDecimal totalOverduePayables(@Param("tenantId") Long tenantId);
 
-    List<Payable> findByTenantIdAndStatusIn(Long tenantId, List<PaymentStatus> statuses);
+    List<Payable> findByTenantIdAndStatusIn(
+            Long tenantId,
+            List<PaymentStatus> statuses
+    );
 }

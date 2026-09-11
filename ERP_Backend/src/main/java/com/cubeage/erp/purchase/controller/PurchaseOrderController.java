@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/purchase/orders")
 @RequiredArgsConstructor
-@PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','VIEW')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','VIEW')")
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
@@ -33,7 +33,7 @@ public class PurchaseOrderController {
     }
 
     @PostMapping
-    @PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','CREATE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','CREATE')")
     public ResponseEntity<PurchaseOrderResponse> createPurchaseOrder(
             @Valid @RequestBody CreatePurchaseOrderRequest request
     ) {
@@ -42,11 +42,18 @@ public class PurchaseOrderController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','EDIT')")
     public PurchaseOrderResponse updatePurchaseOrder(
             @PathVariable Long id,
             @Valid @RequestBody UpdatePurchaseOrderRequest request
     ) {
         return purchaseOrderService.updatePurchaseOrder(SecurityUtils.currentTenantId(), id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','DELETE')")
+    public ResponseEntity<Void> deletePurchaseOrder(@PathVariable Long id) {
+        purchaseOrderService.deletePurchaseOrder(SecurityUtils.currentTenantId(), id);
+        return ResponseEntity.noContent().build();
     }
 }

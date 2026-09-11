@@ -41,6 +41,10 @@ public class BillOfMaterial extends BaseEntity {
     @Column(length = 500)
     private String notes;
 
+    @Lob
+    @Column(name = "details_json", columnDefinition = "text")
+    private String detailsJson;
+
     @OneToMany(mappedBy = "billOfMaterial", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BomItem> items = new ArrayList<>();

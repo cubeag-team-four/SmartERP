@@ -1,6 +1,10 @@
 package com.cubeage.erp.purchase.dto.payable;
 
 import com.cubeage.erp.purchase.enums.PaymentStatus;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -24,4 +28,13 @@ public record PayableResponse(
         String notes,
         Instant createdAt,
         Instant updatedAt
-) {}
+) {
+    public record CreatePayableRequest(
+            @NotNull Long purchaseOrderId,
+            @NotBlank String invoiceReference,
+            @NotNull LocalDate invoiceDate,
+            @NotNull @FutureOrPresent LocalDate dueDate,
+            @NotNull @DecimalMin("0.01") BigDecimal totalAmount,
+            String notes
+    ) {}
+}

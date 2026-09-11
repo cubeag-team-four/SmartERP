@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import PurchaseService from "../../../core/services/modules/purchase.service";
 
 /* =========================================================
@@ -14,12 +14,16 @@ const labelClass =
 const sectionClass =
   "rounded-[8px] border border-[#e4e2dd] bg-white p-4";
 
+const VendorFormContext = createContext({ editMode: false });
+
 
 /* =========================================================
    FIELD
 ========================================================= */
 
 const Field = ({ label, required, children }) => {
+  const { editMode } = useContext(VendorFormContext);
+
   return (
     <div>
       <label className={labelClass}>
@@ -29,7 +33,9 @@ const Field = ({ label, required, children }) => {
         )}
       </label>
 
-      {children}
+      {React.isValidElement(children) && required && editMode
+        ? React.cloneElement(children, { disabled: true })
+        : children}
     </div>
   );
 };
@@ -43,13 +49,15 @@ const Select = ({
   placeholder,
   value,
   onChange,
+  disabled = false,
   children,
 }) => {
   return (
     <select
       value={value}
       onChange={onChange}
-      className={inputClass}
+      disabled={disabled}
+      className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#f1f0ec] disabled:text-[#888]`}
     >
       <option value="">{placeholder}</option>
       {children}
@@ -207,7 +215,7 @@ const DocumentUpload = ({
    ADD VENDOR MODAL
 ========================================================= */
 
-const AddVendorModal = ({ onClose, onSave }) => {
+const AddVendorModal = ({ onClose, onSave, initialVendor = null, readOnly = false, editMode = false }) => {
 
   /* =======================================================
      FORM STATE
@@ -272,6 +280,16 @@ const AddVendorModal = ({ onClose, onSave }) => {
     rating: "",
     tags: "",
     notes: "",
+    ...(initialVendor ? {
+      ...Object.fromEntries(
+        Object.entries(initialVendor).map(([key, value]) => [key, value ?? ""])
+      ),
+      address1: initialVendor.address1 || initialVendor.address || "",
+      address2: initialVendor.address2 || initialVendor.addressLine2 || "",
+      branchName: initialVendor.branchName || initialVendor.bankBranch || "",
+      creditPeriod: initialVendor.creditPeriod || initialVendor.creditPeriodDays || "",
+      currency: initialVendor.currency || "INR",
+    } : {}),
   });
 
 
@@ -316,31 +334,120 @@ const AddVendorModal = ({ onClose, onSave }) => {
      SUBMIT
   ======================================================= */
 
+const buildVendorPayload = (status) => ({
+  /* Existing basic vendor fields */
+  vendorName: form.vendorName.trim(),
+  contactName: form.contactName.trim() || (status === "DRAFT" ? "Not assigned" : null),
+  phone: form.phone || null,
+  email: form.email || null,
+  city: form.city || null,
+  address: form.address1 || null,
+  category: form.category || null,
+  gstin: form.gstin || null,
+  pan: form.pan || null,
+  paymentTerms: form.paymentTerms || null,
+  creditLimit: Number(form.creditLimit) || 0,
+  rating: Number(form.rating) || 0,
+  status,
+
+  /* Vendor information */
+  vendorType: form.vendorType || null,
+  website: form.website || null,
+  description: form.description || null,
+
+  /* Contact information */
+  designation: form.designation || null,
+  alternatePhone: form.alternatePhone || null,
+  contactWebsite: form.contactWebsite || null,
+
+  /* Address */
+  addressLine2: form.address2 || null,
+  country: form.country || "India",
+  state: form.state || null,
+  pinCode: form.pinCode || null,
+
+  /* Tax */
+  gstType: form.gstType || null,
+  tan: form.tan || null,
+  cin: form.cin || null,
+  msme: form.msme || null,
+  taxState: form.taxState || null,
+
+  /* Purchase */
+  creditPeriodDays: Number.parseInt(form.creditPeriod, 10) || null,
+  currency: form.currency?.split(" ")[0] || "INR",
+  minimumOrderValue: Number(form.minimumOrderValue) || 0,
+  deliveryDays: Number(form.deliveryDays) || null,
+  purchaseCategory: form.purchaseCategory || null,
+
+  /* Bank */
+  accountHolder: form.accountHolder || null,
+  bankName: form.bankName || null,
+  accountNumber: form.accountNumber || null,
+  ifsc: form.ifsc || null,
+  bankBranch: form.branchName || null,
+  accountType: form.accountType || null,
+  upiId: form.upiId || null,
+
+  /* Additional */
+  tags: form.tags || null,
+  notes: form.notes || null,
+});
+
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  try {
-    const payload = {
-      vendorName: form.vendorName,
-      contactName: form.contactName,
-      phone: form.phone,
-      email: form.email,
-      city: form.city,
-      address: form.address1,
-      category: form.category,
-      gstin: form.gstin,
-      pan: form.pan,
-      paymentTerms: form.paymentTerms,
-      creditLimit: Number(form.creditLimit) || 0,
-      rating: Number(form.rating) || 0,
-      status: form.status.toUpperCase(),
-    };
+  if (!form.vendorName.trim()) {
+    alert("Vendor name is required.");
+    return;
+  }
 
-    const response = await PurchaseService.createVendor(payload);
+  if (!form.contactName.trim()) {
+    alert("Contact name is required.");
+    return;
+  }
+
+  try {
+    const response = editMode
+      ? await PurchaseService.updateVendor(initialVendor.id, buildVendorPayload(form.status.toUpperCase()))
+      : await PurchaseService.createVendor(buildVendorPayload(form.status.toUpperCase()));
+
+    if (Object.values(documents).some(Boolean)) {
+      if (!editMode) {
+        alert("Vendor saved. Document upload will be added after the Supabase Storage integration.");
+      }
+    }
 
     onSave(response.data);
   } catch (error) {
-    console.error("Failed to create vendor:", error.response?.data || error);
+    console.error(editMode ? "Failed to update vendor:" : "Failed to create vendor:", error.response?.data || error);
+
+    alert(
+      error?.response?.data?.message ||
+        `Unable to ${editMode ? "update" : "create"} vendor. Please check the entered information.`
+    );
+  }
+};
+
+const handleSaveDraft = async () => {
+  if (!form.vendorName.trim()) {
+    alert("Enter at least a vendor name before saving a draft.");
+    return;
+  }
+
+  try {
+    const response = editMode
+      ? await PurchaseService.updateVendor(initialVendor.id, buildVendorPayload(form.status.toUpperCase()))
+      : await PurchaseService.createVendor(buildVendorPayload("DRAFT"));
+
+    onSave(response.data);
+  } catch (error) {
+    console.error("Failed to save vendor:", error.response?.data || error);
+
+    alert(
+      error?.response?.data?.message ||
+        "Unable to save vendor draft."
+    );
   }
 };
 
@@ -419,12 +526,12 @@ const handleSubmit = async (e) => {
                   text-[#171815]
                 "
               >
-                Add New Vendor
+                {readOnly ? "Vendor Details" : editMode ? "Edit Vendor" : "Add New Vendor"}
               </h1>
 
 
               <p className="mt-1 text-[11px] text-[#858680]">
-                Create a new vendor / supplier
+                {readOnly ? "View vendor information" : editMode ? "Update vendor information" : "Create a new vendor / supplier"}
               </p>
 
             </div>
@@ -432,7 +539,7 @@ const handleSubmit = async (e) => {
 
             {/* Header buttons */}
 
-            <div className="flex gap-3">
+            {!readOnly && !editMode && <div className="flex gap-3">
 
               <button
                 type="button"
@@ -450,7 +557,7 @@ const handleSubmit = async (e) => {
                   hover:bg-[#f1f0ec]
                 "
               >
-                ▣ &nbsp; Save Draft
+                {editMode ? "Save Changes" : "▣  Save Draft"}
               </button>
 
 
@@ -469,10 +576,10 @@ const handleSubmit = async (e) => {
                   hover:bg-[#292b27]
                 "
               >
-                + &nbsp; Add Vendor
+                {editMode ? "Save Changes" : "+  Add Vendor"}
               </button>
 
-            </div>
+            </div>}
 
           </div>
 
@@ -481,10 +588,11 @@ const handleSubmit = async (e) => {
               FORM
           ================================================= */}
 
+          <VendorFormContext.Provider value={{ editMode }}>
           <form
             id="vendor-form"
             onSubmit={handleSubmit}
-            className="space-y-[10px] p-4 sm:p-5"
+            className={`space-y-[10px] p-4 sm:p-5 ${readOnly ? "pointer-events-none" : ""}`}
           >
 
 
@@ -1655,7 +1763,7 @@ const handleSubmit = async (e) => {
               "
             >
 
-              <button
+              {!readOnly && <button
                 type="button"
                 onClick={onClose}
                 className="
@@ -1672,10 +1780,10 @@ const handleSubmit = async (e) => {
                 "
               >
                 Cancel
-              </button>
+              </button>}
 
 
-              <button
+              {!readOnly && !editMode && <button
                 type="button"
                 onClick={handleSaveDraft}
                 className="
@@ -1691,11 +1799,11 @@ const handleSubmit = async (e) => {
                   hover:bg-[#f1f0ec]
                 "
               >
-                ▣ &nbsp; Save Draft
-              </button>
+                {editMode ? "Save Changes" : "▣  Save Draft"}
+              </button>}
 
 
-              <button
+              {!readOnly && <button
                 type="submit"
                 className="
                   rounded-[6px]
@@ -1709,12 +1817,13 @@ const handleSubmit = async (e) => {
                   hover:bg-[#292b27]
                 "
               >
-                + &nbsp; Add Vendor
-              </button>
+                {editMode ? "Save Changes" : "+  Add Vendor"}
+              </button>}
 
             </div>
 
           </form>
+          </VendorFormContext.Provider>
 
         </div>
 

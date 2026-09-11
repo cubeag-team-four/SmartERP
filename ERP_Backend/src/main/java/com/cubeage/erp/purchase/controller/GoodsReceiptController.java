@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/purchase/grn")
 @RequiredArgsConstructor
-@PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','VIEW')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','VIEW')")
 public class GoodsReceiptController {
 
     private final GoodsReceiptService goodsReceiptService;
@@ -32,11 +32,18 @@ public class GoodsReceiptController {
     }
 
     @PostMapping
-    @PreAuthorize("@permissionEvaluator.has(authentication,'PURCHASE','CREATE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','CREATE')")
     public ResponseEntity<GoodsReceiptResponse> createGoodsReceipt(
             @Valid @RequestBody CreateGoodsReceiptRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(goodsReceiptService.createGoodsReceipt(SecurityUtils.currentTenantId(), request));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'PURCHASE','DELETE')")
+    public ResponseEntity<Void> deleteGoodsReceipt(@PathVariable Long id) {
+        goodsReceiptService.deleteGoodsReceipt(SecurityUtils.currentTenantId(), id);
+        return ResponseEntity.noContent().build();
     }
 }

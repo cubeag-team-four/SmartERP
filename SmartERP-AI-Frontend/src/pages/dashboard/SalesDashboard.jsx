@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import RoleDashboardService from "../../core/services/modules/roleDashboard.service";
 import {
   Sparkles,
   ArrowUpRight,
@@ -9,38 +10,13 @@ import {
    SALES DASHBOARD DATA
 ========================================================= */
 
-const stats = [
-  {
-    label: "PIPELINE VALUE",
-    value: "₹3.2Cr",
-    footer: "+18.2%",
-  },
-  {
-    label: "CONVERSION RATE",
-    value: "68%",
-    footer: "+5.1%",
-  },
-  {
-    label: "INVOICED MTD",
-    value: "₹1.4Cr",
-    footer: "+9.4%",
-  },
-  {
-    label: "30D FORECAST",
-    value: "₹1.8Cr",
-    footer: "82% confidence",
-  },
-  {
-    label: "TOP AI LEAD",
-    value: "Nexus Corp",
-    footer: "Score: 94",
-  },
-  {
-    label: "OVERDUE FOLLOW-UPS",
-    value: "12",
-    footer: "Due today",
-    warning: true,
-  },
+const fallbackStats = [
+  { label: "REVENUE MTD", value: "₹0", footer: "Loading unavailable" },
+  { label: "REVENUE CHANGE", value: "0%", footer: "vs last month" },
+  { label: "RECEIVABLES", value: "₹0", footer: "Outstanding invoices" },
+  { label: "PENDING INVOICES", value: "0", footer: "Awaiting payment" },
+  { label: "ORDERS YTD", value: "₹0", footer: "Year-to-date value" },
+  { label: "ON-TIME DELIVERY", value: "0%", footer: "Delivery performance" },
 ];
 
 /* =========================================================
@@ -809,6 +785,109 @@ function PendingApprovals() {
 ========================================================= */
 
 export default function SalesDashboard() {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setError("");
+
+        const response =
+          await RoleDashboardService.getSalesDashboard();
+
+        setDashboardData(response.data);
+      } catch (requestError) {
+        console.error(
+          "Unable to load Sales dashboard:",
+          requestError
+        );
+
+        setError(
+          requestError?.response?.data?.message ||
+          "Unable to load sales dashboard data."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const formatAmount = (amount, currency = "INR") =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(Number(amount || 0));
+
+  const stats = dashboardData
+    ? [
+        {
+          label: "REVENUE MTD",
+          value: formatAmount(
+            dashboardData.revenueMtd,
+            dashboardData.currency
+          ),
+          footer: "Current month invoiced value",
+        },
+        {
+          label: "REVENUE CHANGE",
+          value: `${Number(
+            dashboardData.revenueChangePercent || 0
+          ).toFixed(1)}%`,
+          footer: "Compared with last month",
+          warning: Number(
+            dashboardData.revenueChangePercent || 0
+          ) < 0,
+        },
+        {
+          label: "RECEIVABLES",
+          value: formatAmount(
+            dashboardData.outstandingAmount,
+            dashboardData.currency
+          ),
+          footer: "Outstanding invoice balance",
+          warning: Number(
+            dashboardData.outstandingAmount || 0
+          ) > 0,
+        },
+        {
+          label: "PENDING INVOICES",
+          value: Number(
+            dashboardData.pendingInvoiceCount || 0
+          ).toLocaleString("en-IN"),
+          footer: "Invoices awaiting payment",
+          warning: Number(
+            dashboardData.pendingInvoiceCount || 0
+          ) > 0,
+        },
+        {
+          label: "ORDERS YTD",
+          value: formatAmount(
+            dashboardData.ordersYtdAmount,
+            dashboardData.currency
+          ),
+          footer: `${Number(
+            dashboardData.orderCountYtd || 0
+          ).toLocaleString("en-IN")} orders this year`,
+        },
+        {
+          label: "ON-TIME DELIVERY",
+          value: `${Number(
+            dashboardData.onTimeDeliveryPercentage || 0
+          ).toFixed(1)}%`,
+          footer: `${Number(
+            dashboardData.onTimeDeliveryChangePoints || 0
+          ).toFixed(1)}pp vs previous period`,
+          warning: Number(
+            dashboardData.onTimeDeliveryPercentage || 0
+          ) < 90,
+        },
+      ]
+    : fallbackStats;
 
   return (
     <main
@@ -829,6 +908,18 @@ export default function SalesDashboard() {
           max-w-[1540px]
         "
       >
+
+        {loading && (
+  <div className="rounded-[16px] border border-[#e3e0d9] bg-white px-5 py-4 text-sm text-[#6d7069]">
+    Loading sales dashboard…
+  </div>
+)}
+
+{error && (
+  <div className="mb-6 rounded-[16px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+    {error}
+  </div>
+)}
         {/* =================================================
             HEADER
         ================================================== */}

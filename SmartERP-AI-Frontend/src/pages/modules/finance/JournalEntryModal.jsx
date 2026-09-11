@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef } from "react";
+import financeService from "../../../core/services/modules/finance.service";
 
 /* ================================================================
    QUICK ACCOUNTS — sidebar list
 ================================================================ */
 const QUICK_ACCOUNTS = [
-    { code: "1001", name: "Cash in Hand",        type: "Asset" },
-    { code: "1002", name: "Cash at Bank",         type: "Asset" },
-    { code: "1100", name: "Accounts Receivable",  type: "Current Asset" },
-    { code: "1200", name: "Inventory",            type: "Asset" },
-    { code: "1500", name: "Computer Equipment",   type: "Fixed Asset" },
-    { code: "2000", name: "Accounts Payable",     type: "Current Liability" },
-    { code: "3000", name: "Salary Expense",       type: "Expense" },
-    { code: "3100", name: "Rent Expense",         type: "Expense" },
+    { code: "1001", name: "Cash in Hand", type: "Asset" },
+    { code: "1002", name: "Cash at Bank", type: "Asset" },
+    { code: "1100", name: "Accounts Receivable", type: "Current Asset" },
+    { code: "1200", name: "Inventory", type: "Asset" },
+    { code: "1500", name: "Computer Equipment", type: "Fixed Asset" },
+    { code: "2000", name: "Accounts Payable", type: "Current Liability" },
+    { code: "3000", name: "Salary Expense", type: "Expense" },
+    { code: "3100", name: "Rent Expense", type: "Expense" },
 ];
 
 const TRANSACTION_TYPES = [
@@ -32,12 +33,12 @@ const CURRENCIES = [
     "GBP - British Pound",
 ];
 
-const BRANCHES   = ["All Branches", "Head Office", "Mumbai", "Delhi", "Bangalore"];
-const FIN_YEARS  = ["2026-27", "2025-26", "2024-25"];
-const COST_CTRS  = ["", "IT Department", "HR", "Finance", "Operations", "Sales"];
-const DEPTS      = ["", "Administration", "Engineering", "Marketing", "Accounts"];
-const TAX_OPTS   = ["", "GST 18%", "GST 12%", "GST 5%", "TDS 10%", "Exempt"];
-const USERS      = ["Rohit Sharma", "Neha Verma", "Amit Patel", "Priya Singh"];
+const BRANCHES = ["All Branches", "Head Office", "Mumbai", "Delhi", "Bangalore"];
+const FIN_YEARS = ["2026-27", "2025-26", "2024-25"];
+const COST_CTRS = ["", "IT Department", "HR", "Finance", "Operations", "Sales"];
+const DEPTS = ["", "Administration", "Engineering", "Marketing", "Accounts"];
+const TAX_OPTS = ["", "GST 18%", "GST 12%", "GST 5%", "TDS 10%", "Exempt"];
+const USERS = ["Rohit Sharma", "Neha Verma", "Amit Patel", "Priya Singh"];
 
 /* ---- helpers ---- */
 const today = () => {
@@ -63,35 +64,36 @@ const emptyLine = () => ({
 /* ================================================================
    MODAL
 ================================================================ */
-const JournalEntryModal = ({ open, onClose }) => {
+const JournalEntryModal = ({ open, onClose, onSuccess }) => {
     /* ---------- form state ---------- */
+    const [submitting, setSubmitting] = useState(false);
     const [transactionType, setTransactionType] = useState("General Journal");
-    const [currency,        setCurrency]        = useState("INR - Indian Rupee");
-    const [branch,          setBranch]          = useState("All Branches");
-    const [finYear,         setFinYear]         = useState("2026-27");
-    const [narration,       setNarration]       = useState("");
-    const [refNo,           setRefNo]           = useState("");
-    const [preparedBy,      setPreparedBy]      = useState("Rohit Sharma");
-    const [reviewedBy,      setReviewedBy]      = useState("Neha Verma");
-    const [approvedBy,      setApprovedBy]      = useState("");
-    const [tags,            setTags]            = useState("");
-    const [notes,           setNotes]           = useState("");
-    const [attachments,     setAttachments]     = useState([]);
-    const [lines,           setLines]           = useState([emptyLine(), emptyLine()]);
-    const [acSearch,        setAcSearch]        = useState("");
-    const [dragging,        setDragging]        = useState(false);
-    const [postError,       setPostError]       = useState("");
+    const [currency, setCurrency] = useState("INR - Indian Rupee");
+    const [branch, setBranch] = useState("All Branches");
+    const [finYear, setFinYear] = useState("2026-27");
+    const [narration, setNarration] = useState("");
+    const [refNo, setRefNo] = useState("");
+    const [preparedBy, setPreparedBy] = useState("Rohit Sharma");
+    const [reviewedBy, setReviewedBy] = useState("Neha Verma");
+    const [approvedBy, setApprovedBy] = useState("");
+    const [tags, setTags] = useState("");
+    const [notes, setNotes] = useState("");
+    const [attachments, setAttachments] = useState([]);
+    const [lines, setLines] = useState([emptyLine(), emptyLine()]);
+    const [acSearch, setAcSearch] = useState("");
+    const [dragging, setDragging] = useState(false);
+    const [postError, setPostError] = useState("");
 
     const fileRef = useRef();
 
     /* ---------- derived ---------- */
-    const totalDebit  = lines.reduce((s, l) => s + Number(l.debit  || 0), 0);
+    const totalDebit = lines.reduce((s, l) => s + Number(l.debit || 0), 0);
     const totalCredit = lines.reduce((s, l) => s + Number(l.credit || 0), 0);
-    const diff        = Math.abs(totalDebit - totalCredit);
-    const balanced    = diff < 0.005;
+    const diff = Math.abs(totalDebit - totalCredit);
+    const balanced = diff < 0.005;
 
-    /* ---------- post validation ---------- */
-    const handlePost = () => {
+    /* ---------- post validation & submit ---------- */
+    const handlePost = async () => {
         if (totalDebit === 0 && totalCredit === 0) {
             setPostError("Please enter at least one debit or credit amount.");
             return;
@@ -100,9 +102,57 @@ const JournalEntryModal = ({ open, onClose }) => {
             setPostError(`Entry is unbalanced. Difference: ₹${fmt(diff)}. Total Debit and Credit must match.`);
             return;
         }
-        setPostError("");
-        // TODO: submit to API
-        onClose();
+
+        const validLines = lines.filter(
+            (l) => Number(l.debit || 0) > 0 || Number(l.credit || 0) > 0
+        );
+        if (validLines.length < 2) {
+            setPostError("At least two journal lines (one debit and one credit) are required.");
+            return;
+        }
+
+        const missingAccount = validLines.some((l) => !l.account?.trim());
+        if (missingAccount) {
+            setPostError("Please select or enter an account name for each active line.");
+            return;
+        }
+
+        const payload = {
+            entryDate: new Date().toISOString().split("T")[0],
+            description: (narration || "General Journal Entry - " + transactionType).trim(),
+            reference: refNo ? refNo.trim() : ("REF-" + Date.now().toString().slice(-6)),
+            lines: validLines.map((l) => {
+                const found = availableAccounts.find(
+                    (a) => a.name.toLowerCase() === l.account?.trim().toLowerCase() || a.code === l.account?.trim()
+                );
+                return {
+                    accountCode: (l.accountCode || found?.code || l.account || "1001").trim(),
+                    accountName: (found?.name || l.account || "General Account").trim(),
+                    debit: Number(l.debit || 0),
+                    credit: Number(l.credit || 0),
+                };
+            }),
+        };
+
+        try {
+            setSubmitting(true);
+            setPostError("");
+            const created = await financeService.createJournalEntry(payload);
+            setLines([emptyLine(), emptyLine()]);
+            setNarration("");
+            setRefNo("");
+            if (onSuccess) onSuccess(created);
+            onClose();
+        } catch (err) {
+            const serverMsg =
+                err?.response?.data?.message ||
+                err?.response?.data?.error ||
+                err?.message ||
+                "Failed to post journal entry to server";
+            setPostError(serverMsg);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     /* ---------- close on Escape ---------- */
@@ -125,15 +175,34 @@ const JournalEntryModal = ({ open, onClose }) => {
     const removeLine = (id) =>
         setLines((prev) => prev.length > 1 ? prev.filter((l) => l.id !== id) : prev);
 
+    /* ---------- quick accounts state & fetch ---------- */
+    const [availableAccounts, setAvailableAccounts] = useState(QUICK_ACCOUNTS);
+
+    useEffect(() => {
+        if (!open) return;
+        financeService.getAccounts({ active: true })
+            .then((res) => {
+                if (Array.isArray(res) && res.length > 0) {
+                    setAvailableAccounts(res);
+                }
+            })
+            .catch(() => {});
+    }, [open]);
+
+    /* ---------- quick account applicator ---------- */
     const applyQuickAccount = (acc) => {
-        // fill first empty account line
         const idx = lines.findIndex((l) => !l.account);
         if (idx !== -1) {
             setLines((prev) =>
                 prev.map((l, i) =>
-                    i === idx ? { ...l, account: acc.name, accountType: acc.type } : l
+                    i === idx ? { ...l, account: acc.name, accountCode: acc.code, accountType: acc.type } : l
                 )
             );
+        } else {
+            setLines((prev) => [
+                ...prev,
+                { ...emptyLine(), account: acc.name, accountCode: acc.code, accountType: acc.type }
+            ]);
         }
     };
 
@@ -146,7 +215,7 @@ const JournalEntryModal = ({ open, onClose }) => {
     };
 
     /* ---------- filtered quick accounts ---------- */
-    const filteredAccounts = QUICK_ACCOUNTS.filter(
+    const filteredAccounts = availableAccounts.filter(
         (a) =>
             !acSearch ||
             a.name.toLowerCase().includes(acSearch.toLowerCase()) ||
@@ -193,16 +262,23 @@ const JournalEntryModal = ({ open, onClose }) => {
                         </button>
                         <button
                             onClick={handlePost}
+                            disabled={submitting}
                             className="
                                 flex items-center gap-2 rounded-[12px]
                                 bg-[#11130f] px-5 py-2.5 font-mono text-[12px] text-white
-                                transition hover:bg-[#292c27]
+                                transition hover:bg-[#292c27] disabled:opacity-50
                             "
                         >
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                <path d="M3 8l4 4 6-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            Post Entry
+                            {submitting ? (
+                                <span>Posting...</span>
+                            ) : (
+                                <>
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                        <path d="M3 8l4 4 6-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    Post Entry
+                                </>
+                            )}
                         </button>
                         <button
                             onClick={onClose}
@@ -326,8 +402,8 @@ const JournalEntryModal = ({ open, onClose }) => {
                                         `}
                                     >
                                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mb-1 text-[#b0b8b8]">
-                                            <path d="M12 16V8m0 0l-3 3m3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                            <path d="M20 16.7A4 4 0 0 0 18 9h-1.26A7 7 0 1 0 5 15.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <path d="M12 16V8m0 0l-3 3m3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M20 16.7A4 4 0 0 0 18 9h-1.26A7 7 0 1 0 5 15.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                         <p className="font-mono text-[11px] text-[#8d9696]">Upload or drag files here</p>
                                         <p className="font-mono text-[10px] text-[#b0b8b8]">PDF, JPG, PNG (Max 5MB)</p>
@@ -380,7 +456,7 @@ const JournalEntryModal = ({ open, onClose }) => {
                                         "
                                     >
                                         <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                                            <path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                                            <path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                                         </svg>
                                         Import from Excel
                                     </button>
@@ -419,11 +495,14 @@ const JournalEntryModal = ({ open, onClose }) => {
                                                             list={`ac-list-${line.id}`}
                                                             value={line.account}
                                                             onChange={(e) => {
-                                                                const found = QUICK_ACCOUNTS.find(
-                                                                    (a) => a.name === e.target.value
+                                                                const found = availableAccounts.find(
+                                                                    (a) => a.name.toLowerCase() === e.target.value.toLowerCase() || a.code === e.target.value
                                                                 );
-                                                                updateLine(line.id, "account", e.target.value);
-                                                                if (found) updateLine(line.id, "accountType", found.type);
+                                                                updateLine(line.id, "account", found ? found.name : e.target.value);
+                                                                if (found) {
+                                                                    updateLine(line.id, "accountCode", found.code);
+                                                                    updateLine(line.id, "accountType", found.type);
+                                                                }
                                                             }}
                                                             placeholder="Select account"
                                                             className="
@@ -433,8 +512,10 @@ const JournalEntryModal = ({ open, onClose }) => {
                                                             "
                                                         />
                                                         <datalist id={`ac-list-${line.id}`}>
-                                                            {QUICK_ACCOUNTS.map((a) => (
-                                                                <option key={a.code} value={a.name} />
+                                                            {availableAccounts.map((a) => (
+                                                                <option key={a.code} value={a.name}>
+                                                                    {a.code} · {a.type}
+                                                                </option>
                                                             ))}
                                                         </datalist>
                                                         {line.accountType && (
@@ -608,8 +689,8 @@ const JournalEntryModal = ({ open, onClose }) => {
                             <div className="mb-4 flex items-center gap-2">
                                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f0efeb]">
                                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                        <rect x="2" y="2" width="12" height="12" rx="2" stroke="#53605e" strokeWidth="1.4"/>
-                                        <path d="M5 6h6M5 9h4" stroke="#53605e" strokeWidth="1.4" strokeLinecap="round"/>
+                                        <rect x="2" y="2" width="12" height="12" rx="2" stroke="#53605e" strokeWidth="1.4" />
+                                        <path d="M5 6h6M5 9h4" stroke="#53605e" strokeWidth="1.4" strokeLinecap="round" />
                                     </svg>
                                 </div>
                                 <span className="font-mono text-[11px] font-semibold tracking-[0.06em] text-[#11130f]">
@@ -646,7 +727,7 @@ const JournalEntryModal = ({ open, onClose }) => {
                                             bg-[#e6f4ea] px-3 py-1 font-mono text-[10px] text-[#3a7d44]
                                         ">
                                             <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                                                <path d="M2 6l3 3 5-5" stroke="#3a7d44" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                <path d="M2 6l3 3 5-5" stroke="#3a7d44" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                             </svg>
                                             Balanced
                                         </span>
@@ -692,8 +773,8 @@ const JournalEntryModal = ({ open, onClose }) => {
                                             rounded-lg bg-[#f0efeb] text-[#53605e]
                                         ">
                                             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                                                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.3"/>
-                                                <path d="M5 8h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                                                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.3" />
+                                                <path d="M5 8h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                                             </svg>
                                         </div>
                                         <div>
@@ -725,16 +806,23 @@ const JournalEntryModal = ({ open, onClose }) => {
                     </button>
                     <button
                         onClick={handlePost}
+                        disabled={submitting}
                         className="
                             flex items-center gap-2 rounded-[12px]
                             bg-[#11130f] px-6 py-2.5 font-mono text-[12px] text-white
-                            transition hover:bg-[#292c27]
+                            transition hover:bg-[#292c27] disabled:opacity-50
                         "
                     >
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                            <path d="M3 8l4 4 6-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Post Entry
+                        {submitting ? (
+                            <span>Posting...</span>
+                        ) : (
+                            <>
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M3 8l4 4 6-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                Post Entry
+                            </>
+                        )}
                     </button>
                 </div>
 
@@ -795,8 +883,8 @@ const InputDate = ({ value }) => (
             className="pointer-events-none absolute right-3 text-[#91a0a0]"
             width="14" height="14" viewBox="0 0 16 16" fill="none"
         >
-            <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.4"/>
-            <path d="M5 1v3M11 1v3M2 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M5 1v3M11 1v3M2 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
         </svg>
     </div>
 );

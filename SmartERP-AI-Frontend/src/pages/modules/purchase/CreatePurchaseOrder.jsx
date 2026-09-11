@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import PurchaseService from "../../../core/services/modules/purchase.service";
 
 /* =========================================================
@@ -56,7 +56,9 @@ const CreatePurchaseOrder = ({
   vendors = [],
   onClose,
   onSave,
+  editOrder = null,
 }) => {
+  const isEditing = Boolean(editOrder?.id);
   /* =====================================================
      FORM
   ===================================================== */
@@ -102,6 +104,34 @@ const CreatePurchaseOrder = ({
   ]);
 
 const [selectedVendor, setSelectedVendor] = useState(null);
+
+  useEffect(() => {
+    if (!editOrder) return;
+    setForm((previous) => ({
+      ...previous,
+      poDate: editOrder.orderDate || previous.poDate,
+      vendorId: String(editOrder.vendorId || ""),
+      deliveryDate: editOrder.expectedDeliveryDate || "",
+      deliveryLocation: editOrder.deliveryLocation || "",
+      paymentTerms: editOrder.paymentTerms || previous.paymentTerms,
+      notes: editOrder.notes || "",
+    }));
+    setItems((editOrder.items || []).map((item, index) => ({
+      id: item.id || index + 1,
+      name: item.description || "",
+      description: item.description || "",
+      sku: "",
+      qty: Number(item.quantity) || 0,
+      uom: "Nos",
+      rate: Number(item.unitPrice) || 0,
+      discount: 0,
+      tax: Number(item.taxRate) || 0,
+    })));
+    setSelectedVendor(vendors.find((vendor) => vendor.id === editOrder.vendorId) || {
+      vendorName: editOrder.vendorName,
+      vendorCode: "-",
+    });
+  }, [editOrder, vendors]);
 
   /* =====================================================
      FORM CHANGE
@@ -362,14 +392,14 @@ const savePurchaseOrder = async (submitForApproval = false) => {
     return;
   }
 
-  const payload = {
+    const payload = {
     vendorId: Number(form.vendorId),
     vendorName: selectedVendor.vendorName,
     expectedDeliveryDate: form.deliveryDate,
     deliveryLocation: form.deliveryLocation,
     paymentTerms: form.paymentTerms,
     notes: form.notes,
-    items: items.map((item) => ({
+      items: items.map((item) => ({
       productId: null,
       description: item.description || item.name,
       quantity: Number(item.qty),
@@ -379,21 +409,24 @@ const savePurchaseOrder = async (submitForApproval = false) => {
   };
 
   try {
-    // First create the Purchase Order.
-    // Backend creates it as DRAFT.
-    const response = await PurchaseService.create(payload);
+    const response = isEditing
+      ? await PurchaseService.updateOrder(editOrder.id, {
+          expectedDeliveryDate: payload.expectedDeliveryDate,
+          deliveryLocation: payload.deliveryLocation,
+          paymentTerms: payload.paymentTerms,
+          notes: payload.notes,
+          ...(editOrder.status === "DRAFT" ? { items: payload.items } : {}),
+        })
+      : await PurchaseService.createOrder(payload);
 
     let finalOrder = response.data;
 
     // If Submit for Approval was clicked,
     // change the newly created PO from DRAFT -> SENT.
-    if (submitForApproval) {
-      const updateResponse = await PurchaseService.update(
-        response.data.id,
-        {
-          status: "SENT",
-        }
-      );
+    if (submitForApproval && !isEditing) {
+      const updateResponse = await PurchaseService.updateOrder(response.data.id, {
+        status: "SENT",
+      });
 
       finalOrder = updateResponse.data;
     }
@@ -442,7 +475,7 @@ const handleSubmit = (e) => {
               PURCHASE ORDERS
             </p>
             <h2 className="mt-1 font-serif text-[23px] font-semibold text-[#171815]">
-              Create Purchase Order
+              {isEditing ? "Edit Purchase Order" : "Create Purchase Order"}
             </h2>
           </div>
           <div className="flex items-center gap-2">
@@ -460,7 +493,7 @@ const handleSubmit = (e) => {
   onClick={() => savePurchaseOrder(false)}
   className="rounded-[11px] border border-[#d9d7d1] bg-white px-5 py-2.5 text-[11px] font-semibold text-[#252622] transition hover:bg-[#f5f4f0]"
 >
-  Save Draft
+  {isEditing ? "Save Changes" : "Save Draft"}
 </button>
 
 <button
@@ -468,7 +501,7 @@ const handleSubmit = (e) => {
   onClick={() => savePurchaseOrder(true)}
   className="rounded-[11px] bg-[#151714] px-5 py-2.5 text-[11px] font-semibold text-white transition hover:bg-[#292b27]"
 >
-  Submit for Approval
+  {isEditing ? "Save & Submit" : "Submit for Approval"}
 </button>
 
           </div>

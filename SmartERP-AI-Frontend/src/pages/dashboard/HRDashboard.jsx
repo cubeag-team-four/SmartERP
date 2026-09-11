@@ -239,15 +239,26 @@ function StatCard({
    ATTENDANCE OVERVIEW
 ========================================================= */
 
-function AttendanceOverview() {
-  const [period, setPeriod] = useState("6M");
-  const [hoveredIndex, setHoveredIndex] =
-    useState(null);
+function AttendanceOverview({ trends = [] }) {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
   const data = useMemo(
-    () => attendanceData[period],
-    [period]
+    () => Array.isArray(trends) ? trends : [],
+    [trends]
   );
+
+  if (data.length === 0) {
+    return (
+      <section className="rounded-[20px] border border-[#e3e0d9] bg-white px-6 py-6">
+        <p className="font-sans text-[10px] font-medium uppercase tracking-[0.15em] text-[#9ba19b]">
+          Attendance This Week
+        </p>
+        <p className="mt-4 font-sans text-[13px] text-[#8d938d]">
+          No attendance records are available yet.
+        </p>
+      </section>
+    );
+  }
 
   const chartWidth = 1000;
   const chartHeight = 190;
@@ -257,8 +268,18 @@ function AttendanceOverview() {
   const topPadding = 22;
   const bottomPadding = 20;
 
-  const minValue = 94;
-  const maxValue = 97;
+  const values = data.map((item) => Number(item.value) || 0);
+  const lowestValue = Math.min(...values);
+  const highestValue = Math.max(...values);
+  const padding = Math.max(2, (highestValue - lowestValue) * 0.25);
+
+  const minValue = Math.max(0, lowestValue - padding);
+  const maxValue = Math.min(
+    100,
+    highestValue === lowestValue
+      ? highestValue + 2
+      : highestValue + padding
+  );
 
   const xStep =
     data.length > 1
@@ -388,7 +409,11 @@ function AttendanceOverview() {
                 text-[#11130f]
               "
             >
-              96.2%
+              {(
+                data.reduce((total, item) => total + (Number(item.value) || 0), 0) /
+                data.length
+              ).toFixed(1)}
+              %
             </span>
 
             <span
@@ -412,41 +437,10 @@ function AttendanceOverview() {
             </span>
           </div>
         </div>
-
-        {/* PERIOD */}
-
-        <div className="flex items-center gap-2">
-          {["3M", "6M", "1Y"].map(
-            (item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  setPeriod(item);
-                  setHoveredIndex(null);
-                }}
-                className={`
-                  rounded-[9px]
-                  px-3
-                  py-2
-                  font-sans
-                  text-[9px]
-                  font-medium
-                  transition-all
-                  duration-150
-                  ${
-                    period === item
-                      ? "bg-[#151814] text-white"
-                      : "text-[#929992] hover:bg-[#f1f1ec] hover:text-[#222620]"
-                  }
-                `}
-              >
-                {item}
-              </button>
-            )
-          )}
+          <span className="font-sans text-[10px] text-[#8d938d]">
+            Last 5 recorded weeks
+          </span>
         </div>
-      </div>
 
       {/* CHART */}
 
@@ -581,7 +575,7 @@ function AttendanceOverview() {
    AI INSIGHTS
 ========================================================= */
 
-function AIInsights() {
+function AIInsights({ items = [] }) {
   return (
     <section
       className="
@@ -626,7 +620,7 @@ function AIInsights() {
             text-[#aab99b]
           "
         >
-          AI Insights for HR Manager
+          HR Workforce Insights
         </p>
       </div>
 
@@ -727,293 +721,134 @@ function AIInsights() {
    PENDING APPROVALS
 ========================================================= */
 
-function PendingApprovals() {
-  const [approvals, setApprovals] =
-    useState(initialApprovals);
+function PendingApprovals({ items = [], onDashboardRefresh }) {
+  const [approvals, setApprovals] = useState(items);
+  const [savingId, setSavingId] = useState(null);
+  const [actionError, setActionError] = useState("");
 
-  const handleApprove = (id) => {
-    setApprovals((current) =>
-      current.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: "APPROVED",
-            }
-          : item
-      )
-    );
+  useEffect(() => {
+    setApprovals(items);
+  }, [items]);
+
+  const updateApproval = async (id, action) => {
+    try {
+      setSavingId(id);
+      setActionError("");
+
+      if (action === "APPROVED") {
+        await hrApi.approveLeave(id);
+      } else {
+        await hrApi.rejectLeave(id);
+      }
+
+      setApprovals((current) =>
+        current.map((item) =>
+          String(item.id) === String(id)
+            ? { ...item, status: action }
+            : item
+        )
+      );
+
+      onDashboardRefresh?.();
+    } catch (error) {
+      console.error("Unable to update leave approval:", error);
+      setActionError(
+        error?.response?.data?.message ||
+          "Unable to update this leave request. Please try again."
+      );
+    } finally {
+      setSavingId(null);
+    }
   };
 
-  const handleReject = (id) => {
-    setApprovals((current) =>
-      current.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: "REJECTED",
-            }
-          : item
-      )
-    );
-  };
-
-  const pendingCount =
-    approvals.filter(
-      (item) => item.status === "PENDING"
-    ).length;
+  const pendingCount = approvals.filter(
+    (item) => item.status === "PENDING"
+  ).length;
 
   return (
-    <section
-      className="
-        overflow-hidden
-        rounded-[20px]
-        border
-        border-[#e3e0d9]
-        bg-white
-      "
-    >
-      {/* HEADER */}
+    <section className="overflow-hidden rounded-[20px] border border-[#e3e0d9] bg-white">
+      <div className="flex items-center justify-between border-b border-[#e5e2db] px-7 py-6">
+        <div>
+          <h2 className="font-serif text-[22px] leading-none text-[#161815]">
+            Pending Leave Approvals
+          </h2>
 
-      <div
-        className="
-          flex
-          items-center
-          justify-between
-          border-b
-          border-[#e5e2db]
-          px-7
-          py-6
-        "
-      >
-        <h2
-          className="
-            font-serif
-            text-[22px]
-            leading-none
-            text-[#161815]
-          "
-        >
-          Pending Approvals
-        </h2>
+          {actionError && (
+            <p className="mt-2 font-sans text-[11px] text-[#a25f54]">
+              {actionError}
+            </p>
+          )}
+        </div>
 
-        <span
-          className="
-            rounded-[10px]
-            bg-[#f2e9e5]
-            px-3
-            py-2
-            font-sans
-            text-[9px]
-            font-medium
-            text-[#996d62]
-          "
-        >
+        <span className="rounded-[10px] bg-[#f2e9e5] px-3 py-2 font-sans text-[9px] font-medium text-[#996d62]">
           {pendingCount} waiting
         </span>
       </div>
 
-      {/* ROWS */}
-
-      {approvals.map((item) => (
-        <div
-          key={item.id}
-          className="
-            group
-            relative
-            grid
-            min-h-[102px]
-            grid-cols-[minmax(0,1fr)_auto]
-            items-center
-            gap-5
-            border-b
-            border-[#e6e3dc]
-            px-7
-            transition-colors
-            duration-200
-            last:border-b-0
-            hover:bg-[#f0f0eb]
-          "
-        >
-          {/* LEFT */}
-
+      {approvals.length === 0 ? (
+        <p className="px-7 py-8 font-sans text-[13px] text-[#8d938d]">
+          No leave requests are awaiting approval.
+        </p>
+      ) : (
+        approvals.map((item) => (
           <div
-            className="
-              flex
-              min-w-0
-              items-center
-              gap-5
-            "
+            key={item.id}
+            className="group relative grid min-h-[102px] grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-b border-[#e6e3dc] px-7 transition-colors duration-200 last:border-b-0 hover:bg-[#f0f0eb]"
           >
-            <span
-              className="
-                h-[11px]
-                w-[11px]
-                shrink-0
-                rounded-full
-                bg-[#a8bb98]
-                transition-transform
-                duration-200
-                group-hover:scale-[1.1]
-              "
-            />
+            <div className="flex min-w-0 items-center gap-5">
+              <span className="h-[11px] w-[11px] shrink-0 rounded-full bg-[#a8bb98]" />
 
-            <div className="min-w-0">
-              <p
-                className="
-                  truncate
-                  font-sans
-                  text-[13px]
-                  text-[#252824]
-                  transition-colors
-                  duration-200
-                  group-hover:text-[#171916]
-                "
-              >
-                {item.title}
-              </p>
+              <div className="min-w-0">
+                <p className="truncate font-sans text-[13px] text-[#252824]">
+                  {item.title}
+                </p>
 
-              <p
-                className="
-                  mt-2
-                  font-sans
-                  text-[11px]
-                  text-[#b0b4af]
-                  transition-colors
-                  duration-200
-                  group-hover:text-[#8d938d]
-                "
-              >
-                {item.type}
-              </p>
+                <p className="mt-2 font-sans text-[11px] text-[#b0b4af]">
+                  {item.type}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <span className="min-w-[82px] text-right font-serif text-[20px] text-[#181b17]">
+                {item.amount || "—"}
+              </span>
+
+              {item.status === "PENDING" ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={savingId === item.id}
+                    onClick={() => updateApproval(item.id, "APPROVED")}
+                    className="rounded-[9px] border border-[#cdd9c8] bg-[#eef3eb] px-3 py-1.5 font-sans text-[9px] font-medium text-[#5e6d58] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {savingId === item.id ? "Saving..." : "Approve"}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={savingId === item.id}
+                    onClick={() => updateApproval(item.id, "REJECTED")}
+                    className="rounded-[9px] border border-[#dfcbc7] bg-[#f6efed] px-3 py-1.5 font-sans text-[9px] font-medium text-[#8a625b] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Reject
+                  </button>
+                </div>
+              ) : (
+                <span
+                  className={
+                    item.status === "APPROVED"
+                      ? "rounded-[9px] bg-[#e3ebdf] px-3 py-1.5 font-sans text-[9px] font-medium tracking-[0.06em] text-[#53624f]"
+                      : "rounded-[9px] bg-[#eee2df] px-3 py-1.5 font-sans text-[9px] font-medium tracking-[0.06em] text-[#8a635b]"
+                  }
+                >
+                  {item.status}
+                </span>
+              )}
             </div>
           </div>
-
-          {/* RIGHT */}
-
-          <div
-            className="
-              flex
-              items-center
-              justify-end
-              gap-3
-            "
-          >
-            <span
-              className="
-                min-w-[82px]
-                text-right
-                font-serif
-                text-[20px]
-                text-[#181b17]
-              "
-            >
-              {item.amount}
-            </span>
-
-            {/* HOVER ACTIONS */}
-
-            {item.status ===
-              "PENDING" && (
-              <div
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  overflow-hidden
-                  max-w-0
-                  translate-x-2
-                  opacity-0
-                  pointer-events-none
-                  transition-all
-                  duration-200
-                  ease-out
-                  group-hover:max-w-[150px]
-                  group-hover:translate-x-0
-                  group-hover:opacity-100
-                  group-hover:pointer-events-auto
-                "
-              >
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleApprove(item.id)
-                  }
-                  className="
-                    shrink-0
-                    rounded-[9px]
-                    border
-                    border-[#cdd9c8]
-                    bg-[#eef3eb]
-                    px-3
-                    py-1.5
-                    font-sans
-                    text-[9px]
-                    font-medium
-                    text-[#5e6d58]
-                    transition-all
-                    duration-150
-                    hover:border-[#bdccb6]
-                    hover:bg-[#dfe9db]
-                  "
-                >
-                  Approve
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleReject(item.id)
-                  }
-                  className="
-                    shrink-0
-                    rounded-[9px]
-                    border
-                    border-[#dfcbc7]
-                    bg-[#f6efed]
-                    px-3
-                    py-1.5
-                    font-sans
-                    text-[9px]
-                    font-medium
-                    text-[#8a625b]
-                    transition-all
-                    duration-150
-                    hover:border-[#d5bdb8]
-                    hover:bg-[#eadbd8]
-                  "
-                >
-                  Reject
-                </button>
-              </div>
-            )}
-
-            {/* COMPLETED STATUS */}
-
-            {item.status !==
-              "PENDING" && (
-              <span
-                className={`
-                  rounded-[9px]
-                  px-3
-                  py-1.5
-                  font-sans
-                  text-[9px]
-                  font-medium
-                  tracking-[0.06em]
-                  ${
-                    item.status ===
-                    "APPROVED"
-                      ? "bg-[#e3ebdf] text-[#53624f]"
-                      : "bg-[#eee2df] text-[#8a635b]"
-                  }
-                `}
-              >
-                {item.status}
-              </span>
-            )}
-          </div>
-        </div>
-      ))}
+        ))
+      )}
     </section>
   );
 }
@@ -1023,23 +858,47 @@ function PendingApprovals() {
 ========================================================= */
 
 export default function HRDashboard() {
-
   const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState("");
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      setDashboardError("");
+
+      const response = await hrApi.getDashboard();
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error("HR Dashboard API error:", error);
+      setDashboardError(
+        error?.response?.data?.message ||
+          "Unable to load the HR dashboard."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    hrApi.getDashboard()
-      .then((res) => {
-        setDashboardData(res.data);
-      })
-      .catch((err) => {
-        console.error("HR Dashboard API error:", err);
-      });
+    loadDashboard();
   }, []);
 
-  const stats = dashboardData?.stats && Array.isArray(dashboardData.stats) && dashboardData.stats.length > 0
+  const stats = Array.isArray(dashboardData?.stats)
     ? dashboardData.stats
-    : defaultStats;
+    : [];
 
+  const attendanceTrends = Array.isArray(dashboardData?.attendanceTrends)
+    ? dashboardData.attendanceTrends
+    : [];
+
+  const dashboardInsights = Array.isArray(dashboardData?.insights)
+    ? dashboardData.insights
+    : [];
+
+  const pendingApprovals = Array.isArray(dashboardData?.pendingApprovals)
+    ? dashboardData.pendingApprovals
+    : [];
 
   return (
     <main
@@ -1060,6 +919,18 @@ export default function HRDashboard() {
           max-w-[1540px]
         "
       >
+                {dashboardError && (
+          <div className="mb-6 rounded-[14px] border border-[#e6c9c2] bg-[#fbf1ef] px-4 py-3 font-sans text-[12px] text-[#9b5e52]">
+            {dashboardError}
+          </div>
+        )}
+
+        {loading && (
+          <div className="mb-6 rounded-[14px] border border-[#e3e0d9] bg-white px-4 py-3 font-sans text-[12px] text-[#727870]">
+            Loading HR dashboard…
+          </div>
+        )}
+
         {/* =================================================
             HEADER
         ================================================== */}
@@ -1208,9 +1079,8 @@ export default function HRDashboard() {
             xl:grid-cols-[minmax(0,2.15fr)_minmax(340px,0.9fr)]
           "
         >
-          <AttendanceOverview />
-
-          <AIInsights />
+          <AttendanceOverview trends={attendanceTrends} />
+          <AIInsights items={dashboardInsights} />
         </section>
 
         {/* =================================================
@@ -1226,7 +1096,7 @@ export default function HRDashboard() {
             xl:grid-cols-[minmax(0,2.1fr)_minmax(340px,0.85fr)]
           "
         >
-          <PendingApprovals />
+          <PendingApprovals items={pendingApprovals} onDashboardRefresh={loadDashboard} />
 
         </section>
       </div>

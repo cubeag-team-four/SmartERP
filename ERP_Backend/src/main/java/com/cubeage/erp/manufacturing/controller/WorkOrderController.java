@@ -18,13 +18,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/manufacturing/work-orders")
 @RequiredArgsConstructor
-@PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','VIEW')")
 public class WorkOrderController {
 
     private final WorkOrderService workOrderService;
 
     @PostMapping
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','CREATE')")
     public ResponseEntity<WorkOrderResponse> create(@Valid @RequestBody CreateWorkOrderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(workOrderService.create(SecurityUtils.currentTenantId(), request));
@@ -44,14 +44,14 @@ public class WorkOrderController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','EDIT')")
     public WorkOrderResponse update(@PathVariable Long id, @Valid @RequestBody UpdateWorkOrderRequest request) {
         return workOrderService.update(SecurityUtils.currentTenantId(), id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("@permissionEvaluator.has(authentication,'MANUFACTURING','DELETE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OPERATIONS_MANAGER', 'OPERATIONS', 'FINANCE_MANAGER', 'FINANCE', 'SALES_MANAGER', 'SALES', 'HR_MANAGER', 'HR') or @permissionEvaluator.has(authentication,'MANUFACTURING','DELETE')")
     public void delete(@PathVariable Long id) {
         workOrderService.delete(SecurityUtils.currentTenantId(), id);
     }

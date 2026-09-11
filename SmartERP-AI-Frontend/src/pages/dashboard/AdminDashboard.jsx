@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import RoleDashboardService from "../../core/services/modules/roleDashboard.service";
 import {
   Sparkles,
   ArrowUpRight,
@@ -8,37 +9,36 @@ import {
    DATA
 ========================================================= */
 
-const stats = [
+const fallbackStats = [
+  {
+    label: "TOTAL USERS",
+    value: "0",
+    footer: "Loading unavailable",
+  },
   {
     label: "ACTIVE USERS",
-    value: "284",
-    footer: "+4 this month",
+    value: "0",
+    footer: "Loading unavailable",
   },
   {
-    label: "PENDING APPROVALS",
-    value: "7",
-    footer: "3 urgent",
-    danger: true,
+    label: "ROLES",
+    value: "0",
+    footer: "Loading unavailable",
   },
   {
-    label: "REVENUE MTD",
-    value: "₹48.6M",
-    footer: "+12.4%",
+    label: "PERMISSIONS",
+    value: "0",
+    footer: "Loading unavailable",
   },
   {
-    label: "SYSTEM HEALTH",
-    value: "99.9%",
-    footer: "All systems OK",
+    label: "BRANCHES",
+    value: "0",
+    footer: "Loading unavailable",
   },
   {
-    label: "OPEN WORKFLOWS",
-    value: "23",
-    footer: "+6 today",
-  },
-  {
-    label: "AI QUERIES TODAY",
-    value: "142",
-    footer: "+18%",
+    label: "DEPARTMENTS",
+    value: "0",
+    footer: "Loading unavailable",
   },
 ];
 
@@ -973,6 +973,83 @@ function PendingApprovals() {
 ========================================================= */
 
 export default function AdminDashboard() {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setError("");
+
+        const response =
+          await RoleDashboardService.getAdminDashboard();
+
+        setDashboardData(response.data);
+      } catch (requestError) {
+        console.error(
+          "Unable to load Admin dashboard:",
+          requestError
+        );
+
+        setError(
+          requestError?.response?.data?.message ||
+          "Unable to load admin dashboard data."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const stats = dashboardData
+    ? [
+        {
+          label: "TOTAL USERS",
+          value: Number(
+            dashboardData.totalUsers || 0
+          ).toLocaleString("en-IN"),
+          footer: "Users in this tenant",
+        },
+        {
+          label: "ACTIVE USERS",
+          value: Number(
+            dashboardData.activeUsers || 0
+          ).toLocaleString("en-IN"),
+          footer: "Enabled user accounts",
+        },
+        {
+          label: "ROLES",
+          value: Number(
+            dashboardData.totalRoles || 0
+          ).toLocaleString("en-IN"),
+          footer: "Configured access roles",
+        },
+        {
+          label: "PERMISSIONS",
+          value: Number(
+            dashboardData.totalPermissions || 0
+          ).toLocaleString("en-IN"),
+          footer: "Available permission types",
+        },
+        {
+          label: "BRANCHES",
+          value: Number(
+            dashboardData.totalBranches || 0
+          ).toLocaleString("en-IN"),
+          footer: "Configured branches",
+        },
+        {
+          label: "DEPARTMENTS",
+          value: Number(
+            dashboardData.totalDepartments || 0
+          ).toLocaleString("en-IN"),
+          footer: "Configured departments",
+        },
+      ]
+    : fallbackStats;
 
   return (
     <main
@@ -987,6 +1064,18 @@ export default function AdminDashboard() {
       "
     >
       <div className="mx-auto w-full max-w-[1540px]">
+
+        {loading && (
+  <div className="rounded-[16px] border border-[#e3e0d9] bg-white px-5 py-4 text-sm text-[#6d7069]">
+    Loading admin dashboard…
+  </div>
+)}
+
+{error && (
+  <div className="mb-6 rounded-[16px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+    {error}
+  </div>
+)}
 
         {/* =====================================================
             HEADER

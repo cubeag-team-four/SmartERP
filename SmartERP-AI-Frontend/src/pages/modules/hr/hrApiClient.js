@@ -15,8 +15,23 @@ hrAxios.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const user = storageService.getUser();
+  if (user?.tenantId != null) {
+    config.headers['X-Tenant-ID'] = user.tenantId;
+  }
   return config;
 });
+
+hrAxios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      storageService.clear();
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const hrApi = {
   // Employees
