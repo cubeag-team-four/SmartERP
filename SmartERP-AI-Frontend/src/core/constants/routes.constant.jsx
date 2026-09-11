@@ -181,6 +181,7 @@ export const ROUTES = {
   // ══════════════════════════════════════════════════════════════════════════════
   ADMIN:                                    BASE.ADMIN,
   ADMIN_DASHBOARD:                          `${BASE.ADMIN}/dashboard`,
+  ADMIN_USER_MANAGEMENT:                    `${BASE.ADMIN}/user-management`,
 
   // Company
   ADMIN_COMPANY:                            `${BASE.ADMIN}/company`,
@@ -316,6 +317,9 @@ export const ROUTES = {
   ADMIN_AI_FRAUD_DETECTION:                 `${BASE.ADMIN}/ai/fraud-detection`,
   ADMIN_AI_CHATBOT:                         `${BASE.ADMIN}/ai/chatbot`,
   ADMIN_AI_REPORT_GENERATOR:                `${BASE.ADMIN}/ai/report-generator`,
+
+  // ── ADMIN ──
+  ADMIN_USER_MANAGEMENT: `${BASE.ADMIN}/user-management`,
 
   // ══════════════════════════════════════════════════════════════════════════════
   // FINANCE MANAGER

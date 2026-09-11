@@ -21,8 +21,7 @@ const Login = () => {
     setLoading(true)
     try {
       const payload = {
-        tenantId: credentials.tenantId || 3,
-        email: credentials.email,
+        email: credentials.email.trim().toLowerCase(),
         password: credentials.password
       }
       const { data } = await authService.login(payload)

@@ -43,8 +43,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return userRepository.findByEmailIgnoreCase(email)
                 .filter(user -> Boolean.TRUE.equals(user.getActive()))
                 .map(UserPrincipal::from)
-                .orElseThrow(() ->
-                        new UsernameNotFoundException("Active user not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("Invalid email or password"));
     }
 
 }

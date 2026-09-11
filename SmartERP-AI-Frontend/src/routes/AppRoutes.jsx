@@ -68,6 +68,7 @@ const CompanySettings      = lazy(() => import('../pages/modules/companyManageme
 const BranchSettings       = lazy(() => import('../pages/modules/companyManagement/BranchSettings'))
 const Holidays             = lazy(() => import('../pages/modules/companyManagement/Holidays'))
 const Subscription         = lazy(() => import('../pages/modules/companyManagement/Subscription'))
+const UserManagement = lazy(() => import('../pages/tenantAdmin/UserManagement'))
 
 // CRM
 const CrmDashboard         = lazy(() => import('../pages/modules/crm/Dashboard'))
@@ -390,6 +391,9 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute allowedRoles={['admin', 'tenantAdmin']} />}> // added tenantadmin
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+
+            {/* User Management — tenantAdmin only */}
+            <Route path={ROUTES.ADMIN_USER_MANAGEMENT} element={<UserManagement />} />
 
             {/* Company */}
             <Route path={ROUTES.ADMIN_COMPANY}                    element={<CompanyDashboard />} />

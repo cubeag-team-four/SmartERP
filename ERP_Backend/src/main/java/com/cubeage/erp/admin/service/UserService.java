@@ -1,6 +1,7 @@
 package com.cubeage.erp.admin.service;
 
 import com.cubeage.erp.admin.dto.CreateUserRequest;
+import com.cubeage.erp.admin.dto.UpdateUserRequest;
 import com.cubeage.erp.admin.dto.UserResponse;
 import com.cubeage.erp.admin.entity.Branch;
 import com.cubeage.erp.admin.entity.Department;
@@ -12,6 +13,7 @@ import com.cubeage.erp.admin.repository.DepartmentRepository;
 import com.cubeage.erp.admin.repository.RoleRepository;
 import com.cubeage.erp.admin.repository.UserRepository;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,118 +42,54 @@ public class UserService {
 
     private final PasswordEncoder passwordEncoder;
 
-    public UserResponse createUser(
-            CreateUserRequest request
-    ) {
+    public UserResponse createUser(Long tenantId, CreateUserRequest request) {
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
 
-        String email =
-                request
-                        .getEmail()
-                        .trim()
-                        .toLowerCase(
-                                Locale.ROOT
-                        );
-
-        if (userRepository
-                .existsByTenantIdAndEmailIgnoreCase(
-                        request.getTenantId(),
-                        email
-                )) {
-
-            throw new RuntimeException(
-                    "Email already exists"
-            );
+        if (userRepository.existsByTenantIdAndEmailIgnoreCase(tenantId, email)) {
+            throw new RuntimeException("A user with this email already exists.");
         }
 
+        Role role = roleRepository
+                .findById(request.getRoleId())
+                .filter(item -> item.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new RuntimeException("Selected role is invalid."));
+
         Branch branch = null;
-
         if (request.getBranchId() != null) {
-
-            branch =
-                    branchRepository
-                            .findByIdAndTenantId(
-                                    request.getBranchId(),
-                                    request.getTenantId()
-                            )
-                            .orElseThrow(
-                                    () -> new RuntimeException(
-                                            "Branch not found"
-                                    )
-                            );
+            branch = branchRepository
+                    .findByIdAndTenantId(request.getBranchId(), tenantId)
+                    .orElseThrow(() -> new RuntimeException("Branch not found."));
         }
 
         Department department = null;
-
-        if (request.getDepartmentId()
-                != null) {
-
-            department =
-                    departmentRepository
-                            .findByIdAndTenantId(
-                                    request
-                                            .getDepartmentId(),
-                                    request
-                                            .getTenantId()
-                            )
-                            .orElseThrow(
-                                    () -> new RuntimeException(
-                                            "Department not found"
-                                    )
-                            );
-
-            if (branch != null &&
-                    !department
-                            .getBranch()
-                            .getId()
-                            .equals(
-                                    branch.getId()
-                            )) {
-
-                throw new RuntimeException(
-                        "Department does not belong to selected branch"
-                );
-            }
+        if (request.getDepartmentId() != null) {
+            department = departmentRepository
+                    .findByIdAndTenantId(request.getDepartmentId(), tenantId)
+                    .orElseThrow(() -> new RuntimeException("Department not found."));
         }
 
-        Set<Role> roles =
-                validateRoles(
-                        request.getRoleIds(),
-                        request.getTenantId()
-                );
+        User user = User.builder()
+                .tenantId(tenantId)
+                .name(request.getName().trim())
+                .email(email)
+                .position(request.getPosition().trim())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .active(Boolean.TRUE.equals(request.getActive()))
+                .branch(branch)
+                .department(department)
+                .roles(Set.of(role))
+                .build();
 
-        User user =
-                User.builder()
-                        .tenantId(
-                                request.getTenantId()
-                        )
-                        .name(
-                                request.getName()
-                        )
-                        .email(email)
+        return userMapper.toResponse(userRepository.save(user));
+    }
 
-                        .passwordHash(
-                                passwordEncoder
-                                        .encode(
-                                                request
-                                                        .getPassword()
-                                        )
-                        )
+    public void deleteUser(
+            Long id,
+            Long tenantId
+    ) {
+        User user = getUserEntity(id, tenantId);
 
-                        .branch(branch)
-
-                        .department(
-                                department
-                        )
-
-                        .roles(roles)
-
-                        .active(true)
-
-                        .build();
-
-        return userMapper.toResponse(
-                userRepository.save(user)
-        );
+        userRepository.delete(user);
     }
 
     @Transactional(readOnly = true)
@@ -300,5 +238,36 @@ public class UserService {
         return new HashSet<>(
                 roles
         );
+    }
+
+    public UserResponse updateUser(
+            Long userId,
+            Long tenantId,
+            @Valid UpdateUserRequest request
+    ) {
+        User user = getUserEntity(userId, tenantId);
+
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        Role role = roleRepository
+                .findById(request.getRoleId())
+                .filter(item -> item.getTenantId().equals(tenantId))
+                .orElseThrow(() ->
+                        new RuntimeException("Selected role is invalid.")
+                );
+
+        user.setName(request.getName().trim());
+        user.setEmail(email);
+        user.setPosition(request.getPosition().trim());
+        user.setActive(Boolean.TRUE.equals(request.getActive()));
+
+        user.getRoles().clear();
+        user.getRoles().add(role);
+
+        User savedUser = userRepository.save(user);
+
+        return userMapper.toResponse(savedUser);
     }
 }

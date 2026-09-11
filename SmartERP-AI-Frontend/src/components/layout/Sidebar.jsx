@@ -27,6 +27,7 @@ const NAV = {
   ],
   tenantAdmin: [
     { label: 'Dashboard',          to: '/app/admin/dashboard' },
+    { label: 'User Management',    to: '/app/admin/user-management' },
     { label: 'Company Management', to: '/app/admin/company' },
     { label: 'CRM',                to: '/app/admin/crm' },
     { label: 'Sales',              to: '/app/admin/sales' },
@@ -97,6 +98,7 @@ const NAV = {
 
 const ICONS = {
   'Dashboard':          <GridIcon />,
+  'User Management': <UsersIcon />,
   'Leave':              <CalendarIcon />,
   'Tenants':            <BuildingIcon />,
   'Subscriptions':      <CreditCardIcon />,
