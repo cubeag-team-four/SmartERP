@@ -84,3 +84,62 @@ nav button {
   display: flex;
   flex-direction: column;
 }
+
+/* Remember Me Checkbox */
+
+.remember-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #424840;
+  border-radius: 6px;
+  background: transparent;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: border-color 0.2s ease;
+}
+
+.remember-checkbox-checked {
+  border-color: #8fa184;
+}
+
+.remember-tick {
+  width: 15px;
+  height: 15px;
+}
+
+.remember-tick path {
+  stroke: #dfe8da;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+
+  animation: drawRememberTick 300ms ease-out forwards;
+}
+
+@keyframes drawRememberTick {
+  from {
+    stroke-dashoffset: 20;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Login input autofill fix */
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #20231f inset !important;
+  -webkit-text-fill-color: #e5e4df !important;
+  caret-color: #e5e4df !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
