@@ -1,4 +1,5 @@
 import apiService from '../api.service'
+import axios from '../../../utils/axios'
 
 const BASE_URL = '/company'
 
@@ -28,6 +29,18 @@ const CompanyManagementService = {
   createHoliday: (companyId, payload) => apiService.post(`${BASE_URL}/${companyId}/holidays`, payload),
   updateHoliday: (companyId, id, payload) => apiService.put(`${BASE_URL}/${companyId}/holidays/${id}`, payload),
   removeHoliday: (companyId, id) => apiService.delete(`${BASE_URL}/${companyId}/holidays/${id}`),
+  exportHolidays: (companyId, year) =>
+    axios.get(`${BASE_URL}/${companyId}/holidays/export`, {
+      params: { year },
+      responseType: 'blob',
+    }),
+  importHolidays: (companyId, file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return axios.post(`${BASE_URL}/${companyId}/holidays/import`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 
   getApprovalWorkflows: (companyId) => apiService.get(`${BASE_URL}/${companyId}/approval-workflows`),
   createApprovalWorkflow: (companyId, payload) => apiService.post(`${BASE_URL}/${companyId}/approval-workflows`, payload),

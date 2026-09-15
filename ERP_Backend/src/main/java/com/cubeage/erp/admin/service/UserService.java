@@ -16,6 +16,7 @@ import com.cubeage.erp.admin.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import com.cubeage.erp.common.exception.DuplicateResourceException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,46 +43,55 @@ public class UserService {
 
     private final PasswordEncoder passwordEncoder;
 
-    public UserResponse createUser(Long tenantId, CreateUserRequest request) {
-        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+public UserResponse createUser(Long tenantId, CreateUserRequest request) {
+    String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
 
-        if (userRepository.existsByTenantIdAndEmailIgnoreCase(tenantId, email)) {
-            throw new RuntimeException("A user with this email already exists.");
-        }
-
-        Role role = roleRepository
-                .findById(request.getRoleId())
-                .filter(item -> item.getTenantId().equals(tenantId))
-                .orElseThrow(() -> new RuntimeException("Selected role is invalid."));
-
-        Branch branch = null;
-        if (request.getBranchId() != null) {
-            branch = branchRepository
-                    .findByIdAndTenantId(request.getBranchId(), tenantId)
-                    .orElseThrow(() -> new RuntimeException("Branch not found."));
-        }
-
-        Department department = null;
-        if (request.getDepartmentId() != null) {
-            department = departmentRepository
-                    .findByIdAndTenantId(request.getDepartmentId(), tenantId)
-                    .orElseThrow(() -> new RuntimeException("Department not found."));
-        }
-
-        User user = User.builder()
-                .tenantId(tenantId)
-                .name(request.getName().trim())
-                .email(email)
-                .position(request.getPosition().trim())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .active(Boolean.TRUE.equals(request.getActive()))
-                .branch(branch)
-                .department(department)
-                .roles(Set.of(role))
-                .build();
-
-        return userMapper.toResponse(userRepository.save(user));
+    if (userRepository.existsByTenantIdAndEmailIgnoreCase(tenantId, email)) {
+        throw new DuplicateResourceException(
+                "A user with this email address already exists in this tenant"
+        );
     }
+
+    Role role = roleRepository
+            .findById(request.getRoleId())
+            .filter(item -> item.getTenantId().equals(tenantId))
+            .orElseThrow(() -> new RuntimeException("Selected role is invalid."));
+
+    Branch branch = null;
+    if (request.getBranchId() != null) {
+        branch = branchRepository
+                .findByIdAndTenantId(request.getBranchId(), tenantId)
+                .orElseThrow(() -> new RuntimeException("Branch not found."));
+    }
+
+    Department department = null;
+    if (request.getDepartmentId() != null) {
+        department = departmentRepository
+                .findByIdAndTenantId(request.getDepartmentId(), tenantId)
+                .orElseThrow(() -> new RuntimeException("Department not found."));
+
+        if (branch != null &&
+                department.getBranch() != null &&
+                !department.getBranch().getId().equals(branch.getId())) {
+            throw new RuntimeException("Department does not belong to selected branch");
+        }
+    }
+
+    User user = User.builder()
+            .tenantId(tenantId)
+            .name(request.getName().trim())
+            .email(email)
+            .position(request.getPosition().trim())
+            .passwordHash(passwordEncoder.encode(request.getPassword()))
+            .active(Boolean.TRUE.equals(request.getActive()))
+            .branch(branch)
+            .department(department)
+            .roles(Set.of(role))
+            .build();
+
+    return userMapper.toResponse(userRepository.save(user));
+}
+
 
     public void deleteUser(
             Long id,

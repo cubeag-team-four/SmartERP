@@ -1,21 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import CompanyManagementService from "../../../core/services/modules/companyManagement.service";
 import useActiveCompany from "../../../core/hooks/useActiveCompany";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const MOCK_HOLIDAYS = [
-  { id: 1,  name: "Republic Day",     date: "26 Jan 2026", day: "Monday",    type: "Public Holiday",   appliesTo: "All Branches",   optional: "No",  status: "Active" },
-  { id: 2,  name: "Holi",             date: "04 Mar 2026", day: "Wednesday", type: "Public Holiday",   appliesTo: "All Branches",   optional: "No",  status: "Active" },
-  { id: 3,  name: "Gudi Padwa",       date: "19 Mar 2026", day: "Thursday",  type: "Regional Holiday", appliesTo: "Pune, Mumbai",   optional: "No",  status: "Active" },
-  { id: 4,  name: "Good Friday",      date: "03 Apr 2026", day: "Friday",    type: "Public Holiday",   appliesTo: "All Branches",   optional: "No",  status: "Active" },
-  { id: 5,  name: "Independence Day", date: "15 Aug 2026", day: "Saturday",  type: "Public Holiday",   appliesTo: "All Branches",   optional: "No",  status: "Active" },
-  { id: 6,  name: "Diwali",           date: "08 Nov 2026", day: "Sunday",    type: "Public Holiday",   appliesTo: "All Branches",   optional: "No",  status: "Active" },
-  { id: 7,  name: "Christmas",        date: "25 Dec 2026", day: "Friday",    type: "Public Holiday",   appliesTo: "All Branches",   optional: "No",  status: "Active" },
-  { id: 8,  name: "Eid ul-Fitr",      date: "31 Mar 2026", day: "Tuesday",   type: "Optional Holiday", appliesTo: "All Branches",   optional: "Yes", status: "Active" },
-  { id: 9,  name: "Ganesh Chaturthi", date: "19 Aug 2026", day: "Wednesday", type: "Company Holiday",  appliesTo: "Mumbai Office",  optional: "No",  status: "Active" },
-  { id: 10, name: "Dussehra",         date: "23 Oct 2026", day: "Friday",    type: "Public Holiday",   appliesTo: "All Branches",   optional: "No",  status: "Active" },
-];
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const TYPE_COLORS = {
   "Public Holiday":   "bg-[#e8f5e2] text-[#3d7030]",
   "Regional Holiday": "bg-[#fff3e0] text-[#8a5800]",
@@ -24,51 +11,116 @@ const TYPE_COLORS = {
 };
 
 const PER_PAGE = 7;
+const TYPES    = ["Public Holiday", "Regional Holiday", "Optional Holiday", "Company Holiday"];
+const BRANCHES = ["All Branches", "Mumbai Office", "Pune, Mumbai", "Delhi Office", "Bengaluru Branch"];
 
-// ─── Action menu ──────────────────────────────────────────────────────────────
-function ActionMenu({ onClose }) {
+/** Normalise a `HolidayResponse` from the backend into display-friendly shape */
+function normalise(h) {
+  const rawDate = h.date || "";
+  // Backend returns LocalDate as "YYYY-MM-DD"; convert to "26 Jan 2026"
+  let displayDate = rawDate;
+  let displayDay  = h.day || "";
+  if (rawDate && rawDate.includes("-")) {
+    const d = new Date(rawDate + "T00:00:00");
+    if (!isNaN(d)) {
+      displayDate = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      displayDay  = h.day || d.toLocaleDateString("en-GB", { weekday: "long" });
+    }
+  }
+  // optional: backend sends "yes"/"no"/"true"/"false"
+  const optRaw = (h.optional || "").toString().toLowerCase();
+  const optional = (optRaw === "yes" || optRaw === "true") ? "Yes" : "No";
+  // status: ACTIVE → Active
+  const status = h.status
+    ? h.status.charAt(0).toUpperCase() + h.status.slice(1).toLowerCase()
+    : "Active";
+
+  return { ...h, date: displayDate, _isoDate: rawDate, day: displayDay, optional, status };
+}
+
+// ─── View Details Modal ───────────────────────────────────────────────────────
+function ViewHolidayModal({ holiday, onClose }) {
+  if (!holiday) return null;
+  const rows = [
+    ["Holiday Name", holiday.name],
+    ["Date",         holiday.date],
+    ["Day",          holiday.day],
+    ["Type",         holiday.type],
+    ["Applies To",   holiday.appliesTo],
+    ["Optional",     holiday.optional],
+    ["Status",       holiday.status],
+  ];
   return (
-    <div className="absolute right-0 top-7 z-50 w-36 bg-white border border-[#e4e1d8] rounded-xl shadow-lg py-1 text-[12px]">
-      <button onClick={onClose} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#f5f4ef] text-[#3a3a30]">
-        <span>👁</span> View Details
-      </button>
-      <button onClick={onClose} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#f5f4ef] text-[#3a3a30]">
-        <span>✏️</span> Edit
-      </button>
-      <button onClick={onClose} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#f5f4ef] text-[#3a3a30]">
-        <span>📋</span> Duplicate
-      </button>
-      <button onClick={onClose} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#f5f4ef] text-[#3a3a30]">
-        <span>⊘</span> Disable
-      </button>
-      <div className="border-t border-[#e4e1d8] my-1" />
-      <button onClick={onClose} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#fff0f0] text-[#c0392b]">
-        <span>🗑</span> Delete
-      </button>
+    <div className="fixed inset-0 bg-[rgba(16,19,15,0.45)] flex items-center justify-center z-50 p-5"
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-[#f5f4ef] border border-[#e1dfd8] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="flex justify-between items-start px-6 py-5 border-b border-[#e1dfd8]">
+          <div>
+            <h2 className="text-[18px] font-bold text-[#10130f]">Holiday Details</h2>
+            <p className="text-[12px] text-[#99988f] mt-0.5">Read-only view</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 bg-white border border-[#e1dfd8] rounded-[9px] text-[#7a7970] text-[14px] grid place-items-center hover:bg-[#ece9e0]">✕</button>
+        </div>
+        <div className="px-6 py-5 flex flex-col gap-3">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex justify-between text-[13px]">
+              <span className="text-[#7a7970] font-medium">{label}</span>
+              {label === "Type" ? (
+                <span className={`text-[11px] font-medium px-2.5 py-1 rounded-lg ${TYPE_COLORS[value] || "bg-gray-100 text-gray-600"}`}>{value}</span>
+              ) : label === "Status" ? (
+                <span className={`text-[11px] font-medium px-2.5 py-1 rounded-lg ${value === "Active" ? "bg-[#e8f0e4] text-[#3d6630]" : "bg-[#f0ede6] text-[#7a7060]"}`}>{value}</span>
+              ) : (
+                <span className="text-[#10130f]">{value || "—"}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end px-6 py-4 border-t border-[#e1dfd8]">
+          <button onClick={onClose} className="h-9 px-5 bg-[#111410] text-white rounded-xl text-[12px] font-medium hover:bg-[#1e2419] transition">Close</button>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Add Holiday Modal ────────────────────────────────────────────────────────
-const TYPES     = ["Public Holiday", "Regional Holiday", "Optional Holiday", "Company Holiday"];
-const BRANCHES  = ["All Branches", "Mumbai Office", "Pune, Mumbai", "Delhi Office", "Bengaluru Branch"];
-
-function AddHolidayModal({ onClose, onAdd }) {
-  const [form, setForm] = useState({ name: "", date: "", type: "", branch: "All Branches", optional: "No", status: "Active" });
+// ─── Add / Edit Holiday Modal ─────────────────────────────────────────────────
+function HolidayFormModal({ onClose, onSave, initial }) {
+  const isEdit = !!initial;
+  const [form, setForm] = useState({
+    name:     initial?.name       || "",
+    date:     initial?._isoDate   || "",
+    type:     initial?.type       || "",
+    branch:   initial?.appliesTo  || "All Branches",
+    optional: initial?.optional   || "No",
+    status:   initial?.status     || "Active",
+  });
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+
   const set = (f, v) => { setForm(p => ({ ...p, [f]: v })); setErrors(p => ({ ...p, [f]: "" })); };
 
-  const submit = () => {
+  const submit = async () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
     if (!form.date)        e.date = "Required";
     if (!form.type)        e.type = "Required";
     if (Object.keys(e).length) { setErrors(e); return; }
-    const d = new Date(form.date);
-    const dayName = d.toLocaleDateString("en-GB", { weekday: "long" });
-    const dateStr = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, " ");
-    onAdd({ ...form, day: dayName, date: dateStr });
-    onClose();
+    setSaving(true);
+    try {
+      await onSave({
+        name:     form.name,
+        date:     form.date,          // ISO "YYYY-MM-DD" — what backend expects
+        type:     form.type,
+        appliesTo: form.branch,
+        optional: form.optional,
+        status:   form.status.toUpperCase(),
+      });
+      onClose();
+    } catch (err) {
+      setErrors({ _global: err.response?.data?.detail || err.response?.data?.message || "Save failed." });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -79,14 +131,16 @@ function AddHolidayModal({ onClose, onAdd }) {
         {/* Header */}
         <div className="flex justify-between items-start px-6 py-5 border-b border-[#e1dfd8] bg-[#f5f4ef]">
           <div>
-            <h2 className="text-[18px] font-bold text-[#10130f] mb-1">Add Holiday</h2>
-            <p className="text-[12px] text-[#99988f]">Add a new holiday to the organization calendar.</p>
+            <h2 className="text-[18px] font-bold text-[#10130f] mb-1">{isEdit ? "Edit Holiday" : "Add Holiday"}</h2>
+            <p className="text-[12px] text-[#99988f]">{isEdit ? "Update holiday details." : "Add a new holiday to the organization calendar."}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 bg-white border border-[#e1dfd8] rounded-[9px] text-[#7a7970] text-[14px] grid place-items-center hover:bg-[#ece9e0]">✕</button>
         </div>
 
         {/* Body */}
         <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto">
+
+          {errors._global && <div className="px-3 py-2 bg-[#fff0f0] border border-[#f5c2c2] rounded-xl text-[12px] text-[#c0392b]">{errors._global}</div>}
 
           {/* Holiday Name */}
           <div className="flex flex-col gap-1.5">
@@ -161,10 +215,69 @@ function AddHolidayModal({ onClose, onAdd }) {
 
         {/* Footer */}
         <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-[#e1dfd8] bg-[#f5f4ef]">
-          <button onClick={onClose} className="h-9 px-5 border border-[#e0ddd5] rounded-xl bg-white text-[#20221e] text-[12px] font-medium hover:bg-[#ece9e0] transition">Cancel</button>
-          <button onClick={submit} className="h-9 px-5 bg-[#111410] text-white border-none rounded-xl text-[12px] font-medium hover:bg-[#1e2419] transition">+ Add Holiday</button>
+          <button onClick={onClose} disabled={saving} className="h-9 px-5 border border-[#e0ddd5] rounded-xl bg-white text-[#20221e] text-[12px] font-medium hover:bg-[#ece9e0] transition disabled:opacity-50">Cancel</button>
+          <button onClick={submit} disabled={saving} className="h-9 px-5 bg-[#111410] text-white border-none rounded-xl text-[12px] font-medium hover:bg-[#1e2419] transition disabled:opacity-60">
+            {saving ? "Saving…" : (isEdit ? "Save Changes" : "+ Add Holiday")}
+          </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Delete Confirm Modal ─────────────────────────────────────────────────────
+function DeleteConfirmModal({ holiday, onClose, onConfirm }) {
+  const [deleting, setDeleting] = useState(false);
+  const [err, setErr] = useState("");
+  const confirm = async () => {
+    setDeleting(true);
+    setErr("");
+    try {
+      await onConfirm();
+      onClose();
+    } catch (e) {
+      setErr(e.response?.data?.detail || e.response?.data?.message || "Delete failed.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+  return (
+    <div className="fixed inset-0 bg-[rgba(16,19,15,0.45)] flex items-center justify-center z-50 p-5"
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-[#f5f4ef] border border-[#e1dfd8] rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div className="px-6 py-5 border-b border-[#e1dfd8]">
+          <h2 className="text-[16px] font-bold text-[#10130f]">Delete Holiday</h2>
+          <p className="text-[12px] text-[#99988f] mt-1">This action cannot be undone.</p>
+        </div>
+        <div className="px-6 py-5">
+          {err && <div className="mb-3 px-3 py-2 bg-[#fff0f0] border border-[#f5c2c2] rounded-xl text-[12px] text-[#c0392b]">{err}</div>}
+          <p className="text-[13px] text-[#3a3a30]">Are you sure you want to delete <strong>{holiday?.name}</strong>?</p>
+        </div>
+        <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-[#e1dfd8]">
+          <button onClick={onClose} disabled={deleting} className="h-9 px-5 border border-[#e0ddd5] rounded-xl bg-white text-[#20221e] text-[12px] font-medium hover:bg-[#ece9e0] transition disabled:opacity-50">Cancel</button>
+          <button onClick={confirm} disabled={deleting} className="h-9 px-5 bg-[#c0392b] text-white rounded-xl text-[12px] font-medium hover:bg-[#a93226] transition disabled:opacity-60">
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Action menu ──────────────────────────────────────────────────────────────
+function ActionMenu({ holiday, onView, onEdit, onDelete, onClose }) {
+  return (
+    <div className="absolute right-0 top-7 z-50 w-36 bg-white border border-[#e4e1d8] rounded-xl shadow-lg py-1 text-[12px]">
+      <button onClick={() => { onView(holiday); onClose(); }} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#f5f4ef] text-[#3a3a30]">
+        <span>👁</span> View Details
+      </button>
+      <button onClick={() => { onEdit(holiday); onClose(); }} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#f5f4ef] text-[#3a3a30]">
+        <span>✏️</span> Edit
+      </button>
+      <div className="border-t border-[#e4e1d8] my-1" />
+      <button onClick={() => { onDelete(holiday); onClose(); }} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-[#fff0f0] text-[#c0392b]">
+        <span>🗑</span> Delete
+      </button>
     </div>
   );
 }
@@ -174,80 +287,146 @@ export default function Holidays({ companyId: providedCompanyId, dashboard: prov
   const activeCompany = useActiveCompany(providedCompanyId);
   const companyId = providedCompanyId || activeCompany.companyId;
   const dashboard = providedDashboard || activeCompany.dashboard;
-  const [holidays,    setHolidays]    = useState(MOCK_HOLIDAYS);
-  const [search,      setSearch]      = useState("");
-  const [yearFilter,  setYearFilter]  = useState("2026");
-  const [typeFilter,  setTypeFilter]  = useState("All Types");
-  const [branchFilter,setBranchFilter]= useState("All Branches");
-  const [statusFilter,setStatusFilter]= useState("Active");
-  const [view,        setView]        = useState("list");   // "list" | "calendar"
-  const [page,        setPage]        = useState(1);
-  const [openMenu,    setOpenMenu]    = useState(null);
-  const [showModal,   setShowModal]   = useState(false);
-  const [error,       setError]       = useState("");
 
-  useEffect(() => {
-    if (!companyId) {
-      setHolidays([]);
-      return;
-    }
+  const [holidays,     setHolidays]    = useState([]);
+  const [loading,      setLoading]     = useState(false);
+  const [error,        setError]       = useState("");
+
+  // filters
+  const [search,       setSearch]      = useState("");
+  const [yearFilter,   setYearFilter]  = useState(String(new Date().getFullYear()));
+  const [typeFilter,   setTypeFilter]  = useState("All Types");
+  const [branchFilter, setBranchFilter]= useState("All Branches");
+  const [statusFilter, setStatusFilter]= useState("Active");
+
+  const [view,         setView]        = useState("list");
+  const [page,         setPage]        = useState(1);
+  const [openMenu,     setOpenMenu]    = useState(null);
+
+  // modals
+  const [showAddEdit,  setShowAddEdit] = useState(false);
+  const [editTarget,   setEditTarget]  = useState(null);   // null = add, holiday = edit
+  const [viewTarget,   setViewTarget]  = useState(null);
+  const [deleteTarget, setDeleteTarget]= useState(null);
+
+  // import / export
+  const importFileRef                  = useRef(null);
+  const [importing,    setImporting]   = useState(false);
+  const [importResult, setImportResult]= useState(null); // { imported, skipped, errors[] } | null
+
+  // ── Load holidays ────────────────────────────────────────────────────────
+  const loadHolidays = useCallback(() => {
+    if (!companyId) { setHolidays([]); return; }
+    setLoading(true);
+    setError("");
     CompanyManagementService.getHolidays(companyId, { year: yearFilter })
       .then(({ data }) => {
-        setHolidays(data.map((holiday) => ({
-          ...holiday,
-          status: holiday.status.charAt(0) + holiday.status.slice(1).toLowerCase(),
-        })));
-        setError("");
+        setHolidays(Array.isArray(data) ? data.map(normalise) : []);
       })
-      .catch((requestError) => setError(requestError.response?.data?.detail || "Unable to load holidays."));
+      .catch(err => {
+        setError(err.response?.data?.detail || err.response?.data?.message || "Unable to load holidays.");
+      })
+      .finally(() => setLoading(false));
   }, [companyId, yearFilter]);
 
-  // ── Derived stats ──────────────────────────────────────────────────────────
-  const total     = holidays.length;
-  const publicH   = holidays.filter(h => h.type === "Public Holiday").length;
-  const optional  = holidays.filter(h => h.optional === "Yes").length;
-  const company   = holidays.filter(h => h.type === "Company Holiday").length;
-  const upcoming  = [...holidays].sort((a, b) => new Date(a.date) - new Date(b.date)).find(h => new Date(h.date) >= new Date());
+  useEffect(() => { loadHolidays(); }, [loadHolidays]);
 
-  // ── Filter ─────────────────────────────────────────────────────────────────
+  // ── Derived stats ────────────────────────────────────────────────────────
+  const total    = holidays.length;
+  const publicH  = holidays.filter(h => h.type === "Public Holiday").length;
+  const optional = holidays.filter(h => h.optional === "Yes").length;
+  const company  = holidays.filter(h => h.type === "Company Holiday").length;
+  const upcoming = [...holidays]
+    .filter(h => h._isoDate && new Date(h._isoDate) >= new Date(new Date().toDateString()))
+    .sort((a, b) => new Date(a._isoDate) - new Date(b._isoDate))[0];
+
+  // ── Client-side filters ──────────────────────────────────────────────────
   const filtered = holidays.filter(h => {
     const q = search.toLowerCase();
-    const matchSearch  = !q || h.name.toLowerCase().includes(q) || h.type.toLowerCase().includes(q);
-    const matchType    = typeFilter === "All Types" || h.type === typeFilter;
-    const matchBranch  = branchFilter === "All Branches" || h.appliesTo.includes(branchFilter);
-    const matchStatus  = statusFilter === "All" || h.status === statusFilter;
+    const matchSearch  = !q || h.name.toLowerCase().includes(q) || (h.type || "").toLowerCase().includes(q);
+    const matchType    = typeFilter === "All Types"   || h.type === typeFilter;
+    const matchBranch  = branchFilter === "All Branches" || (h.appliesTo || "").includes(branchFilter);
+    const matchStatus  = statusFilter === "All"       || h.status === statusFilter;
     return matchSearch && matchType && matchBranch && matchStatus;
   });
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  // ── Pagination ───────────────────────────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage   = Math.min(page, totalPages);
+  const paginated  = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
-  const addHoliday = async (form) => {
+  // ── Actions ──────────────────────────────────────────────────────────────
+  const handleAdd = async (payload) => {
+    const { data } = await CompanyManagementService.createHoliday(companyId, payload);
+    setHolidays(cur => [...cur, normalise(data)]);
+  };
+
+  const handleEdit = async (payload) => {
+    const { data } = await CompanyManagementService.updateHoliday(companyId, editTarget.id, payload);
+    setHolidays(cur => cur.map(h => h.id === editTarget.id ? normalise(data) : h));
+  };
+
+  const handleDelete = async () => {
+    await CompanyManagementService.removeHoliday(companyId, deleteTarget.id);
+    setHolidays(cur => cur.filter(h => h.id !== deleteTarget.id));
+  };
+
+  const openEdit = (h) => { setEditTarget(h); setShowAddEdit(true); };
+  const openAdd  = ()  => { setEditTarget(null); setShowAddEdit(true); };
+
+  // ── Export ───────────────────────────────────────────────────────────────
+  const handleExport = async () => {
+    if (!companyId) return;
     try {
-      const { data } = await CompanyManagementService.createHoliday(companyId, {
-        name: form.name,
-        date: form.date,
-        type: form.type,
-        appliesTo: form.branch,
-        optional: form.optional,
-        status: form.status.toUpperCase(),
-      });
-      setHolidays((current) => [...current, {
-        ...data,
-        status: data.status.charAt(0) + data.status.slice(1).toLowerCase(),
-      }]);
-      setShowModal(false);
-      setError("");
-    } catch (requestError) {
-      setError(requestError.response?.data?.detail || "Unable to create the holiday.");
+      const response = await CompanyManagementService.exportHolidays(companyId, yearFilter);
+      const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `holidays-${companyId}-${yearFilter}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.detail || err.response?.data?.message || "Export failed.");
+    }
+  };
+
+  // ── Import ───────────────────────────────────────────────────────────────
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+    // Reset so the same file can be re-selected after correction
+    e.target.value = "";
+    if (!file.name.endsWith(".csv") && file.type !== "text/csv") {
+      setError("Import requires a CSV file (.csv).");
+      return;
+    }
+    setImporting(true);
+    setError("");
+    setImportResult(null);
+    try {
+      const { data } = await CompanyManagementService.importHolidays(companyId, file);
+      setImportResult(data);
+      if (data.imported > 0) loadHolidays();  // refresh list if any rows persisted
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Import failed.";
+      setError(msg);
+    } finally {
+      setImporting(false);
     }
   };
 
   return (
     <div className="w-full min-h-screen bg-[#f5f4ef] px-7 pb-12 pt-1">
 
-      {(error || activeCompany.error) && <div className="mb-3 px-4 py-2.5 border border-[#dfd8c9] rounded-xl bg-[#fffaf0] text-[#6b5b3e] text-xs">{error || activeCompany.error}</div>}
+      {(error || activeCompany.error) && (
+        <div className="mb-3 px-4 py-2.5 border border-[#dfd8c9] rounded-xl bg-[#fffaf0] text-[#6b5b3e] text-xs flex items-center justify-between">
+          <span>{error || activeCompany.error}</span>
+          <button onClick={loadHolidays} className="ml-4 text-[11px] underline text-[#6b5b3e]">Retry</button>
+        </div>
+      )}
 
       {/* ── Breadcrumb ── */}
       <div className="flex items-center gap-2 text-[10px] text-[#a3a6a5] mb-3 tracking-wide">
@@ -263,13 +442,27 @@ export default function Holidays({ companyId: providedCompanyId, dashboard: prov
           <p className="text-[12px] text-[#99988f] mt-1">Manage public, company and optional holidays for your organization.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="h-9 px-4 bg-white border border-[#e0ddd5] rounded-xl text-[12px] text-[#20221e] font-medium flex items-center gap-2 hover:bg-[#f0efe9] transition">
+          {/* Hidden CSV file input for import */}
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <button
+            onClick={handleExport}
+            disabled={!companyId}
+            className="h-9 px-4 bg-white border border-[#e0ddd5] rounded-xl text-[12px] text-[#20221e] font-medium flex items-center gap-2 hover:bg-[#f0efe9] transition disabled:opacity-50">
             <span>↑</span> Export
           </button>
-          <button className="h-9 px-4 bg-white border border-[#e0ddd5] rounded-xl text-[12px] text-[#20221e] font-medium flex items-center gap-2 hover:bg-[#f0efe9] transition">
-            <span>↓</span> Import Holidays
+          <button
+            onClick={() => importFileRef.current?.click()}
+            disabled={!companyId || importing}
+            className="h-9 px-4 bg-white border border-[#e0ddd5] rounded-xl text-[12px] text-[#20221e] font-medium flex items-center gap-2 hover:bg-[#f0efe9] transition disabled:opacity-50">
+            <span>↓</span> {importing ? "Importing…" : "Import Holidays"}
           </button>
-          <button onClick={() => setShowModal(true)}
+          <button onClick={openAdd}
             className="h-9 px-4 bg-[#111410] text-white border-none rounded-xl text-[12px] font-medium flex items-center gap-2 hover:bg-[#1e2419] transition">
             + Add Holiday
           </button>
@@ -312,11 +505,11 @@ export default function Holidays({ companyId: providedCompanyId, dashboard: prov
             sub:   upcoming ? upcoming.name : "",
             wide:  true,
           },
-        ].map(({ icon, color, bg, value, label, sub, wide }) => (
-          <div key={label} className={`bg-white border border-[#e1dfd8] rounded-2xl px-4 py-3 flex items-center gap-3 ${wide ? "col-span-1" : ""}`}>
+        ].map(({ icon, color, bg, value, label, sub }) => (
+          <div key={label} className="bg-white border border-[#e1dfd8] rounded-2xl px-4 py-3 flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center text-[17px] flex-shrink-0`}>{icon}</div>
             <div>
-              <div className={`text-[20px] font-bold ${wide ? "text-[14px]" : ""} text-[#10130f] leading-tight`}>{value}</div>
+              <div className="text-[20px] font-bold text-[#10130f] leading-tight">{value}</div>
               <div className="text-[9px] text-[#a0a09a] tracking-wide uppercase mt-0.5">{label}</div>
               {sub && <div className="text-[10px] text-[#60706a] mt-0.5">{sub}</div>}
             </div>
@@ -397,8 +590,13 @@ export default function Holidays({ companyId: providedCompanyId, dashboard: prov
             ))}
           </div>
 
+          {/* Loading state */}
+          {loading && (
+            <div className="py-14 text-center text-[13px] text-[#a0a09a]">Loading holidays…</div>
+          )}
+
           {/* Rows */}
-          {paginated.map(h => (
+          {!loading && paginated.map(h => (
             <div key={h.id} className="grid grid-cols-[2fr_1.2fr_1fr_1.4fr_1.4fr_0.7fr_0.8fr_0.6fr] px-5 py-[14px] border-b border-[#f0ede6] last:border-0 hover:bg-[#faf9f5] transition items-center">
               <div className="text-[13px] font-medium text-[#10130f]">{h.name}</div>
               <div className="text-[12px] text-[#555]">{h.date}</div>
@@ -416,37 +614,37 @@ export default function Holidays({ companyId: providedCompanyId, dashboard: prov
                   className="w-7 h-7 flex flex-col items-center justify-center gap-[3px] rounded-lg hover:bg-[#f0efe9] transition">
                   {[0,1,2].map(i => <span key={i} className="w-1 h-1 bg-[#9a9890] rounded-full" />)}
                 </button>
-                {openMenu === h.id && <ActionMenu onClose={() => setOpenMenu(null)} />}
+                {openMenu === h.id && (
+                  <ActionMenu
+                    holiday={h}
+                    onView={setViewTarget}
+                    onEdit={openEdit}
+                    onDelete={setDeleteTarget}
+                    onClose={() => setOpenMenu(null)}
+                  />
+                )}
               </div>
             </div>
           ))}
 
-          {!paginated.length && (
+          {!loading && !paginated.length && (
             <div className="py-14 text-center text-[13px] text-[#a0a09a]">No holidays found.</div>
           )}
 
           {/* Footer */}
           <div className="flex items-center justify-between px-5 py-3 border-t border-[#e4e1d8] bg-[#faf9f5]">
             <span className="text-[11px] text-[#9a9890]">
-              Showing {filtered.length ? (page - 1) * PER_PAGE + 1 : 0} to {Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} holidays
+              Showing {filtered.length ? (safePage - 1) * PER_PAGE + 1 : 0} to {Math.min(safePage * PER_PAGE, filtered.length)} of {filtered.length} holidays
             </span>
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <select className="h-8 pl-3 pr-7 border border-[#e0ddd5] rounded-lg bg-white text-[11px] outline-none appearance-none cursor-pointer text-[#10130f]">
-                  <option>10 per page</option>
-                  <option>25 per page</option>
-                  <option>50 per page</option>
-                </select>
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9a9890] text-[10px] pointer-events-none">▾</span>
-              </div>
               <div className="flex items-center gap-1">
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
                   className="w-8 h-8 border border-[#e0ddd5] rounded-lg text-[12px] text-[#555] bg-white hover:bg-[#f0efe9] disabled:opacity-40 transition">‹</button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                   <button key={n} onClick={() => setPage(n)}
-                    className={`w-8 h-8 border rounded-lg text-[12px] font-medium transition ${n === page ? "bg-[#111410] text-white border-[#111410]" : "bg-white border-[#e0ddd5] text-[#555] hover:bg-[#f0efe9]"}`}>{n}</button>
+                    className={`w-8 h-8 border rounded-lg text-[12px] font-medium transition ${n === safePage ? "bg-[#111410] text-white border-[#111410]" : "bg-white border-[#e0ddd5] text-[#555] hover:bg-[#f0efe9]"}`}>{n}</button>
                 ))}
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
                   className="w-8 h-8 border border-[#e0ddd5] rounded-lg text-[12px] text-[#555] bg-white hover:bg-[#f0efe9] disabled:opacity-40 transition">›</button>
               </div>
             </div>
@@ -457,33 +655,83 @@ export default function Holidays({ companyId: providedCompanyId, dashboard: prov
       {/* ── Calendar view ── */}
       {view === "calendar" && (
         <div className="bg-white border border-[#e1dfd8] rounded-2xl p-6">
-          <h2 className="text-[16px] font-semibold text-[#10130f] mb-4">2026 Holiday Calendar</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {Array.from({ length: 12 }, (_, mi) => {
-              const monthName = new Date(2026, mi, 1).toLocaleString("default", { month: "long" });
-              const monthHols = holidays.filter(h => {
-                const d = new Date(h.date); return d.getFullYear() === 2026 && d.getMonth() === mi;
-              });
-              return (
-                <div key={mi} className="border border-[#e4e1d8] rounded-xl p-4">
-                  <div className="text-[11px] font-semibold text-[#10130f] tracking-widest uppercase mb-3">{monthName}</div>
-                  {monthHols.length ? monthHols.map(h => (
-                    <div key={h.id} className="flex items-center gap-2 mb-2">
-                      <span className={`text-[9px] font-medium px-2 py-0.5 rounded-md ${TYPE_COLORS[h.type] || "bg-gray-100 text-gray-600"}`}>{h.date.slice(0, 6)}</span>
-                      <span className="text-[11px] text-[#3a3a30]">{h.name}</span>
-                    </div>
-                  )) : (
-                    <p className="text-[11px] text-[#c0bdb5]">No holidays</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <h2 className="text-[16px] font-semibold text-[#10130f] mb-4">{yearFilter} Holiday Calendar</h2>
+          {loading && <div className="py-14 text-center text-[13px] text-[#a0a09a]">Loading…</div>}
+          {!loading && (
+            <div className="grid grid-cols-3 gap-4">
+              {Array.from({ length: 12 }, (_, mi) => {
+                const yr = parseInt(yearFilter, 10);
+                const monthName = new Date(yr, mi, 1).toLocaleString("default", { month: "long" });
+                const monthHols = holidays.filter(h => {
+                  if (!h._isoDate) return false;
+                  const d = new Date(h._isoDate + "T00:00:00");
+                  return d.getFullYear() === yr && d.getMonth() === mi;
+                });
+                return (
+                  <div key={mi} className="border border-[#e4e1d8] rounded-xl p-4">
+                    <div className="text-[11px] font-semibold text-[#10130f] tracking-widest uppercase mb-3">{monthName}</div>
+                    {monthHols.length ? monthHols.map(h => (
+                      <div key={h.id} className="flex items-center gap-2 mb-2">
+                        <span className={`text-[9px] font-medium px-2 py-0.5 rounded-md ${TYPE_COLORS[h.type] || "bg-gray-100 text-gray-600"}`}>
+                          {h.date ? h.date.slice(0, 6) : ""}
+                        </span>
+                        <span className="text-[11px] text-[#3a3a30]">{h.name}</span>
+                      </div>
+                    )) : (
+                      <p className="text-[11px] text-[#c0bdb5]">No holidays</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── Add Holiday Modal ── */}
-      {showModal && <AddHolidayModal onClose={() => setShowModal(false)} onAdd={addHoliday} />}
+      {/* ── Modals ── */}
+      {showAddEdit && (
+        <HolidayFormModal
+          initial={editTarget}
+          onClose={() => { setShowAddEdit(false); setEditTarget(null); }}
+          onSave={editTarget ? handleEdit : handleAdd}
+        />
+      )}
+      {viewTarget && (
+        <ViewHolidayModal
+          holiday={viewTarget}
+          onClose={() => setViewTarget(null)}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          holiday={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDelete}
+        />
+      )}
+
+      {/* ── Import result notification ── */}
+      {importResult && (
+        <div className="fixed bottom-6 right-6 z-50 w-80 bg-white border border-[#e1dfd8] rounded-2xl shadow-2xl overflow-hidden">
+          <div className={`px-4 py-3 flex items-center justify-between ${importResult.imported > 0 ? "bg-[#f2faf0] border-b border-[#d0e8c8]" : "bg-[#fff8f0] border-b border-[#f5e0c2]"}`}>
+            <span className="text-[13px] font-semibold text-[#10130f]">
+              {importResult.imported > 0 ? "✅ Import Complete" : "⚠️ Import Warning"}
+            </span>
+            <button onClick={() => setImportResult(null)} className="text-[#9a9890] hover:text-[#10130f] text-[16px] leading-none">✕</button>
+          </div>
+          <div className="px-4 py-3 text-[12px] text-[#3a3a30]">
+            <p><strong>{importResult.imported}</strong> holiday{importResult.imported !== 1 ? "s" : ""} imported successfully.</p>
+            {importResult.skipped > 0 && <p className="mt-1 text-[#7a6040]"><strong>{importResult.skipped}</strong> row{importResult.skipped !== 1 ? "s" : ""} skipped.</p>}
+            {importResult.errors?.length > 0 && (
+              <ul className="mt-2 max-h-28 overflow-y-auto space-y-1">
+                {importResult.errors.map((e, i) => (
+                  <li key={i} className="text-[11px] text-[#c0392b] border-l-2 border-[#f5c2c2] pl-2">{e}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

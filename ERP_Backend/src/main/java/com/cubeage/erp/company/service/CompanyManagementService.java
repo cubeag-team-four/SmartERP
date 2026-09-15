@@ -15,7 +15,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.*;
 
@@ -237,6 +243,135 @@ public class CompanyManagementService {
 
     public void deleteHoliday(Long tenantId, Long companyId, Long id) {
         holidays.delete(requireHoliday(tenantId, companyId, id));
+    }
+
+    // ── Export ─────────────────────────────────────────────────────────────────
+    @Transactional(readOnly = true)
+    public byte[] exportHolidaysCsv(Long tenantId, Long companyId, int year) {
+        requireCompany(tenantId, companyId);
+        List<Holiday> list = holidays.findByTenantIdAndCompanyIdAndDateBetweenOrderByDate(
+                tenantId, companyId, LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31));
+        StringBuilder sb = new StringBuilder();
+        sb.append("name,date,type,applies_to,optional,status\n");
+        for (Holiday h : list) {
+            sb.append(csvEscape(h.getName())).append(',')
+              .append(h.getDate()).append(',')
+              .append(csvEscape(h.getType())).append(',')
+              .append(csvEscape(h.getAppliesTo())).append(',')
+              .append(Boolean.TRUE.equals(h.getOptional()) ? "yes" : "no").append(',')
+              .append(h.getStatus().name().toLowerCase(Locale.ROOT)).append('\n');
+        }
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    // ── Import ─────────────────────────────────────────────────────────────────
+    public record HolidayImportResult(int imported, int skipped, List<String> errors) {}
+
+    public HolidayImportResult importHolidaysCsv(Long tenantId, Long companyId, InputStream csvStream) {
+        requireCompany(tenantId, companyId);
+        int imported = 0, skipped = 0;
+        List<String> errors = new ArrayList<>();
+        Set<String> validTypes = Set.of("Public Holiday", "Regional Holiday", "Optional Holiday", "Company Holiday");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(csvStream, StandardCharsets.UTF_8))) {
+            String header = reader.readLine();
+            if (header == null) throw new IllegalArgumentException("CSV file is empty");
+            // Normalise header: strip BOM, lowercase, trim
+            String[] cols = header.replaceFirst("\uFEFF", "").split(",");
+            int iName = -1, iDate = -1, iType = -1, iAppliesTo = -1, iOptional = -1, iStatus = -1;
+            for (int i = 0; i < cols.length; i++) {
+                switch (cols[i].trim().toLowerCase(Locale.ROOT)) {
+                    case "name"       -> iName      = i;
+                    case "date"       -> iDate      = i;
+                    case "type"       -> iType      = i;
+                    case "applies_to", "appliesto", "branch" -> iAppliesTo = i;
+                    case "optional"   -> iOptional  = i;
+                    case "status"     -> iStatus    = i;
+                }
+            }
+            if (iName == -1 || iDate == -1 || iType == -1)
+                throw new IllegalArgumentException("CSV must have columns: name, date, type (and optionally applies_to, optional, status)");
+            String line;
+            int row = 1;
+            while ((line = reader.readLine()) != null) {
+                row++;
+                if (line.isBlank()) continue;
+                String[] cells = parseCsvRow(line);
+                try {
+                    String name = cell(cells, iName);
+                    String dateStr = cell(cells, iDate);
+                    String type = cell(cells, iType);
+                    if (name.isBlank()) { errors.add("Row " + row + ": name is required"); skipped++; continue; }
+                    if (dateStr.isBlank()) { errors.add("Row " + row + ": date is required"); skipped++; continue; }
+                    if (type.isBlank()) { errors.add("Row " + row + ": type is required"); skipped++; continue; }
+                    if (!validTypes.contains(type)) {
+                        errors.add("Row " + row + ": invalid type '" + type + "'"); skipped++; continue;
+                    }
+                    LocalDate date;
+                    try { date = LocalDate.parse(dateStr); }
+                    catch (DateTimeParseException ex) {
+                        errors.add("Row " + row + ": date '" + dateStr + "' must be YYYY-MM-DD"); skipped++; continue;
+                    }
+                    String appliesTo = iAppliesTo >= 0 ? cell(cells, iAppliesTo) : "All Branches";
+                    if (appliesTo.isBlank()) appliesTo = "All Branches";
+                    String optional = iOptional >= 0 ? cell(cells, iOptional) : "no";
+                    String statusStr = iStatus >= 0 ? cell(cells, iStatus) : "active";
+                    CompanyRecordStatus status;
+                    try { status = CompanyRecordStatus.from(statusStr.isBlank() ? "active" : statusStr); }
+                    catch (IllegalArgumentException ex) { status = CompanyRecordStatus.ACTIVE; }
+                    // Skip duplicates silently (same logic as createHoliday)
+                    if (holidays.existsByTenantIdAndCompanyIdAndNameIgnoreCaseAndDate(tenantId, companyId, name.trim(), date)) {
+                        errors.add("Row " + row + ": '" + name + "' on " + date + " already exists (skipped)"); skipped++; continue;
+                    }
+                    HolidayRequest req = new HolidayRequest(name.trim(), date, type.trim(), appliesTo.trim(), optional, status);
+                    createHoliday(tenantId, companyId, req);
+                    imported++;
+                } catch (Exception ex) {
+                    errors.add("Row " + row + ": " + ex.getMessage());
+                    skipped++;
+                }
+            }
+        } catch (IOException ex) {
+            throw new IllegalArgumentException("Failed to read CSV: " + ex.getMessage(), ex);
+        }
+        return new HolidayImportResult(imported, skipped, errors);
+    }
+
+    private static String csvEscape(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+
+    /** Very simple CSV row parser – handles double-quoted fields. */
+    private static String[] parseCsvRow(String line) {
+        List<String> result = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (inQuotes) {
+                if (c == '"' && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    current.append('"'); i++;
+                } else if (c == '"') {
+                    inQuotes = false;
+                } else {
+                    current.append(c);
+                }
+            } else {
+                if (c == '"') { inQuotes = true; }
+                else if (c == ',') { result.add(current.toString()); current.setLength(0); }
+                else { current.append(c); }
+            }
+        }
+        result.add(current.toString());
+        return result.toArray(new String[0]);
+    }
+
+    private static String cell(String[] cells, int index) {
+        if (index < 0 || index >= cells.length) return "";
+        return cells[index].trim();
     }
 
     @Transactional(readOnly = true)
