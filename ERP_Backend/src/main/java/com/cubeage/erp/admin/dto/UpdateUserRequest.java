@@ -28,4 +28,8 @@ public class UpdateUserRequest {
     private Long branchId;
 
     private Long departmentId;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> ff3c9de (Add UpdateUserRequest DTO)
