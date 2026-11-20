@@ -1,5 +1,6 @@
 package com.cubeage.erp.purchase.service;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.common.exception.BadRequestException;
 import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.purchase.dto.vendor.VendorRequest;
@@ -31,7 +32,7 @@ public class VendorService {
     private final VendorMapper vendorMapper;
 
     public VendorResponse createVendor(Long tenantId, VendorRequest request) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         String vendorCode = generateVendorCode(effectiveTenantId);
 
         Vendor vendor = Vendor.builder()
@@ -67,7 +68,7 @@ public class VendorService {
 
     @Transactional(readOnly = true)
     public List<VendorSummaryResponse> listVendors(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return vendorRepository.findByTenantIdOrderByCreatedAtDesc(effectiveTenantId)
                 .stream()
                 .map(vendorMapper::toSummary)
@@ -160,7 +161,7 @@ public class VendorService {
     }
 
     public void deleteVendor(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         Vendor vendor = requireVendor(tenantId, id);
                 if (purchaseOrderRepository.countByTenantIdAndVendorId(effectiveTenantId, id) > 0) {
                         throw new IllegalArgumentException("Vendor cannot be deleted because it has purchase orders");
@@ -183,7 +184,7 @@ public class VendorService {
     }
 
     private String generateVendorCode(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         long nextNumber = vendorRepository.countByTenantId(effectiveTenantId) + 1;
 
         for (int attempts = 0; attempts < 100; attempts++) {
@@ -203,9 +204,8 @@ public class VendorService {
     }
 
     private Vendor requireVendor(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return vendorRepository.findByIdAndTenantId(id, effectiveTenantId)
-                .or(() -> vendorRepository.findById(id))
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Vendor not found: " + id

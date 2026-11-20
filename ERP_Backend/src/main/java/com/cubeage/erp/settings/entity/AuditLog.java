@@ -17,5 +17,8 @@ public class AuditLog {
     private String entityId;
     @Column(columnDefinition="TEXT") private String details;
     private String ipAddress;
+    /** SUCCESS / FAILURE / DENIED (V13). */
+    @Column(length=20) private String outcome;
+    @Column(length=255) private String userAgent;
     @CreationTimestamp @Column(name="created_at", nullable=false, updatable=false) private Instant createdAt;
 }

@@ -1,5 +1,7 @@
 package com.cubeage.erp.admin.service;
 
+import com.cubeage.erp.security.SecurityUtils;
+
 import com.cubeage.erp.admin.dto.BranchRequest;
 import com.cubeage.erp.admin.entity.Branch;
 import com.cubeage.erp.admin.repository.BranchRepository;
@@ -19,10 +21,12 @@ public class BranchService {
     public Branch create(
             BranchRequest request
     ) {
+        // Tenant always comes from the authenticated admin; request.tenantId is ignored.
+        Long tenantId = SecurityUtils.currentTenantId();
 
         if (branchRepository
                 .existsByTenantIdAndNameIgnoreCase(
-                        request.getTenantId(),
+                        tenantId,
                         request.getName()
                 )) {
 
@@ -33,7 +37,7 @@ public class BranchService {
 
         Branch branch = Branch.builder()
                 .tenantId(
-                        request.getTenantId()
+                        tenantId
                 )
                 .name(
                         request.getName()
@@ -83,11 +87,13 @@ public class BranchService {
             Long id,
             BranchRequest request
     ) {
+        // Tenant always comes from the authenticated admin; request.tenantId is ignored.
+        Long tenantId = SecurityUtils.currentTenantId();
 
         Branch branch =
                 getById(
                         id,
-                        request.getTenantId()
+                        tenantId
                 );
 
         branch.setName(

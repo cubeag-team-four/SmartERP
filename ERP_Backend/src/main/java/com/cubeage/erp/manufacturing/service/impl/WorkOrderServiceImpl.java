@@ -1,5 +1,6 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.common.exception.BadRequestException;
 import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.manufacturing.dto.request.CreateWorkOrderRequest;
@@ -31,7 +32,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     public WorkOrderResponse create(Long tenantId, CreateWorkOrderRequest request) {
         validateProgress(request.progress());
 
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         int progress = request.progress() == null ? 0 : request.progress();
         WorkOrderStatus status = request.status() == null ? WorkOrderStatus.PENDING : request.status();
 
@@ -65,7 +66,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     @Override
     @Transactional(readOnly = true)
     public List<WorkOrderResponse> getAll(Long tenantId) {
-        Long effectiveId = tenantId != null ? tenantId : 1L;
+        Long effectiveId = TenantGuard.require(tenantId);
         return workOrderRepository.findByTenantIdOrderByCreatedAtDesc(effectiveId)
                 .stream()
                 .map(mapper::toResponse)
@@ -75,7 +76,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     @Override
     @Transactional(readOnly = true)
     public List<WorkOrderResponse> getByStatus(Long tenantId, WorkOrderStatus status) {
-        Long effectiveId = tenantId != null ? tenantId : 1L;
+        Long effectiveId = TenantGuard.require(tenantId);
         return workOrderRepository.findByTenantIdAndStatusOrderByCreatedAtDesc(effectiveId, status)
                 .stream()
                 .map(mapper::toResponse)
@@ -131,9 +132,8 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     }
 
     private WorkOrder getEntity(Long tenantId, Long id) {
-        Long effectiveId = tenantId != null ? tenantId : 1L;
+        Long effectiveId = TenantGuard.require(tenantId);
         return workOrderRepository.findByIdAndTenantId(id, effectiveId)
-                .or(() -> workOrderRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Work order not found: " + id));
     }
 

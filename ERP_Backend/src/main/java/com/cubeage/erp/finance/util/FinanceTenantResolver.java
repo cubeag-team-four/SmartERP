@@ -1,6 +1,8 @@
 package com.cubeage.erp.finance.util;
 
+import com.cubeage.erp.common.exception.ForbiddenException;
 import com.cubeage.erp.security.SecurityUtils;
+import org.springframework.security.access.AccessDeniedException;
 import com.cubeage.erp.tenant.context.TenantContext;
 
 public final class FinanceTenantResolver {
@@ -11,8 +13,7 @@ public final class FinanceTenantResolver {
      * Resolves the effective tenant ID for Finance operations.
      * 1. If the authenticated user is SUPER_ADMIN, honor the target headerTenantId or TenantContext.
      * 2. For standard users (TENANT_ADMIN, FINANCE_MANAGER), strictly enforce their own authenticated tenantId to prevent spoofing.
-     * 3. Falls back to TenantContext if set.
-     * 4. Uses headerTenantId or 1L for unauthenticated or test invocations.
+     * 3. Otherwise refuses: there is no fallback tenant.
      */
     public static Long resolveTenantId(Long headerTenantId) {
         try {
@@ -29,19 +30,11 @@ public final class FinanceTenantResolver {
             if (authTenantId != null) {
                 return authTenantId;
             }
-        } catch (Exception ignored) {
-            // Unauthenticated or not a UserPrincipal instance (e.g. unit tests)
+        } catch (AccessDeniedException ignored) {
+            // Not authenticated as a UserPrincipal: fall through and refuse below.
         }
-
-        Long contextTenantId = TenantContext.getTenantId();
-        if (contextTenantId != null) {
-            return contextTenantId;
-        }
-
-        if (headerTenantId != null) {
-            return headerTenantId;
-        }
-
-        return 1L;
+        // Never fall back to a client header or a hard-coded tenant: that would expose
+        // another company's ledger to an unauthenticated or misconfigured caller.
+        throw new ForbiddenException("Tenant context is required");
     }
 }

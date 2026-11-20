@@ -1,5 +1,6 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.manufacturing.dto.request.CreateMachineRequest;
 import com.cubeage.erp.manufacturing.dto.request.UpdateMachineRequest;
@@ -24,7 +25,7 @@ public class MachineServiceImpl implements MachineService {
 
     @Override
     public MachineResponse create(Long tenantId, CreateMachineRequest request) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         Machine machine = Machine.builder()
                 .tenantId(effectiveTenantId)
                 .code(request.code().trim().toUpperCase())
@@ -42,7 +43,7 @@ public class MachineServiceImpl implements MachineService {
     @Override
     @Transactional(readOnly = true)
     public List<MachineResponse> getAll(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return machineRepository.findByTenantIdOrderByCodeAsc(effectiveTenantId)
                 .stream()
                 .map(mapper::toResponse)
@@ -76,9 +77,8 @@ public class MachineServiceImpl implements MachineService {
     }
 
     private Machine getEntity(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return machineRepository.findByIdAndTenantId(id, effectiveTenantId)
-                .or(() -> machineRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Machine not found: " + id));
     }
 }

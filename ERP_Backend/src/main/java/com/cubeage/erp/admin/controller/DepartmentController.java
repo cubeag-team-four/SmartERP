@@ -1,5 +1,7 @@
 package com.cubeage.erp.admin.controller;
 
+import com.cubeage.erp.security.SecurityUtils;
+
 import com.cubeage.erp.admin.dto.DepartmentRequest;
 import com.cubeage.erp.admin.entity.Department;
 import com.cubeage.erp.admin.service.DepartmentService;
@@ -52,14 +54,12 @@ public class DepartmentController {
 
     @GetMapping
     public ResponseEntity<List<Department>>
-    getDepartments(
-            @RequestParam Long tenantId
-    ) {
+    getDepartments() {
 
         return ResponseEntity.ok(
                 departmentService
                         .getAll(
-                                tenantId
+                                SecurityUtils.currentTenantId()
                         )
         );
     }

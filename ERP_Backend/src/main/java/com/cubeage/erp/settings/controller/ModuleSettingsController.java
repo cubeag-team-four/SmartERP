@@ -10,6 +10,6 @@ import java.util.List;
 @RestController @RequestMapping("/api/v1/settings/modules") @RequiredArgsConstructor
 public class ModuleSettingsController {
     private final ModuleSettingsService service;
-    @GetMapping public List<ModuleSettingResponse> list(){return service.list(SecurityUtils.currentTenantId());}
+    @GetMapping @PreAuthorize("isAuthenticated()") public List<ModuleSettingResponse> list(){return service.list(SecurityUtils.currentTenantId());}
     @PutMapping @PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN')") public ModuleSettingResponse update(@Valid @RequestBody ModuleSettingRequest r){return service.update(SecurityUtils.currentTenantId(),r);}
 }

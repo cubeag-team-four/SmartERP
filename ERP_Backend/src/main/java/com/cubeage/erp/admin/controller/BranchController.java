@@ -1,5 +1,7 @@
 package com.cubeage.erp.admin.controller;
 
+import com.cubeage.erp.security.SecurityUtils;
+
 import com.cubeage.erp.admin.dto.BranchRequest;
 import com.cubeage.erp.admin.entity.Branch;
 import com.cubeage.erp.admin.service.BranchService;
@@ -50,13 +52,11 @@ public class BranchController {
 
     @GetMapping
     public ResponseEntity<List<Branch>>
-    getBranches(
-            @RequestParam Long tenantId
-    ) {
+    getBranches() {
 
         return ResponseEntity.ok(
                 branchService.getAll(
-                        tenantId
+                        SecurityUtils.currentTenantId()
                 )
         );
     }
@@ -64,15 +64,12 @@ public class BranchController {
     @GetMapping("/{id}")
     public ResponseEntity<Branch>
     getBranch(
-            @PathVariable Long id,
-
-            @RequestParam Long tenantId
-    ) {
+            @PathVariable Long id) {
 
         return ResponseEntity.ok(
                 branchService.getById(
                         id,
-                        tenantId
+                        SecurityUtils.currentTenantId()
                 )
         );
     }

@@ -20,16 +20,18 @@ public class UserPrincipal implements UserDetails {
     private final String username;
     private final String password;
     private final boolean active;
+    private final int tokenVersion;
     private final Set<GrantedAuthority> authorities;
 
     private UserPrincipal(Long id, Long tenantId, String name, String username,
-                          String password, boolean active, Set<GrantedAuthority> authorities) {
+                          String password, boolean active, int tokenVersion, Set<GrantedAuthority> authorities) {
         this.id = id;
         this.tenantId = tenantId;
         this.name = name;
         this.username = username;
         this.password = password;
         this.active = active;
+        this.tokenVersion = tokenVersion;
         this.authorities = authorities;
     }
 
@@ -42,7 +44,8 @@ public class UserPrincipal implements UserDetails {
                     authorities.add(new SimpleGrantedAuthority(permissionCode(permission))));
         });
         return new UserPrincipal(user.getId(), user.getTenantId(), user.getName(),
-                user.getEmail(), user.getPasswordHash(), Boolean.TRUE.equals(user.getActive()), authorities);
+                user.getEmail(), user.getPasswordHash(), Boolean.TRUE.equals(user.getActive()),
+                user.getTokenVersion() == null ? 0 : user.getTokenVersion(), authorities);
     }
 
     private static String permissionCode(Permission permission) {

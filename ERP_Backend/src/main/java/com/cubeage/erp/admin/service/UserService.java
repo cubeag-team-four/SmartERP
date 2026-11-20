@@ -1,5 +1,12 @@
 package com.cubeage.erp.admin.service;
 
+import com.cubeage.erp.auth.security.PasswordPolicyService;
+import com.cubeage.erp.auth.service.MfaService;
+import com.cubeage.erp.auth.service.SecurityAuditService;
+import com.cubeage.erp.auth.service.SessionService;
+import com.cubeage.erp.common.exception.ForbiddenException;
+import com.cubeage.erp.security.SecurityUtils;
+
 import com.cubeage.erp.admin.dto.CreateUserRequest;
 import com.cubeage.erp.admin.dto.UpdateUserRequest;
 import com.cubeage.erp.admin.dto.UserResponse;
@@ -43,6 +50,16 @@ public class UserService {
 
     private final PasswordEncoder passwordEncoder;
 
+    private final RoleAssignmentGuard roleGuard;
+
+    private final PasswordPolicyService passwordPolicy;
+
+    private final SessionService sessionService;
+
+    private final MfaService mfaService;
+
+    private final SecurityAuditService audit;
+
 public UserResponse createUser(Long tenantId, CreateUserRequest request) {
     String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
 
@@ -56,6 +73,8 @@ public UserResponse createUser(Long tenantId, CreateUserRequest request) {
             .findById(request.getRoleId())
             .filter(item -> item.getTenantId().equals(tenantId))
             .orElseThrow(() -> new RuntimeException("Selected role is invalid."));
+    roleGuard.assertCanGrant(Set.of(role));
+    passwordPolicy.validate(request.getPassword(), email, request.getName(), tenantId, null);
 
     Branch branch = null;
     if (request.getBranchId() != null) {
@@ -89,7 +108,10 @@ public UserResponse createUser(Long tenantId, CreateUserRequest request) {
             .roles(Set.of(role))
             .build();
 
-    return userMapper.toResponse(userRepository.save(user));
+    User saved = userRepository.save(user);
+    audit.record(tenantId, SecurityUtils.currentUserId(), "USER_CREATED", "SUCCESS", "USER", saved.getId(),
+            "role=" + role.getName(), null);
+    return userMapper.toResponse(saved);
 }
 
 
@@ -97,9 +119,13 @@ public UserResponse createUser(Long tenantId, CreateUserRequest request) {
             Long id,
             Long tenantId
     ) {
+        roleGuard.assertNotSelf(id, "delete");
         User user = getUserEntity(id, tenantId);
+        assertCanManageUser(user);
 
+        sessionService.revokeAllSessions(user, "USER_DELETED");
         userRepository.delete(user);
+        audit.record(tenantId, SecurityUtils.currentUserId(), "USER_DELETED", "SUCCESS", "USER", id, null, null);
     }
 
     @Transactional(readOnly = true)
@@ -138,13 +164,20 @@ public UserResponse createUser(Long tenantId, CreateUserRequest request) {
             Boolean active
     ) {
 
+        roleGuard.assertNotSelf(id, "change the status of");
         User user =
                 getUserEntity(
                         id,
                         tenantId
                 );
+        assertCanManageUser(user);
 
         user.setActive(active);
+        if (!Boolean.TRUE.equals(active)) {
+            sessionService.revokeAllSessions(user, "USER_DEACTIVATED");
+        }
+        audit.record(tenantId, SecurityUtils.currentUserId(), Boolean.TRUE.equals(active) ? "USER_ACTIVATED" : "USER_DEACTIVATED",
+                "SUCCESS", "USER", id, null, null);
 
         return userMapper.toResponse(
                 userRepository.save(user)
@@ -157,23 +190,43 @@ public UserResponse createUser(Long tenantId, CreateUserRequest request) {
             Set<Long> roleIds
     ) {
 
+        roleGuard.assertNotSelf(userId, "change the roles of");
         User user =
                 getUserEntity(
                         userId,
                         tenantId
                 );
+        assertCanManageUser(user);
 
         Set<Role> roles =
                 validateRoles(
                         roleIds,
                         tenantId
                 );
+        roleGuard.assertCanGrant(roles);
 
         user.setRoles(roles);
+        sessionService.revokeAllSessions(user, "ROLES_CHANGED");
+        audit.record(tenantId, SecurityUtils.currentUserId(), "ROLE_ASSIGNMENT_CHANGED", "SUCCESS", "USER", userId,
+                "roles=" + roles.stream().map(Role::getName).sorted().toList(), null);
 
         return userMapper.toResponse(
                 userRepository.save(user)
         );
+    }
+
+    /** Admin reset of a user's MFA (lost device): clears enrollment and signs them out everywhere. */
+    public void resetMfa(Long userId, Long tenantId) {
+        roleGuard.assertNotSelf(userId, "reset MFA on");
+        User user = getUserEntity(userId, tenantId);
+        assertCanManageUser(user);
+        mfaService.adminReset(user, SecurityUtils.currentUserId(), null);
+        sessionService.revokeAllSessions(user, "MFA_RESET");
+    }
+
+    /** A tenant admin may not modify, deactivate or delete a platform Super Admin account. */
+    private void assertCanManageUser(User target) {
+        roleGuard.assertCanGrant(target.getRoles());
     }
 
     private User getUserEntity(
@@ -267,6 +320,16 @@ public UserResponse createUser(Long tenantId, CreateUserRequest request) {
                 .orElseThrow(() ->
                         new RuntimeException("Selected role is invalid.")
                 );
+        assertCanManageUser(user);
+        roleGuard.assertCanGrant(Set.of(role));
+
+        boolean wasActive = Boolean.TRUE.equals(user.getActive());
+        boolean editingSelf = user.getId().equals(SecurityUtils.currentUserId());
+        boolean roleChanges = user.getRoles().stream().noneMatch(existing -> existing.getId().equals(role.getId()))
+                || user.getRoles().size() != 1;
+        if (editingSelf && (roleChanges || !Boolean.TRUE.equals(request.getActive()))) {
+            throw new ForbiddenException("You cannot change your own role or status");
+        }
 
         user.setName(request.getName().trim());
         user.setEmail(email);
@@ -276,7 +339,12 @@ public UserResponse createUser(Long tenantId, CreateUserRequest request) {
         user.getRoles().clear();
         user.getRoles().add(role);
 
+        if (roleChanges || (wasActive && !Boolean.TRUE.equals(request.getActive()))) {
+            sessionService.revokeAllSessions(user, roleChanges ? "ROLES_CHANGED" : "USER_DEACTIVATED");
+        }
         User savedUser = userRepository.save(user);
+        audit.record(tenantId, SecurityUtils.currentUserId(), roleChanges ? "ROLE_ASSIGNMENT_CHANGED" : "USER_UPDATED",
+                "SUCCESS", "USER", userId, "fields=name,email,position,active,role", null);
 
         return userMapper.toResponse(savedUser);
     }

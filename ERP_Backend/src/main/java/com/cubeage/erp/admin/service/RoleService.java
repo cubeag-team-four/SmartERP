@@ -22,14 +22,19 @@ public class RoleService {
 
     private final PermissionRepository permissionRepository;
 
+    private final RoleAssignmentGuard roleGuard;
+
     public Role createRole(
             RoleRequest request
     ) {
 
+        Long tenantId = roleGuard.effectiveTenant(request.getTenantId());
+        roleGuard.assertCanCreateRoleNamed(request.getName());
+
         boolean exists =
                 roleRepository
                         .existsByTenantIdAndNameIgnoreCase(
-                                request.getTenantId(),
+                                tenantId,
                                 request.getName()
                         );
 
@@ -46,7 +51,7 @@ public class RoleService {
 
         Role role = Role.builder()
                 .tenantId(
-                        request.getTenantId()
+                        tenantId
                 )
                 .name(
                         request
@@ -100,6 +105,7 @@ public class RoleService {
                 roleId,
                 tenantId
         );
+        roleGuard.assertCanManageRole(role);
 
         Set<Permission> permissions =
                 getPermissions(

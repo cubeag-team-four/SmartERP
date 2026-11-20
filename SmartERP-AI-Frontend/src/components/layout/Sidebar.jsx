@@ -1,6 +1,7 @@
 import React from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/slices/auth.store'
+import { logout as logoutSession } from '../../core/services/session.service'
 import { formatRole } from '../../utils/formatRole'
 
 // ─── Nav config (unchanged) ───────────────────────────────────────────────────
@@ -273,7 +274,13 @@ const DASHBOARD_LABELS = ['Dashboard']
 const MODULE_SECTION_LABEL = 'MODULES'
 
 const Sidebar = () => {
-  const { user, logout } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logoutSession() // best-effort server revoke; always clears local state
+    navigate('/login', { replace: true })
+  }
   const links = (user?.role && NAV[user.role]) || []
 
   const dashboardLinks = links.filter(l => DASHBOARD_LABELS.includes(l.label))
@@ -418,16 +425,14 @@ const Sidebar = () => {
           </div>
 
           {/* Logout */}
-          {typeof logout === 'function' && (
-            <button
-              onClick={logout}
-              className="flex-shrink-0 opacity-40 hover:opacity-80 transition-opacity"
-              title="Logout"
-              style={{ color: '#d4d4c8' }}
-            >
-              <LogoutIcon />
-            </button>
-          )}
+          <button
+            onClick={handleLogout}
+            className="flex-shrink-0 opacity-40 hover:opacity-80 transition-opacity"
+            title="Logout"
+            style={{ color: '#d4d4c8' }}
+          >
+            <LogoutIcon />
+          </button>
         </div>
       )}
     </aside>

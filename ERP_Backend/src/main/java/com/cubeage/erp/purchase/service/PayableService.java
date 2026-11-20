@@ -1,5 +1,6 @@
 package com.cubeage.erp.purchase.service;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.common.exception.BadRequestException;
 import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.purchase.dto.payable.PayableResponse;
@@ -32,7 +33,7 @@ public class PayableService {
     private final PayableMapper mapper;
 
     public List<PayableResponse> listPayables(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return payableRepository.findByTenantIdOrderByDueDateAsc(effectiveTenantId)
                 .stream()
                 .map(p -> mapper.toResponse(markOverdue(p)))
@@ -40,12 +41,12 @@ public class PayableService {
     }
 
     public PayableResponse getPayable(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return mapper.toResponse(markOverdue(requirePayable(effectiveTenantId, id)));
     }
 
     public PayableSummaryResponse getSummary(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         payableRepository.findByTenantIdOrderByDueDateAsc(effectiveTenantId).forEach(this::markOverdue);
         BigDecimal totalOutstanding = payableRepository.totalOutstandingPayables(effectiveTenantId);
         BigDecimal totalOverdue = payableRepository.totalOverduePayables(effectiveTenantId);
@@ -73,7 +74,7 @@ public class PayableService {
     }
 
     public PayableResponse recordPayment(Long tenantId, Long id, RecordPaymentRequest request) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         Payable payable = markOverdue(requirePayable(effectiveTenantId, id));
 
         if (payable.getStatus() == PaymentStatus.PAID) {
@@ -100,9 +101,8 @@ public class PayableService {
     }
 
     public PayableResponse createPayable(Long tenantId, CreatePayableRequest request) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         PurchaseOrder order = purchaseOrderRepository.findByIdAndTenantId(request.purchaseOrderId(), effectiveTenantId)
-                .or(() -> purchaseOrderRepository.findById(request.purchaseOrderId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found: " + request.purchaseOrderId()));
         if (request.dueDate().isBefore(request.invoiceDate())) {
             throw new BadRequestException("Due date cannot be before invoice date");
@@ -140,9 +140,8 @@ public class PayableService {
     }
 
     private Payable requirePayable(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return payableRepository.findByIdAndTenantId(id, effectiveTenantId)
-                .or(() -> payableRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Payable not found: " + id));
     }
 

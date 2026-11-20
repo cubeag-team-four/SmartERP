@@ -54,6 +54,7 @@ import CashFlow from '../pages/modules/finance/CashFlow'
 /* ========================================================================== */
 
 // Company Management
+const AccountSecurity      = lazy(() => import('../pages/account/AccountSecurity'))
 const CompanyDashboard     = lazy(() => import('../pages/modules/companyManagement/Dashboard'))
 const CompanyOverview      = lazy(() => import('../pages/modules/companyManagement/Overview'))
 const CompanyProfile       = lazy(() => import('../pages/modules/companyManagement/CompanyProfile'))
@@ -237,6 +238,15 @@ const AppRoutes = () => {
         <Route path={ROUTES.APP} element={<RoleRedirect />} />
 
         {/* ════════════════════════════════════════════════════════════════
+            ACCOUNT — shared by every signed-in role
+        ════════════════════════════════════════════════════════════════ */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path={ROUTES.ACCOUNT_SECURITY} element={<AccountSecurity />} />
+          </Route>
+        </Route>
+
+        {/* ════════════════════════════════════════════════════════════════
             SUPER ADMIN
         ════════════════════════════════════════════════════════════════ */}
         <Route element={<ProtectedRoute allowedRoles={['superAdmin']} />}>
@@ -388,7 +398,7 @@ const AppRoutes = () => {
         {/* ════════════════════════════════════════════════════════════════
             ADMIN
         ════════════════════════════════════════════════════════════════ */}        
-        <Route element={<ProtectedRoute allowedRoles={['admin', 'tenantAdmin']} />}> // added tenantadmin
+        <Route element={<ProtectedRoute allowedRoles={['admin', 'tenantAdmin']} />}>
           <Route element={<DashboardLayout />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
 

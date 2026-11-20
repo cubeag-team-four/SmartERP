@@ -18,7 +18,7 @@ public class ProfitLossController {
 	private final ProfitLossService service;
 
 	@GetMapping
-	@PreAuthorize("isAuthenticated()")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','FINANCE_MANAGER','FINANCE') or @permissionEvaluator.has(authentication,'FINANCE','VIEW')")
 	public ProfitLossResponse getProfitLoss(
 			@RequestHeader(value = "X-Tenant-Id", required = false) Long tenantId,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

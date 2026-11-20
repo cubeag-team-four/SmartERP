@@ -1,5 +1,7 @@
 package com.cubeage.erp.admin.controller;
 
+import com.cubeage.erp.admin.service.RoleAssignmentGuard;
+
 import com.cubeage.erp.admin.dto.RoleRequest;
 import com.cubeage.erp.admin.entity.Permission;
 import com.cubeage.erp.admin.entity.Role;
@@ -35,6 +37,8 @@ public class RoleController {
     private final PermissionService
             permissionService;
 
+    private final RoleAssignmentGuard roleGuard;
+
     @PostMapping
     public ResponseEntity<Role>
     createRole(
@@ -57,12 +61,12 @@ public class RoleController {
     @GetMapping
     public ResponseEntity<List<Role>>
     getRoles(
-            @RequestParam Long tenantId
+            @RequestParam(required = false) Long tenantId
     ) {
 
         return ResponseEntity.ok(
                 roleService.getRoles(
-                        tenantId
+                        roleGuard.effectiveTenant(tenantId)
                 )
         );
     }
@@ -72,13 +76,13 @@ public class RoleController {
     getRole(
             @PathVariable Long id,
 
-            @RequestParam Long tenantId
+            @RequestParam(required = false) Long tenantId
     ) {
 
         return ResponseEntity.ok(
                 roleService.getRole(
                         id,
-                        tenantId
+                        roleGuard.effectiveTenant(tenantId)
                 )
         );
     }
@@ -90,7 +94,7 @@ public class RoleController {
     updatePermissions(
             @PathVariable Long id,
 
-            @RequestParam Long tenantId,
+            @RequestParam(required = false) Long tenantId,
 
             @RequestBody
             Set<Long> permissionIds
@@ -100,7 +104,7 @@ public class RoleController {
                 roleService
                         .updatePermissions(
                                 id,
-                                tenantId,
+                                roleGuard.effectiveTenant(tenantId),
                                 permissionIds
                         )
         );

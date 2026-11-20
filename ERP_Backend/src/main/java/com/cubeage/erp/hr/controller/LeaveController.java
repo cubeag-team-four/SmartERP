@@ -5,8 +5,9 @@ import com.cubeage.erp.hr.dto.leave.LeaveRequestDto;
 import com.cubeage.erp.hr.dto.leave.LeaveResponse;
 import com.cubeage.erp.hr.entity.Employee;
 import com.cubeage.erp.hr.service.LeaveService;
+import com.cubeage.erp.common.exception.ForbiddenException;
+import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.security.SecurityUtils;
-import com.cubeage.erp.tenant.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,46 +27,38 @@ public class LeaveController {
 
     private final LeaveService leaveService;
 
-    private Long resolveTenantId(Long tenantId) {
-        if (tenantId != null) {
-            return tenantId;
-        }
-        Long contextTenantId = TenantContext.getTenantId();
-        if (contextTenantId != null) {
-            return contextTenantId;
-        }
-        try {
-            return SecurityUtils.currentTenantId();
-        } catch (Exception e) {
-            return 3L;
-        }
+    /** Tenant is always taken from the authenticated principal, never from the request. */
+    private Long currentTenantId() {
+        return SecurityUtils.currentTenantId();
     }
 
-    private Long resolveScopedEmployeeId(Long tenantId, Long requestedEmployeeId) {
-        try {
-            boolean isStaffAdmin = SecurityUtils.hasRole("SUPER_ADMIN")
-                    || SecurityUtils.hasRole("TENANT_ADMIN")
-                    || SecurityUtils.hasRole("HR_MANAGER");
+    private static boolean isStaffAdmin() {
+        return SecurityUtils.hasRole("SUPER_ADMIN")
+                || SecurityUtils.hasRole("TENANT_ADMIN")
+                || SecurityUtils.hasRole("HR_MANAGER");
+    }
 
-            if (isStaffAdmin) {
-                return requestedEmployeeId;
-            }
-            // For standard employee, always enforce their own resolved employee ID
-            return leaveService.findCurrentEmployee(tenantId)
-                    .map(Employee::getId)
-                    .orElse(requestedEmployeeId);
-        } catch (Exception e) {
+    /**
+     * HR staff may act on any employee in their tenant. Everyone else is pinned to their own
+     * employee profile; a client-supplied employeeId is never honoured for them, and a user
+     * without a linked profile is refused rather than falling back to the requested id.
+     */
+    private Long resolveScopedEmployeeId(Long tenantId, Long requestedEmployeeId) {
+        if (isStaffAdmin()) {
             return requestedEmployeeId;
         }
+        return leaveService.findCurrentEmployee(tenantId)
+                .map(Employee::getId)
+                .orElseThrow(() -> new ForbiddenException("No employee profile is linked to this account"));
     }
 
     @GetMapping("/balance")
+    @PreAuthorize("isAuthenticated()")
     public LeaveBalanceResponse getLeaveBalance(
-            @RequestParam(required = false) Long tenantId,
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) Integer year
     ) {
-        Long tid = resolveTenantId(tenantId);
+        Long tid = currentTenantId();
         boolean isStaffAdmin = SecurityUtils.hasRole("SUPER_ADMIN")
                 || SecurityUtils.hasRole("TENANT_ADMIN")
                 || SecurityUtils.hasRole("HR_MANAGER");
@@ -95,31 +88,37 @@ public class LeaveController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<LeaveResponse> getLeaves(
-            @RequestParam(required = false) Long tenantId,
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer year
     ) {
-        Long tid = resolveTenantId(tenantId);
+        Long tid = currentTenantId();
         Long eid = resolveScopedEmployeeId(tid, employeeId);
         return leaveService.getLeaves(tid, eid, status, year);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public LeaveResponse getLeave(
-            @RequestParam(required = false) Long tenantId,
             @PathVariable Long id
     ) {
-        return leaveService.getLeave(resolveTenantId(tenantId), id);
+        Long tid = currentTenantId();
+        LeaveResponse leave = leaveService.getLeave(tid, id);
+        if (!isStaffAdmin() && !resolveScopedEmployeeId(tid, null).equals(leave.getEmployeeId())) {
+            // Same response as a missing record, so ids of other employees' leaves are not confirmed.
+            throw new ResourceNotFoundException("Leave request not found");
+        }
+        return leave;
     }
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<LeaveResponse> createLeave(
-            @RequestParam(required = false) Long tenantId,
             @RequestBody LeaveRequestDto request
     ) {
-        Long tid = resolveTenantId(tenantId);
+        Long tid = currentTenantId();
         Long eid = resolveScopedEmployeeId(tid, request.getEmployeeId());
         LeaveResponse response = leaveService.createLeave(tid, eid, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -128,11 +127,10 @@ public class LeaveController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('EMPLOYEE') and !hasAnyRole('HR_MANAGER', 'TENANT_ADMIN', 'SUPER_ADMIN')")
     public LeaveResponse updateLeave(
-            @RequestParam(required = false) Long tenantId,
             @PathVariable Long id,
             @RequestBody LeaveRequestDto request
     ) {
-        Long tid = resolveTenantId(tenantId);
+        Long tid = currentTenantId();
         Long eid = resolveScopedEmployeeId(tid, null);
         return leaveService.updateLeave(tid, id, eid, request);
     }
@@ -140,10 +138,9 @@ public class LeaveController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('EMPLOYEE') and !hasAnyRole('HR_MANAGER', 'TENANT_ADMIN', 'SUPER_ADMIN')")
     public LeaveResponse cancelLeave(
-            @RequestParam(required = false) Long tenantId,
             @PathVariable Long id
     ) {
-        Long tid = resolveTenantId(tenantId);
+        Long tid = currentTenantId();
         Long eid = resolveScopedEmployeeId(tid, null);
         return leaveService.cancelLeave(tid, id, eid);
     }
@@ -151,38 +148,35 @@ public class LeaveController {
     @PatchMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('HR_MANAGER','TENANT_ADMIN','SUPER_ADMIN')")
     public LeaveResponse approveLeave(
-            @RequestParam(required = false) Long tenantId,
             @PathVariable Long id
     ) {
-        return leaveService.approveLeave(resolveTenantId(tenantId), id);
+        return leaveService.approveLeave(currentTenantId(), id);
     }
 
     @PatchMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('HR_MANAGER','TENANT_ADMIN','SUPER_ADMIN')")
     public LeaveResponse rejectLeave(
-            @RequestParam(required = false) Long tenantId,
             @PathVariable Long id
     ) {
-        return leaveService.rejectLeave(resolveTenantId(tenantId), id);
+        return leaveService.rejectLeave(currentTenantId(), id);
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('HR_MANAGER','TENANT_ADMIN','SUPER_ADMIN')")
     public LeaveResponse updateStatus(
-            @RequestParam(required = false) Long tenantId,
             @PathVariable Long id,
             @RequestParam String status
     ) {
-        return leaveService.updateStatus(resolveTenantId(tenantId), id, status);
+        return leaveService.updateStatus(currentTenantId(), id, status);
     }
 
     @GetMapping("/export")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> exportLeaves(
-            @RequestParam(required = false) Long tenantId,
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) Integer year
     ) {
-        Long tid = resolveTenantId(tenantId);
+        Long tid = currentTenantId();
         Long eid = resolveScopedEmployeeId(tid, employeeId);
         byte[] csv = leaveService.exportLeavesCsv(tid, eid, year);
 

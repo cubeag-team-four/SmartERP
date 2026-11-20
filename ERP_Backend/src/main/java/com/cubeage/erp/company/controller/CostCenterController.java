@@ -30,7 +30,7 @@ public class CostCenterController {
     public CostCenterResponse create(@PathVariable Long companyId, @Valid @RequestBody CostCenterRequest request) {
         return service.createCostCenter(SecurityUtils.currentTenantId(), companyId, request);
     }
-    @PutMapping("/{id}") @PreAuthorize("@permissionEvaluator.has(authentication,'COMPANY_MANAGEMENT','EDIT')")
+    @PutMapping("/{id}") @PreAuthorize("@permissionEvalu  ator.has(authentication,'COMPANY_MANAGEMENT','EDIT')")
     public CostCenterResponse update(@PathVariable Long companyId, @PathVariable Long id,
                                      @Valid @RequestBody CostCenterRequest request) {
         return service.updateCostCenter(SecurityUtils.currentTenantId(), companyId, id, request);

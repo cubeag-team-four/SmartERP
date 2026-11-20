@@ -1,5 +1,6 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.manufacturing.dto.request.CreateBomRequest;
 import com.cubeage.erp.manufacturing.dto.request.UpdateBomRequest;
@@ -32,7 +33,7 @@ public class BomServiceImpl implements BomService {
 
     @Override
     public BomResponse create(Long tenantId, CreateBomRequest request) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         BigDecimal totalCost = request.items().stream()
                 .map(i -> i.unitCost().multiply(i.quantity()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -65,7 +66,7 @@ public class BomServiceImpl implements BomService {
     @Override
     @Transactional(readOnly = true)
     public List<BomResponse> getAll(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return bomRepository.findByTenantIdOrderByCreatedAtDesc(effectiveTenantId)
                 .stream()
                 .map(mapper::toResponse)
@@ -100,14 +101,13 @@ public class BomServiceImpl implements BomService {
     }
 
     private BillOfMaterial getEntity(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return bomRepository.findByIdAndTenantId(id, effectiveTenantId)
-                .or(() -> bomRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("BOM not found: " + id));
     }
 
     private synchronized String generateBomNumber(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         long count = bomRepository.countByTenantId(effectiveTenantId) + 1;
         return String.format("BOM-%03d", count);
     }

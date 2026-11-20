@@ -1,61 +1,69 @@
-import apiService from './api.service'
-import { SERVER_URL } from '../constants/serverUrl.constant'
-import { dummyUsers } from '../../data/users.mock'
+import axios from '../../utils/axios'
 
-// TEMP: ERP_Backend has no POST /auth/login yet, so `login` resolves against
-// the local dummyUsers array instead of calling the API. It still returns the
-// same axios-shaped { data: { token, user } } / { response: { data: { message } } }
-// contract, so nothing else (Login.jsx, auth.store.js) needs to change when a
-// real endpoint ships — just delete mockLogin and point `login` at apiService.post again.
-const MOCK_LATENCY_MS = 450
-
-const mockLogin = ({ email, password }) =>
-  new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const match = dummyUsers.find(
-        (u) => u.email.toLowerCase() === String(email || '').toLowerCase() && u.password === password
-      )
-      if (!match) {
-        reject({ response: { data: { message: 'Invalid email or password.' } } })
-        return
-      }
-      const { password: _password, ...user } = match
-      resolve({ data: { token: `mock-token.${user.id}.${Date.now()}`, user } })
-    }, MOCK_LATENCY_MS)
-  })
+/**
+ * Auth API calls. Every method resolves with the unwrapped `data` field of the
+ * backend's `{ success, message, data }` envelope. Errors are axios errors whose
+ * `response.data` is an RFC 7807 ProblemDetail (`detail`, `code`, ...) — use
+ * core/utils/apiError.js to read them.
+ *
+ * Session-cookie endpoints (/auth/refresh, /auth/logout) live in
+ * session.service.js because they must bypass the 401-refresh interceptor.
+ */
+const unwrap = (response) => response?.data?.data
 
 const authService = {
+  /** -> LoginResponse ({ status: AUTHENTICATED | MFA_REQUIRED | MFA_ENROLLMENT_REQUIRED, ... }) */
+  login: ({ email, password, tenantCode }) =>
+    axios
+      .post('/auth/login', { email, password, ...(tenantCode ? { tenantCode } : {}) })
+      .then(unwrap),
 
-  // added
-  login: async (payload) => {
-  const response = await apiService.post(
-    `${SERVER_URL}/auth/login`,
-    payload
-  );
+  /** -> { tenantCode, companyName, email } */
+  signup: (payload) => axios.post('/auth/signup', payload).then(unwrap),
 
-  const loginData = response.data.data;
+  /** Exactly one of code / recoveryCode. -> AUTHENTICATED LoginResponse */
+  verifyMfa: ({ mfaToken, code, recoveryCode }) =>
+    axios
+      .post('/auth/mfa/verify', {
+        mfaToken,
+        ...(recoveryCode ? { recoveryCode } : { code }),
+      })
+      .then(unwrap),
 
-  return {
-    data: {
-      token: loginData.accessToken,
-      user: {
-        id: loginData.userId,
-        tenantId: loginData.tenantId,
-        name: loginData.name,
-        email: loginData.email,
-        role: loginData.role
-          ?.toLowerCase()
-          .replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()), //added
-      },
-    },
-  };
-},
+  /** With mfaToken: login-time enrollment. Without: signed-in user (Bearer). -> { secret, otpauthUri, issuer, accountName } */
+  setupMfa: (mfaToken) =>
+    axios.post('/auth/mfa/setup', mfaToken ? { mfaToken } : undefined).then(unwrap),
 
-  signup: (payload) => apiService.post(`${SERVER_URL}/auth/signup`, payload),
-  logout: () => apiService.post(`${SERVER_URL}/auth/logout`),
-  forgotPassword: (email) => apiService.post(`${SERVER_URL}/auth/forgot-password`, { email }),
-  resetPassword: (payload) => apiService.post(`${SERVER_URL}/auth/reset-password`, payload),
-  me: () => apiService.get(`${SERVER_URL}/auth/me`),
+  /**
+   * With mfaToken -> AUTHENTICATED LoginResponse incl. recoveryCodes.
+   * Without (Bearer) -> { mfaEnabled, recoveryCodes }.
+   */
+  enableMfa: ({ mfaToken, code }) =>
+    axios.post('/auth/mfa/enable', mfaToken ? { mfaToken, code } : { code }).then(unwrap),
+
+  /** -> { enabled, required, enrolledAt, recoveryCodesRemaining } */
+  mfaStatus: () => axios.get('/auth/mfa/status').then(unwrap),
+
+  /** -> { recoveryCodes } */
+  regenerateRecoveryCodes: (code) => axios.post('/auth/mfa/recovery-codes', { code }).then(unwrap),
+
+  disableMfa: ({ password, code }) => axios.post('/auth/mfa/disable', { password, code }).then(unwrap),
+
+  /** Succeeds (202) whether or not the account exists. */
+  forgotPassword: (email) => axios.post('/auth/forgot-password', { email }).then(unwrap),
+
+  resetPassword: ({ token, newPassword }) =>
+    axios.post('/auth/reset-password', { token, newPassword }).then(unwrap),
+
+  /** Revokes ALL sessions on success — the caller must send the user back to /login. */
+  changePassword: ({ oldPassword, newPassword }) =>
+    axios.post('/auth/change-password', { oldPassword, newPassword }).then(unwrap),
+
+  /** -> { minLength, maxLength, requiredCharacterClasses, historySize, breachCheck } */
+  passwordPolicy: () => axios.get('/auth/password-policy').then(unwrap),
+
+  /** -> { userId, tenantId, tenantCode, name, email, role, roles, permissions, mfaEnabled, mfaRequired } */
+  me: () => axios.get('/auth/me').then(unwrap),
 }
 
 export default authService

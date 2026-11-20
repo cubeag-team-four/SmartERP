@@ -2,15 +2,7 @@ package com.cubeage.erp.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
 
-@Data
-public class ChangePasswordRequest {
-
-    @NotBlank
-    private String oldPassword;
-
-    @NotBlank
-    @Size(min = 8)
-    private String newPassword;
-}
+public record ChangePasswordRequest(
+        @NotBlank @Size(max = 256) String oldPassword,
+        @NotBlank @Size(max = 256) String newPassword) { }

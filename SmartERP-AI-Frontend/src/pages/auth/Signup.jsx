@@ -1,6 +1,9 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import authService from '../../core/services/auth.service'
+import { getApiError } from '../../core/utils/apiError'
+import { evaluatePassword, usePasswordPolicy } from '../../core/utils/passwordPolicy'
+import PasswordChecklist from '../../components/auth/PasswordChecklist'
 
 /* ─── colour tokens ─────────────────────────────────────────────────────── */
 const C = {
@@ -75,19 +78,6 @@ const IconInput = ({ icon, noPadding, ...props }) => (
     />
   </div>
 )
-
-/* ─── Password strength ─────────────────────────────────────────────────── */
-const getStrength = (pw) => {
-  if (!pw) return { label: '', score: 0 }
-  let score = 0
-  if (pw.length >= 8)              score++
-  if (/[A-Z]/.test(pw))           score++
-  if (/[0-9]/.test(pw))           score++
-  if (/[^A-Za-z0-9]/.test(pw))   score++
-  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong']
-  const colors = ['', '#ef4444', '#f59e0b', '#84cc16', '#22c55e']
-  return { label: labels[score], color: colors[score], score }
-}
 
 /* ─── SVG icons ─────────────────────────────────────────────────────────── */
 const UserIcon = () => (
@@ -167,7 +157,8 @@ const Signup = () => {
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
 
-  const strength = getStrength(form.password)
+  const policy = usePasswordPolicy()
+  const pwCheck = evaluatePassword(form.password, { name: form.fullName, email: form.email }, policy)
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -177,19 +168,29 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.agreeTerms) { setError('Please agree to the Terms of Service and Privacy Policy.'); return }
+    if (!pwCheck.valid) { setError('Your password does not meet the requirements listed below the password field.'); return }
     if (form.password !== form.confirmPassword) { setError('Passwords do not match.'); return }
     setError('')
     setLoading(true)
     try {
-      await authService.signup({
-        name:        form.fullName,
-        companyName: form.companyName,
-        email:       form.email,
+      const created = await authService.signup({
+        name:        form.fullName.trim(),
+        companyName: form.companyName.trim(),
+        email:       form.email.trim().toLowerCase(),
         password:    form.password,
+        ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
       })
-      navigate('/login')
+      const company = created?.companyName || form.companyName.trim()
+      navigate('/login', {
+        state: {
+          notice: `Your account for ${company} has been created. Sign in to continue — you'll be asked to set up two-factor authentication the first time you sign in.`,
+        },
+      })
     } catch (err) {
-      setError(err?.response?.data?.message || 'Unable to create your account. Please try again.')
+      const e = getApiError(err, 'Unable to create your account. Please try again.')
+      setError(e.code === 'EMAIL_IN_USE'
+        ? (e.message || 'An account with this email already exists. Try signing in instead.')
+        : e.message)
     } finally {
       setLoading(false)
     }
@@ -342,7 +343,7 @@ const Signup = () => {
                   <input
                     id="password" name="password" type={showPw ? 'text' : 'password'}
                     value={form.password} onChange={handleChange}
-                    placeholder="Create a strong password" required
+                    placeholder="Create a strong password" required autoComplete="new-password"
                     style={{ ...inputStyle, paddingRight: 40 }}
                     onFocus={e => (e.target.style.borderColor = '#6b7280')}
                     onBlur={e  => (e.target.style.borderColor = C.border)}
@@ -359,7 +360,7 @@ const Signup = () => {
                   <input
                     id="confirmPassword" name="confirmPassword" type={showConfPw ? 'text' : 'password'}
                     value={form.confirmPassword} onChange={handleChange}
-                    placeholder="Confirm your password" required
+                    placeholder="Confirm your password" required autoComplete="new-password"
                     style={{ ...inputStyle, paddingRight: 40 }}
                     onFocus={e => (e.target.style.borderColor = '#6b7280')}
                     onBlur={e  => (e.target.style.borderColor = C.border)}
@@ -371,21 +372,12 @@ const Signup = () => {
               </div>
             </div>
 
-            {/* Password strength */}
-            {form.password && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 11, color: C.dim }}>Password strength:</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: strength.color }}>{strength.label}</span>
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= strength.score ? strength.color : C.border, transition: 'background 0.2s' }} />
-                  ))}
-                </div>
-              </div>
+            {/* Password policy checklist */}
+            <PasswordChecklist checks={pwCheck.checks} tone="signup" style={{ marginTop: 10, marginBottom: 6 }} />
+            {form.confirmPassword && form.password !== form.confirmPassword && (
+              <p style={{ fontSize: 11, color: '#fca5a5', fontFamily: 'monospace', margin: '4px 0 0' }}>Passwords do not match.</p>
             )}
-            {!form.password && <div style={{ marginBottom: 16 }} />}
+            <div style={{ marginBottom: 16 }} />
 
             {/* How did you hear */}
             <div style={{ marginBottom: 20 }}>

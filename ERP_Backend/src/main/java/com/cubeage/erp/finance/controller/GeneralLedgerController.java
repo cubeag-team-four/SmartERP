@@ -18,7 +18,7 @@ public class GeneralLedgerController {
 	private final GeneralLedgerService service;
 
 	@GetMapping
-	@PreAuthorize("isAuthenticated()")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','FINANCE_MANAGER','FINANCE') or @permissionEvaluator.has(authentication,'FINANCE','VIEW')")
 	public GeneralLedgerResponse getLedger(
 			@RequestHeader(value = "X-Tenant-Id", required = false) Long tenantId,
 			@RequestParam(required = false) String accountCode,

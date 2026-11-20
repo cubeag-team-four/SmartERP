@@ -21,7 +21,7 @@ public class AccountController {
 	private final AccountService service;
 
 	@GetMapping
-	@PreAuthorize("isAuthenticated()")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','FINANCE_MANAGER','FINANCE') or @permissionEvaluator.has(authentication,'FINANCE','VIEW')")
 	public List<AccountResponse> listAccounts(
 			@RequestHeader(value = "X-Tenant-Id", required = false) Long tenantId,
 			@RequestParam(required = false) AccountType type,
@@ -35,7 +35,7 @@ public class AccountController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	@PreAuthorize("isAuthenticated()")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','FINANCE_MANAGER','FINANCE') or @permissionEvaluator.has(authentication,'FINANCE','CREATE')")
 	public AccountResponse createAccount(
 			@RequestHeader(value = "X-Tenant-Id", required = false) Long tenantId,
 			@RequestBody CreateAccountRequest request
@@ -45,7 +45,7 @@ public class AccountController {
 	}
 
 	@PutMapping("/{id}")
-	@PreAuthorize("isAuthenticated()")
+	@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','FINANCE_MANAGER','FINANCE') or @permissionEvaluator.has(authentication,'FINANCE','EDIT')")
 	public AccountResponse updateAccount(
 			@RequestHeader(value = "X-Tenant-Id", required = false) Long tenantId,
 			@PathVariable Long id,

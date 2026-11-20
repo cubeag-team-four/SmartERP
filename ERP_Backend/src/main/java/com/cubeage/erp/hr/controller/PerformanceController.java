@@ -6,71 +6,53 @@ import com.cubeage.erp.hr.dto.performance.PerformanceReviewResponse;
 import com.cubeage.erp.hr.dto.performance.PerformanceSummaryResponse;
 import com.cubeage.erp.hr.service.PerformanceService;
 import com.cubeage.erp.security.SecurityUtils;
-import com.cubeage.erp.tenant.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/hr/performance")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN','HR_MANAGER')")
 @RequiredArgsConstructor
 public class PerformanceController {
 
     private final PerformanceService performanceService;
 
-    private Long resolveTenantId(Long tenantId) {
-        if (tenantId != null) {
-            return tenantId;
-        }
-        Long contextTenantId = TenantContext.getTenantId();
-        if (contextTenantId != null) {
-            return contextTenantId;
-        }
-        try {
-            return SecurityUtils.currentTenantId();
-        } catch (Exception e) {
-            return 1L;
-        }
+    /** Tenant is always taken from the authenticated principal, never from the request. */
+    private Long currentTenantId() {
+        return SecurityUtils.currentTenantId();
     }
 
     @GetMapping
-    public PerformanceSummaryResponse getPerformance(
-            @RequestParam(required = false) Long tenantId
-    ) {
-        return performanceService.getSummary(resolveTenantId(tenantId));
+    public PerformanceSummaryResponse getPerformance() {
+        return performanceService.getSummary(currentTenantId());
     }
 
     @GetMapping("/summary")
-    public PerformanceSummaryResponse getSummary(
-            @RequestParam(required = false) Long tenantId
-    ) {
-        return performanceService.getSummary(resolveTenantId(tenantId));
+    public PerformanceSummaryResponse getSummary() {
+        return performanceService.getSummary(currentTenantId());
     }
 
     @GetMapping("/reviews")
-    public List<PerformanceReviewResponse> getReviews(
-            @RequestParam(required = false) Long tenantId
-    ) {
-        return performanceService.getReviews(resolveTenantId(tenantId));
+    public List<PerformanceReviewResponse> getReviews() {
+        return performanceService.getReviews(currentTenantId());
     }
 
     @GetMapping("/department-scores")
-    public List<DepartmentScoreResponse> getDepartmentScores(
-            @RequestParam(required = false) Long tenantId
-    ) {
-        return performanceService.getDepartmentScores(resolveTenantId(tenantId));
+    public List<DepartmentScoreResponse> getDepartmentScores() {
+        return performanceService.getDepartmentScores(currentTenantId());
     }
 
     @PostMapping("/reviews")
     public ResponseEntity<PerformanceReviewResponse> addReview(
-            @RequestParam(required = false) Long tenantId,
             @RequestBody PerformanceReviewRequest request
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(performanceService.addReview(resolveTenantId(tenantId), request));
+                .body(performanceService.addReview(currentTenantId(), request));
     }
 }

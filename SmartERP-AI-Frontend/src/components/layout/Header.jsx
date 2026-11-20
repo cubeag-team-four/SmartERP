@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/slices/auth.store'
+import { logout as logoutSession } from '../../core/services/session.service'
 import { formatRole } from '../../utils/formatRole'
 import { ROUTES } from '../../core/constants/routes.constant'
 
@@ -30,9 +31,36 @@ const SparkleIcon = () => (
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 const Header = () => {
-  const { user, logout } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [search, setSearch] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const menuRef = useRef(null)
   const navigate = useNavigate()
+
+  // Close the user menu on outside click / Escape.
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const onPointer = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
+  const handleLogout = async () => {
+    setMenuOpen(false)
+    setSigningOut(true)
+    await logoutSession() // best-effort server revoke; always clears local state
+    navigate('/login', { replace: true })
+  }
 
   // Map each role to its notifications route
   const NOTIFICATION_ROUTES = {
@@ -114,11 +142,14 @@ const Header = () => {
 
         {/* User pill */}
         {user ? (
+          <div className="relative" ref={menuRef}>
           <button
-            onClick={typeof logout === 'function' ? logout : undefined}
+            onClick={() => setMenuOpen((o) => !o)}
             className="flex items-center gap-2 px-2 py-1 rounded-lg transition-colors hover:bg-gray-100"
             style={{ border: '1px solid #e2e2da', backgroundColor: '#f0f0ea' }}
-            title="Logout"
+            title="Account"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
           >
             {/* Avatar */}
             <div
@@ -137,6 +168,35 @@ const Header = () => {
               </p>
             </div>
           </button>
+
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 mt-1.5 w-48 rounded-lg py-1 shadow-lg z-50"
+              style={{ backgroundColor: '#fafaf8', border: '1px solid #e2e2da' }}
+            >
+              <Link
+                role="menuitem"
+                to={ROUTES.ACCOUNT_SECURITY}
+                onClick={() => setMenuOpen(false)}
+                className="block px-3 py-2 text-xs transition-colors hover:bg-[#f0f0ea]"
+                style={{ color: '#2a2a20' }}
+              >
+                Account security
+              </Link>
+              <button
+                role="menuitem"
+                type="button"
+                onClick={handleLogout}
+                disabled={signingOut}
+                className="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-[#f0f0ea] disabled:opacity-60"
+                style={{ color: '#a23b3b' }}
+              >
+                {signingOut ? 'Signing out…' : 'Sign out'}
+              </button>
+            </div>
+          )}
+          </div>
         ) : (
           <Link
             to="/login"

@@ -1,5 +1,7 @@
 package com.cubeage.erp.admin.service;
 
+import com.cubeage.erp.security.SecurityUtils;
+
 import com.cubeage.erp.admin.dto.DepartmentRequest;
 import com.cubeage.erp.admin.entity.Branch;
 import com.cubeage.erp.admin.entity.Department;
@@ -23,12 +25,14 @@ public class DepartmentService {
     public Department create(
             DepartmentRequest request
     ) {
+        // Tenant always comes from the authenticated admin; request.tenantId is ignored.
+        Long tenantId = SecurityUtils.currentTenantId();
 
         Branch branch =
                 branchRepository
                         .findByIdAndTenantId(
                                 request.getBranchId(),
-                                request.getTenantId()
+                                tenantId
                         )
                         .orElseThrow(
                                 () -> new RuntimeException(
@@ -46,8 +50,7 @@ public class DepartmentService {
                             .findByIdAndTenantId(
                                     request
                                             .getParentDepartmentId(),
-                                    request
-                                            .getTenantId()
+                                    tenantId
                             )
                             .orElseThrow(
                                     () -> new RuntimeException(
@@ -59,7 +62,7 @@ public class DepartmentService {
         Department department =
                 Department.builder()
                         .tenantId(
-                                request.getTenantId()
+                                tenantId
                         )
                         .name(
                                 request.getName()
@@ -89,6 +92,8 @@ public class DepartmentService {
     public List<Department> getByBranch(
             Long branchId
     ) {
+        branchRepository.findByIdAndTenantId(branchId, SecurityUtils.currentTenantId())
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
 
         return departmentRepository
                 .findByBranchIdOrderByNameAsc(

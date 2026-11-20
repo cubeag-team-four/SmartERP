@@ -1,5 +1,6 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.manufacturing.dto.response.ManufacturingDashboardResponse;
 import com.cubeage.erp.manufacturing.enums.MachineStatus;
 import com.cubeage.erp.manufacturing.enums.WorkOrderStatus;
@@ -25,7 +26,7 @@ public class ManufacturingDashboardServiceImpl implements ManufacturingDashboard
 
     @Override
     public ManufacturingDashboardResponse getDashboard(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         long activeWorkOrders = workOrderRepository.countByTenantIdAndStatus(effectiveTenantId, WorkOrderStatus.IN_PROGRESS);
 
         long completingToday = workOrderRepository.findByTenantIdAndStatusOrderByCreatedAtDesc(effectiveTenantId, WorkOrderStatus.IN_PROGRESS)

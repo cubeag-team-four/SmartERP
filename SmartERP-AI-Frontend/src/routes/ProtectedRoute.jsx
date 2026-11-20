@@ -1,6 +1,6 @@
-import React from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import useAuthStore from '../store/slices/auth.store'
+import SessionLoader from '../components/auth/SessionLoader'
 
 // Maps each role to its home dashboard path
 export const ROLE_HOME = {
@@ -20,11 +20,19 @@ export const ROLE_HOME = {
  * redirected to their own dashboard instead of a generic fallback.
  */
 const ProtectedRoute = ({ allowedRoles = [] }) => {
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const initialized = useAuthStore((s) => s.initialized)
+  const location = useLocation()
 
-  // Not logged in → go to login
-  if (!user) {
-    return <Navigate to="/login" replace />
+  // Startup refresh still running → don't render or redirect yet.
+  if (!initialized && !isAuthenticated) {
+    return <SessionLoader />
+  }
+
+  // Not logged in → go to login (and come back here afterwards)
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   }
 
   // Role not allowed → redirect to the user's own home dashboard

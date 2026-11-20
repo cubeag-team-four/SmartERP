@@ -1,5 +1,6 @@
 package com.cubeage.erp.purchase.service;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.common.exception.BadRequestException;
 import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.purchase.dto.grn.CreateGoodsReceiptRequest;
@@ -41,9 +42,8 @@ public class GoodsReceiptService {
     private final GoodsReceiptMapper mapper;
 
     public GoodsReceiptResponse createGoodsReceipt(Long tenantId, CreateGoodsReceiptRequest request) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         PurchaseOrder order = purchaseOrderRepository.findByIdAndTenantId(request.purchaseOrderId(), effectiveTenantId)
-                .or(() -> purchaseOrderRepository.findById(request.purchaseOrderId()))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Purchase order not found: " + request.purchaseOrderId()));
         if (order.getStatus() != PurchaseOrderStatus.CONFIRMED
@@ -54,7 +54,6 @@ public class GoodsReceiptService {
             throw new BadRequestException("Receipt date cannot be before the purchase order date");
         }
         Vendor vendor = vendorRepository.findByIdAndTenantId(request.vendorId(), effectiveTenantId)
-                .or(() -> vendorRepository.findById(request.vendorId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Vendor not found: " + request.vendorId()));
         if (!Objects.equals(order.getVendorId(), vendor.getId())) {
             throw new BadRequestException("Goods receipt vendor must match the purchase order vendor");
@@ -124,7 +123,7 @@ public class GoodsReceiptService {
 
     @Transactional(readOnly = true)
     public List<GoodsReceiptResponse> listGoodsReceipts(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return grnRepository.findByTenantIdOrderByCreatedAtDesc(effectiveTenantId)
                 .stream()
                 .map(mapper::toResponse)
@@ -137,10 +136,9 @@ public class GoodsReceiptService {
     }
 
     public void deleteGoodsReceipt(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         GoodsReceipt grn = requireGrn(effectiveTenantId, id);
         PurchaseOrder order = purchaseOrderRepository.findByIdAndTenantId(grn.getPurchaseOrderId(), effectiveTenantId)
-                .or(() -> purchaseOrderRepository.findById(grn.getPurchaseOrderId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found: " + grn.getPurchaseOrderId()));
         grnRepository.delete(grn);
         grnRepository.flush();
@@ -155,7 +153,7 @@ public class GoodsReceiptService {
 
     private Map<Long, BigDecimal> receivedQuantities(Long tenantId, Long purchaseOrderId) {
         Map<Long, BigDecimal> totals = new HashMap<>();
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         for (GoodsReceipt receipt : grnRepository.findByTenantIdAndPurchaseOrderId(effectiveTenantId, purchaseOrderId)) {
             for (GoodsReceiptItem item : receipt.getItems()) {
                 totals.merge(item.getPurchaseOrderItemId(), item.getReceivedQuantity(), BigDecimal::add);
@@ -165,7 +163,7 @@ public class GoodsReceiptService {
     }
 
     private void updatePurchaseOrderReceiptStatus(PurchaseOrder order, Long tenantId, LocalDate receiptDate) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         Map<Long, BigDecimal> totals = receivedQuantities(effectiveTenantId, order.getId());
         boolean hasReceipts = !totals.isEmpty();
         boolean complete = hasReceipts && order.getItems().stream()
@@ -184,9 +182,8 @@ public class GoodsReceiptService {
     }
 
     private GoodsReceipt requireGrn(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return grnRepository.findByIdAndTenantId(id, effectiveTenantId)
-                .or(() -> grnRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Goods receipt not found: " + id));
     }
 

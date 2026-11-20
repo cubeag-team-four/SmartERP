@@ -10,7 +10,12 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    @ExceptionHandler(UnauthorizedException.class)
+    ResponseEntity<ProblemDetail> unauthorized(UnauthorizedException exception) {
+        return problem(HttpStatus.UNAUTHORIZED, exception.getMessage());
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, BadRequestException.class})
     ResponseEntity<ProblemDetail> badRequest(RuntimeException exception) {
         return problem(HttpStatus.BAD_REQUEST, exception.getMessage());
     }

@@ -1,37 +1,18 @@
 import axios from 'axios';
-import storageService from '../../../core/services/storage.service';
+import { SERVER_URL } from '../../../core/constants/serverUrl.constant';
+import { attachInterceptors } from '../../../core/services/interceptor.service';
 
-const BACKEND_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api/v1';
-
+// Same backend base as utils/axios.js; shares its auth interceptors
+// (in-memory Bearer token, X-Tenant-Id, single-flight refresh on 401).
 const hrAxios = axios.create({
-  baseURL: `${BACKEND_BASE}/hr`,
+  baseURL: `${SERVER_URL}/hr`,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-hrAxios.interceptors.request.use((config) => {
-  const token = storageService.getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  const user = storageService.getUser();
-  if (user?.tenantId != null) {
-    config.headers['X-Tenant-ID'] = user.tenantId;
-  }
-  return config;
-});
-
-hrAxios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
-      storageService.clear();
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+attachInterceptors(hrAxios);
 
 export const hrApi = {
   // Employees

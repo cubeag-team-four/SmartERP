@@ -17,6 +17,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmailIgnoreCase(String email);
     Optional<User> findByEmailIgnoreCase(String email);
 
+    /** Email is unique per tenant only, so login must consider every tenant's match. */
+    List<User> findAllByEmailIgnoreCase(String email);
+
     boolean existsByTenantIdAndEmailIgnoreCase(
             Long tenantId,
             String email

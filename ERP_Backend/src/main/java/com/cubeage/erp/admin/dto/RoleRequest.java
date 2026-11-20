@@ -1,7 +1,6 @@
 package com.cubeage.erp.admin.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,7 +10,7 @@ import java.util.Set;
 @Setter
 public class RoleRequest {
 
-    @NotNull
+    /** Optional; ignored unless the caller is a Super Admin. Defaults to the caller's tenant. */
     private Long tenantId;
 
     @NotBlank

@@ -69,6 +69,13 @@ public class UserController {
         );
     }
 
+    /** Clears a user's MFA enrollment (lost device) and revokes their sessions; audited. */
+    @PostMapping("/{id}/mfa/reset")
+    public ResponseEntity<Void> resetMfa(@PathVariable Long id) {
+        userService.resetMfa(id, SecurityUtils.currentTenantId());
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         Long tenantId = SecurityUtils.currentTenantId();

@@ -1,5 +1,6 @@
 package com.cubeage.erp.purchase.service;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.purchase.dto.dashboard.PurchaseDashboardResponse;
 import com.cubeage.erp.purchase.entity.GoodsReceipt;
 import com.cubeage.erp.purchase.enums.PaymentStatus;
@@ -30,7 +31,7 @@ public class PurchaseDashboardService {
     private final GoodsReceiptRepository grnRepository;
 
     public PurchaseDashboardResponse getDashboard(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         LocalDate today = LocalDate.now();
         LocalDate currentMonthStart = today.withDayOfMonth(1);
         LocalDate previousMonthStart = currentMonthStart.minusMonths(1);
@@ -82,12 +83,11 @@ public class PurchaseDashboardService {
 
     private BigDecimal onTimeReceiptPercentage(List<GoodsReceipt> grns, Long tenantId) {
         if (grns.isEmpty()) return BigDecimal.ZERO;
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         // On-time: received on or before expected delivery date of the PO
         long onTime = grns.stream()
                 .filter(grn -> {
                     return purchaseOrderRepository.findByIdAndTenantId(grn.getPurchaseOrderId(), effectiveTenantId)
-                            .or(() -> purchaseOrderRepository.findById(grn.getPurchaseOrderId()))
                             .map(po -> po.getExpectedDeliveryDate() == null
                                      || !grn.getReceivedDate().isAfter(po.getExpectedDeliveryDate()))
                             .orElse(false);

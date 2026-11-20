@@ -1,5 +1,6 @@
 package com.cubeage.erp.manufacturing.service.impl;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.manufacturing.dto.request.CreateQualityInspectionRequest;
 import com.cubeage.erp.manufacturing.dto.response.QualityInspectionResponse;
 import com.cubeage.erp.manufacturing.dto.response.QualitySummaryResponse;
@@ -25,7 +26,7 @@ public class QualityServiceImpl implements QualityService {
 
     @Override
     public QualityInspectionResponse createInspection(Long tenantId, CreateQualityInspectionRequest request) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         QualityInspection inspection = QualityInspection.builder()
                 .tenantId(effectiveTenantId)
                 .workOrderNumber(request.workOrderNumber().trim())
@@ -43,7 +44,7 @@ public class QualityServiceImpl implements QualityService {
     @Override
     @Transactional(readOnly = true)
     public List<QualityInspectionResponse> getInspections(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return inspectionRepository.findByTenantIdOrderByCreatedAtDesc(effectiveTenantId)
                 .stream()
                 .map(mapper::toResponse)
@@ -53,7 +54,7 @@ public class QualityServiceImpl implements QualityService {
     @Override
     @Transactional(readOnly = true)
     public QualitySummaryResponse getQualityControlSummary(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         long total = inspectionRepository.countByTenantId(effectiveTenantId);
         long pass = inspectionRepository.countByTenantIdAndResult(effectiveTenantId, QualityResult.PASS);
         long rework = inspectionRepository.countByTenantIdAndResult(effectiveTenantId, QualityResult.REWORK);

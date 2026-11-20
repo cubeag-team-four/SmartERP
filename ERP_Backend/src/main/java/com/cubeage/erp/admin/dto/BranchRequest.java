@@ -8,8 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class BranchRequest {
-
-    @NotNull
+    /** Ignored: the server uses the authenticated admin's tenant. Kept for request compatibility. */
     private Long tenantId;
 
     @NotBlank

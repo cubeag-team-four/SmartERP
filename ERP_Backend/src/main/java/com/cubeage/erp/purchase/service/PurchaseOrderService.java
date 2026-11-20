@@ -1,5 +1,6 @@
 package com.cubeage.erp.purchase.service;
 
+import com.cubeage.erp.common.util.TenantGuard;
 import com.cubeage.erp.common.exception.ResourceNotFoundException;
 import com.cubeage.erp.purchase.dto.purchaseorder.*;
 import com.cubeage.erp.purchase.entity.PurchaseOrder;
@@ -38,7 +39,7 @@ public class PurchaseOrderService {
     private final PurchaseOrderMapper mapper;
 
     public PurchaseOrderResponse createPurchaseOrder(Long tenantId, CreatePurchaseOrderRequest request) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         Vendor vendor = requireActiveVendor(effectiveTenantId, request.vendorId());
         String orderNumber = generateOrderNumber(effectiveTenantId);
 
@@ -64,7 +65,7 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly = true)
     public List<PurchaseOrderResponse> listPurchaseOrders(Long tenantId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return purchaseOrderRepository.findListViewByTenantId(effectiveTenantId)
                 .stream()
                 .map(this::toListResponse)
@@ -110,7 +111,7 @@ public class PurchaseOrderService {
     }
 
     public void deletePurchaseOrder(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         PurchaseOrder order = requireOrder(tenantId, id);
         try {
             goodsReceiptRepository.deleteAll(
@@ -155,9 +156,8 @@ public class PurchaseOrderService {
     }
 
     private Vendor requireActiveVendor(Long tenantId, Long vendorId) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         Vendor vendor = vendorRepository.findByIdAndTenantId(vendorId, effectiveTenantId)
-                .or(() -> vendorRepository.findById(vendorId))
                 .orElseThrow(() -> new ResourceNotFoundException("Vendor not found: " + vendorId));
         if (vendor.getStatus() != VendorStatus.ACTIVE) {
             throw new IllegalArgumentException("Purchase orders can only be created for active vendors");
@@ -174,9 +174,8 @@ public class PurchaseOrderService {
     }
 
     private PurchaseOrder requireOrder(Long tenantId, Long id) {
-        Long effectiveTenantId = tenantId != null ? tenantId : 1L;
+        Long effectiveTenantId = TenantGuard.require(tenantId);
         return purchaseOrderRepository.findByIdAndTenantId(id, effectiveTenantId)
-                .or(() -> purchaseOrderRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found: " + id));
     }
 

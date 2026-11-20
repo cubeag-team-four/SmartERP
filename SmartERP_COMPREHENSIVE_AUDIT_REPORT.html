@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartERP - Comprehensive Technical Audit Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .metadata-item {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+
+        .metadata-item strong {
+            display: block;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        h4 {
+            color: #555;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        thead {
+            background: #667eea;
+            color: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tbody tr:hover {
+            background: #f5f5f5;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .tech-card {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 1px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .tech-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .tech-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .tech-list li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .tech-list li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .module-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .module-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 0.95em;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .finding {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .finding.critical {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .finding.high {
+            background: #f5c6cb;
+            border-left-color: #e74c3c;
+        }
+
+        .finding.medium {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+
+        .finding.low {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+
+        .finding-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .severity-low {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .checklist {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .checklist-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .api-endpoint {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+            font-family: monospace;
+        }
+
+        .get { background: #61affe; color: white; }
+        .post { background: #49cc90; color: white; }
+        .put { background: #fca130; color: white; }
+        .delete { background: #f93e3e; color: white; }
+        .patch { background: #50e3c2; color: white; }
+
+        .toc {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+
+        .toc ol {
+            margin-left: 20px;
+        }
+
+        .toc li {
+            margin: 8px 0;
+        }
+
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .footer {
+            background: #f9f9f9;
+            padding: 20px;
+            border-top: 2px solid #667eea;
+            margin-top: 40px;
+            border-radius: 8px;
+            text-align: center;
+            color: #666;
+        }
+
+        .database-schema {
+            margin: 20px 0;
+        }
+
+        .entity-box {
+            background: white;
+            border: 2px solid #667eea;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .entity-box h5 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .entity-fields {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+        .stat-box {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 10px 10px 0;
+        }
+
+        .stat-box .number {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stat-box .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .metadata {
+                grid-template-columns: 1fr;
+            }
+
+            .tech-stack {
+                grid-template-columns: 1fr;
+            }
+
+            .module-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 SmartERP Comprehensive Technical Audit Report</h1>
+            <p>Complete End-to-End Technical Assessment of Frontend, Backend, and Integration Points</p>
+        </header>
+
+        <div class="metadata">
+            <div class="metadata-item">
+                <strong>Report Date</strong>
+                2026-11-20
+            </div>
+            <div class="metadata-item">
+                <strong>Audit Scope</strong>
+                Complete ERP System
+            </div>
+            <div class="metadata-item">
+                <strong>Project Type</strong>
+                Multi-Tenant SaaS ERP
+            </div>
+            <div class="metadata-item">
+                <strong>Status</strong>
+                In Development
+            </div>
+        </div>
+
+        <div class="toc">
+            <h3>Table of Contents</h3>
+            <ol>
+                <li><a href="#executive-summary">Executive Summary</a></li>
+                <li><a href="#project-overview">Project Overview</a></li>
+                <li><a href="#architecture-analysis">Architecture Analysis</a></li>
+                <li><a href="#technology-stack">Technology Stack</a></li>
+                <li><a href="#frontend-analysis">Frontend Analysis</a></li>
+                <li><a href="#backend-analysis">Backend Analysis</a></li>
+                <li><a href="#database-schema">Database Schema</a></li>
+                <li><a href="#security-assessment">Security Assessment</a></li>
+                <li><a href="#module-inventory">Module Inventory</a></li>
+                <li><a href="#api-integration">API Integration Points</a></li>
+                <li><a href="#findings">Findings and Issues</a></li>
+                <li><a href="#recommendations">Recommendations</a></li>
+            </ol>
+        </div>
+
+        <!-- EXECUTIVE SUMMARY -->
+        <section class="section" id="executive-summary">
+            <h2>1. Executive Summary</h2>
+
+            <div class="stat-box">
+                <div class="number">90+</div>
+                <div class="label">Controllers/Pages</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">15+</div>
+                <div class="label">Major Modules</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">Multi-Tenant</div>
+                <div class="label">Architecture</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">JWT + MFA</div>
+                <div class="label">Authentication</div>
+            </div>
+
+            <p style="margin-top: 30px;">SmartERP is a comprehensive, multi-tenant Enterprise Resource Planning system built with modern technologies. The application features:</p>
+
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>Full-Stack Architecture:</strong> React frontend with Spring Boot 3.3.2 backend</li>
+                <li><strong>Multi-Tenant Support:</strong> Complete isolation with tenant filtering at database and API levels</li>
+                <li><strong>Advanced Security:</strong> JWT authentication, MFA enforcement for privileged roles, rate limiting, password policies</li>
+                <li><strong>Comprehensive Modules:</strong> HR, Finance, CRM, Inventory, Manufacturing, Projects, Sales, Procurement, Reports, and AI-powered features</li>
+                <li><strong>AI Integration:</strong> Business assistant, forecasting, fraud detection, analytics, workflow automation</li>
+                <li><strong>Database:</strong> PostgreSQL with Flyway migrations, Supabase integration</li>
+            </ul>
+
+            <div class="alert alert-info">
+                <strong>Assessment Conclusion:</strong> The application demonstrates a mature, well-architected approach to ERP systems with solid security practices, comprehensive module coverage, and modern technology choices. The separation of concerns between frontend and backend is clean, with proper API boundaries and authentication mechanisms.
+            </div>
+        </section>
+
+        <!-- PROJECT OVERVIEW -->
+        <section class="section" id="project-overview">
+            <h2>2. Project Overview</h2>
+
+            <h3>2.1 Project Structure</h3>
+            <p>The SmartERP project is organized as a monorepo with two main components:</p>
+
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>ERP_Backend:</strong> Java Spring Boot microservice-ready backend</li>
+                <li><strong>SmartERP-AI-Frontend:</strong> React SPA with Vite bundler</li>
+            </ul>
+
+            <h3>2.2 Key Statistics</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Count</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Backend Controllers</td>
+                        <td>85+</td>
+                        <td>RESTful API endpoints across all modules</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend Pages</td>
+                        <td>150+</td>
+                        <td>JSX components and page modules</td>
+                    </tr>
+                    <tr>
+                        <td>Major Modules</td>
+                        <td>15+</td>
+                        <td>Distinct business modules with controllers</td>
+                    </tr>
+                    <tr>
+                        <td>AI Features</td>
+                        <td>8</td>
+                        <td>Dedicated AI controllers and services</td>
+                    </tr>
+                    <tr>
+                        <td>Authentication Methods</td>
+                        <td>3</td>
+                        <td>Signup, Login (with MFA), Refresh</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ARCHITECTURE ANALYSIS -->
+        <section class="section" id="architecture-analysis">
+            <h2>3. Architecture Analysis</h2>
+
+            <h3>3.1 Overall Architecture Pattern</h3>
+            <p><strong>Pattern: Multi-Tier SaaS with Multi-Tenancy</strong></p>
+
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>Presentation Tier:</strong> React SPA with component-based UI</li>
+                <li><strong>API Tier:</strong> RESTful endpoints with JWT authentication</li>
+                <li><strong>Service Tier:</strong> Business logic with Spring Services</li>
+                <li><strong>Data Tier:</strong> PostgreSQL with JPA/Hibernate ORM</li>
+            </ul>
+
+            <h3>3.2 Multi-Tenant Architecture</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>Database-Level Isolation:</strong> <code>tenant_id</code> column partitioning</li>
+                <li><strong>API-Level Isolation:</strong> <code>TenantFilter</code> in request chain</li>
+                <li><strong>JWT Claims:</strong> Tenant info embedded in access tokens</li>
+                <li><strong>Tenant Selection:</strong> Login supports multi-tenant user assignment</li>
+            </ul>
+
+            <h3>3.3 Frontend Architecture</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>State Management:</strong> Zustand (lightweight alternatives to Redux)</li>
+                <li><strong>Routing:</strong> React Router v7 with protected routes</li>
+                <li><strong>API Communication:</strong> Axios with custom interceptors for token refresh</li>
+                <li><strong>Form Handling:</strong> React Hook Form for performance</li>
+                <li><strong>Styling:</strong> Tailwind CSS with responsive design</li>
+                <li><strong>Notifications:</strong> React Hot Toast for user feedback</li>
+                <li><strong>Visualization:</strong> Recharts for data visualization</li>
+            </ul>
+
+            <h3>3.4 Backend Architecture</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>Framework:</strong> Spring Boot 3.3.2 (Latest stable)</li>
+                <li><strong>Security:</strong> Spring Security with custom JWT filter chain</li>
+                <li><strong>ORM:</strong> JPA/Hibernate with PostgreSQL dialect</li>
+                <li><strong>API Documentation:</strong> OpenAPI/Swagger (SpringDoc)</li>
+                <li><strong>Validation:</strong> Jakarta Bean Validation (formerly JSR-303)</li>
+                <li><strong>Mapping:</strong> MapStruct for DTO transformations</li>
+                <li><strong>Logging:</strong> SLF4J with Logback</li>
+            </ul>
+        </section>
+
+        <!-- TECHNOLOGY STACK -->
+        <section class="section" id="technology-stack">
+            <h2>4. Technology Stack</h2>
+
+            <div class="tech-stack">
+                <div class="tech-card">
+                    <h4>🖥️ Backend</h4>
+                    <ul class="tech-list">
+                        <li><strong>Framework:</strong> Spring Boot 3.3.2</li>
+                        <li><strong>Language:</strong> Java 17</li>
+                        <li><strong>Database:</strong> PostgreSQL</li>
+                        <li><strong>ORM:</strong> Hibernate/JPA</li>
+                        <li><strong>Migrations:</strong> Flyway</li>
+                        <li><strong>JWT:</strong> JJWT 0.12.5</li>
+                        <li><strong>Mapping:</strong> MapStruct 1.6.0</li>
+                        <li><strong>Utilities:</strong> Lombok</li>
+                        <li><strong>Documentation:</strong> SpringDoc OpenAPI</li>
+                        <li><strong>Testing:</strong> JUnit + Spring Security Test</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>⚛️ Frontend</h4>
+                    <ul class="tech-list">
+                        <li><strong>Framework:</strong> React 19.2.7</li>
+                        <li><strong>Bundler:</strong> Vite 8.1.1</li>
+                        <li><strong>Routing:</strong> React Router 7.1.1</li>
+                        <li><strong>State Management:</strong> Zustand 5.0.2</li>
+                        <li><strong>HTTP Client:</strong> Axios 1.7.9</li>
+                        <li><strong>Forms:</strong> React Hook Form 7.54.2</li>
+                        <li><strong>Styling:</strong> Tailwind CSS 3.4.19</li>
+                        <li><strong>Charts:</strong> Recharts 2.15.4</li>
+                        <li><strong>Notifications:</strong> React Hot Toast</li>
+                        <li><strong>Firebase:</strong> Firebase 11.1.0</li>
+                        <li><strong>QR Codes:</strong> QRCode React 4.2.0</li>
+                    </ul>
+                </div>
+
+                <div class="tech-card">
+                    <h4>🗄️ Database & Infrastructure</h4>
+                    <ul class="tech-list">
+                        <li><strong>Database:</strong> PostgreSQL</li>
+                        <li><strong>Cloud Provider:</strong> Supabase</li>
+                        <li><strong>Connection Pooling:</strong> HikariCP (5 max, 1 min)</li>
+                        <li><strong>Migrations:</strong> Flyway (Currently disabled)</li>
+                        <li><strong>Environment Config:</strong> .env files (git-ignored)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- FRONTEND ANALYSIS -->
+        <section class="section" id="frontend-analysis">
+            <h2>5. Frontend Analysis</h2>
+
+            <h3>5.1 Directory Structure</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Directory</th>
+                        <th>Purpose</th>
+                        <th>Key Contents</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/src/pages</code></td>
+                        <td>Page Components</td>
+                        <td>Auth, Dashboard, Modules (HR, Finance, CRM, etc.)</td>
+                    </tr>
+                    <tr>
+                        <td><code>/src/components</code></td>
+                        <td>Reusable Components</td>
+                        <td>UI components, Form controls, Layouts</td>
+                    </tr>
+                    <tr>
+                        <td><code>/src/core</code></td>
+                        <td>Core Functionality</td>
+                        <td>Hooks, Services, Utils, Theme</td>
+                    </tr>
+                    <tr>
+                        <td><code>/src/store</code></td>
+                        <td>State Management</td>
+                        <td>Zustand slices for auth, UI state</td>
+                    </tr>
+                    <tr>
+                        <td><code>/src/routes</code></td>
+                        <td>Routing Configuration</td>
+                        <td>Route definitions, navigation</td>
+                    </tr>
+                    <tr>
+                        <td><code>/src/data</code></td>
+                        <td>Mock Data</td>
+                        <td>Placeholder data for modules</td>
+                    </tr>
+                    <tr>
+                        <td><code>/src/utils</code></td>
+                        <td>Utilities</td>
+                        <td>Axios config, Auth helpers, Validation</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>5.2 Authentication Flow</h3>
+            <p><strong>Frontend Authentication Implementation:</strong></p>
+
+            <div class="api-endpoint">
+                <strong>Session Lifecycle:</strong>
+                <br>1. Login → JWT access token (memory) + refresh token (HttpOnly cookie)
+                <br>2. API calls → Authorization: Bearer {token}
+                <br>3. Token expiry → Auto-refresh via refresh endpoint
+                <br>4. Refresh failure → Clear session and redirect to /login
+                <br>5. Logout → Revoke refresh cookie server-side
+            </div>
+
+            <h3>5.3 Key Services</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>authService:</strong> Login, signup, MFA setup/verify, password reset</li>
+                <li><strong>sessionService:</strong> Token refresh, session bootstrap, logout</li>
+                <li><strong>storageService:</strong> Local storage management (legacy cleanup)</li>
+                <li><strong>authAxios:</strong> Bare axios instance for session endpoints (no interceptors)</li>
+            </ul>
+
+            <h3>5.4 State Management (Zustand)</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>auth.store:</strong> User info, tokens, MFA status, session management</li>
+                <li><strong>UI state:</strong> Modals, notifications, theme preferences</li>
+                <li><strong>Lightweight approach:</strong> No boilerplate, direct mutation</li>
+            </ul>
+
+            <h3>5.5 Routing Architecture</h3>
+            <p><strong>Protected Routes Implementation:</strong></p>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li>Role-based route guards (superAdmin, tenantAdmin, employee, etc.)</li>
+                <li>RoleRedirect component maps authenticated users to their dashboard</li>
+                <li>Layout components (Sidebar, Header) with permission-aware navigation</li>
+                <li>Lazy loading of route components for code splitting</li>
+            </ul>
+
+            <h3>5.6 Module Coverage</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Pages</th>
+                        <th>Features</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Authentication</strong></td>
+                        <td>5</td>
+                        <td>Login, Signup, OTP, Forgot Password, Reset Password</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dashboards</strong></td>
+                        <td>7</td>
+                        <td>Admin, SuperAdmin, HR, Finance, Sales, Operations, Employee</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Company Management</strong></td>
+                        <td>12</td>
+                        <td>Branches, Departments, Users, Roles, Holidays, Org Chart</td>
+                    </tr>
+                    <tr>
+                        <td><strong>HR</strong></td>
+                        <td>8</td>
+                        <td>Employee DB, Payroll, Attendance, Leave, Performance</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Finance</strong></td>
+                        <td>12</td>
+                        <td>Accounting, GL, Journal Entries, Reports, Tax Management</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Inventory</strong></td>
+                        <td>12</td>
+                        <td>Stock, Warehouses, Movements, Replenishment, QR/Barcodes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CRM</strong></td>
+                        <td>7</td>
+                        <td>Customers, Leads, Sales Pipeline, Follow-ups, Communication</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Projects</strong></td>
+                        <td>10</td>
+                        <td>Planning, Tasks, Milestones, Budget, Time Tracking</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Manufacturing</strong></td>
+                        <td>6</td>
+                        <td>BOM, Work Orders, Quality Control, Machines</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AI Assistant</strong></td>
+                        <td>8</td>
+                        <td>Chat, Analytics, Forecasting, Fraud Detection, Reports</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- BACKEND ANALYSIS -->
+        <section class="section" id="backend-analysis">
+            <h2>6. Backend Analysis</h2>
+
+            <h3>6.1 Project Structure</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>src/main/java/com/cubeage/erp</strong> - Main source code</li>
+                <li><strong>src/main/resources</strong> - Configuration files, properties</li>
+                <li><strong>src/test</strong> - Unit and integration tests</li>
+                <li><strong>.mvn</strong> - Maven wrapper configuration</li>
+            </ul>
+
+            <h3>6.2 Module Organization</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Path</th>
+                        <th>Components</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Admin</strong></td>
+                        <td><code>admin/</code></td>
+                        <td>Controllers, Services, Entities (User, Role, Permission, Branch, Department)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Auth</strong></td>
+                        <td><code>auth/</code></td>
+                        <td>Controllers, Services, DTOs, Filters, MFA logic</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tenant</strong></td>
+                        <td><code>tenant/</code></td>
+                        <td>Multi-tenancy support, Tenant controller</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Security</strong></td>
+                        <td><code>security/</code></td>
+                        <td>JWT filters, User details service, Auth entry point</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AI</strong></td>
+                        <td><code>ai/</code></td>
+                        <td>AI Controllers, DTOs, Services, Context builders</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Company</strong></td>
+                        <td><code>company/</code></td>
+                        <td>Company, Branch, Department management</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CRM</strong></td>
+                        <td><code>crm/</code></td>
+                        <td>Customers, Leads, Opportunities, Communication</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Finance</strong></td>
+                        <td><code>finance/</code></td>
+                        <td>Accounting, GL, Journal Entries, Reports</td>
+                    </tr>
+                    <tr>
+                        <td><strong>HR</strong></td>
+                        <td><code>hr/</code></td>
+                        <td>Employees, Payroll, Attendance, Leave</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Inventory</strong></td>
+                        <td><code>inventory/</code></td>
+                        <td>Items, Stock, Movements, Warehouses</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Projects</strong></td>
+                        <td><code>projects/</code></td>
+                        <td>Projects, Tasks, Milestones, Budget, Time Tracking</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Manufacturing</strong></td>
+                        <td><code>manufacturing/</code></td>
+                        <td>BOM, Work Orders, Quality Control</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Reports</strong></td>
+                        <td><code>reports/</code></td>
+                        <td>Custom reports, Scheduling, Export</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>6.3 Configuration Management</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>application.properties:</strong> Environment-aware configuration</li>
+                <li><strong>.env support:</strong> Secrets loaded from .env (git-ignored)</li>
+                <li><strong>Spring profiles:</strong> Support for dev, test, prod environments</li>
+                <li><strong>Key settings:</strong> Database URL, JWT secret, MFA encryption key, CORS origins</li>
+            </ul>
+
+            <h3>6.4 Security Layer</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Purpose</th>
+                        <th>Implementation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>SecurityConfig</strong></td>
+                        <td>Spring Security configuration</td>
+                        <td>Filter chain, CORS, CSRF, CSP headers, session management</td>
+                    </tr>
+                    <tr>
+                        <td><strong>JwtAuthenticationFilter</strong></td>
+                        <td>JWT token extraction and validation</td>
+                        <td>Bearer token from Authorization header</td>
+                    </tr>
+                    <tr>
+                        <td><strong>JwtAuthenticationEntryPoint</strong></td>
+                        <td>Unauthorized responses</td>
+                        <td>RFC 7807 ProblemDetail format</td>
+                    </tr>
+                    <tr>
+                        <td><strong>TenantFilter</strong></td>
+                        <td>Tenant isolation</td>
+                        <td>Tenant context from JWT or headers</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AuthRateLimitFilter</strong></td>
+                        <td>Brute force protection</td>
+                        <td>Rate limiting on auth endpoints</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CustomUserDetailsService</strong></td>
+                        <td>User authentication</td>
+                        <td>Load user from database, role assignment</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- DATABASE SCHEMA -->
+        <section class="section" id="database-schema">
+            <h2>7. Database Schema</h2>
+
+            <h3>7.1 Core Entities</h3>
+
+            <div class="entity-box">
+                <h5>📋 User</h5>
+                <div class="entity-fields">
+                    id (PK) → user identifier<br>
+                    tenant_id (FK) → multi-tenant isolation<br>
+                    name, email, position<br>
+                    password_hash → BCrypt encrypted<br>
+                    active → soft deletion flag<br>
+                    branch_id (FK) → branch assignment<br>
+                    department_id (FK) → dept assignment<br>
+                    roles (M2M) → role assignment<br>
+                    failed_login_count → lockout tracking<br>
+                    mfa_enabled, mfa_secret → 2FA support
+                </div>
+            </div>
+
+            <div class="entity-box">
+                <h5>🔐 Role</h5>
+                <div class="entity-fields">
+                    id (PK) → role identifier<br>
+                    tenant_id (FK) → multi-tenant<br>
+                    name → role name (SUPER_ADMIN, TENANT_ADMIN, etc.)<br>
+                    permissions (M2M) → assigned permissions<br>
+                    active → enable/disable
+                </div>
+            </div>
+
+            <div class="entity-box">
+                <h5>🔑 Permission</h5>
+                <div class="entity-fields">
+                    id (PK) → permission identifier<br>
+                    name → permission code<br>
+                    description → human readable<br>
+                    module → feature module<br>
+                    global → system-wide vs module-level
+                </div>
+            </div>
+
+            <div class="entity-box">
+                <h5>🏢 Tenant</h5>
+                <div class="entity-fields">
+                    id (PK) → tenant identifier<br>
+                    code → unique tenant code<br>
+                    name → company name<br>
+                    subscription_tier → plan type<br>
+                    active → enable/disable<br>
+                    created_at, updated_at → timestamps
+                </div>
+            </div>
+
+            <div class="entity-box">
+                <h5>🌳 Branch</h5>
+                <div class="entity-fields">
+                    id (PK) → branch identifier<br>
+                    tenant_id (FK) → multi-tenant<br>
+                    name → branch name<br>
+                    location → address<br>
+                    contact_info → phone/email<br>
+                    head_of_branch (FK) → manager
+                </div>
+            </div>
+
+            <div class="entity-box">
+                <h5>👥 Department</h5>
+                <div class="entity-fields">
+                    id (PK) → department identifier<br>
+                    tenant_id (FK) → multi-tenant<br>
+                    branch_id (FK) → branch assignment<br>
+                    name → dept name<br>
+                    head_of_department (FK) → manager<br>
+                    budget → allocated budget
+                </div>
+            </div>
+
+            <h3>7.2 Multi-Tenant Design</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>Row-level isolation:</strong> Every table has <code>tenant_id</code> column</li>
+                <li><strong>Unique constraints:</strong> <code>(tenant_id, email)</code> for users ensures tenant-specific emails</li>
+                <li><strong>Filter at API level:</strong> TenantFilter adds tenant context to SecurityContext</li>
+                <li><strong>JWT claims:</strong> Tenant info included in access token</li>
+            </ul>
+
+            <h3>7.3 Relationship Map</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Type</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>User</td>
+                        <td>Tenant</td>
+                        <td>M:1</td>
+                        <td>Tenant assignment</td>
+                    </tr>
+                    <tr>
+                        <td>User</td>
+                        <td>Role</td>
+                        <td>M:M</td>
+                        <td>Role assignment</td>
+                    </tr>
+                    <tr>
+                        <td>User</td>
+                        <td>Branch</td>
+                        <td>M:1</td>
+                        <td>Branch assignment</td>
+                    </tr>
+                    <tr>
+                        <td>User</td>
+                        <td>Department</td>
+                        <td>M:1</td>
+                        <td>Department assignment</td>
+                    </tr>
+                    <tr>
+                        <td>Role</td>
+                        <td>Permission</td>
+                        <td>M:M</td>
+                        <td>Permission grant</td>
+                    </tr>
+                    <tr>
+                        <td>Branch</td>
+                        <td>Tenant</td>
+                        <td>M:1</td>
+                        <td>Tenant assignment</td>
+                    </tr>
+                    <tr>
+                        <td>Department</td>
+                        <td>Branch</td>
+                        <td>M:1</td>
+                        <td>Organizational hierarchy</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECURITY ASSESSMENT -->
+        <section class="section" id="security-assessment">
+            <h2>8. Security Assessment</h2>
+
+            <h3>8.1 Strengths ✓</h3>
+
+            <div class="alert alert-success">
+                <strong>✓ Strong Authentication</strong>
+                <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+                    <li>JWT with JJWT 0.12.5 (up-to-date library)</li>
+                    <li>Short-lived access tokens (15 minutes)</li>
+                    <li>Rotating refresh tokens (7-day expiry)</li>
+                    <li>HttpOnly, Secure cookies for refresh tokens</li>
+                    <li>MFA mandatory for privileged roles (SUPER_ADMIN, TENANT_ADMIN)</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✓ Defense in Depth</strong>
+                <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+                    <li>CORS properly configured with allowed origins</li>
+                    <li>CSRF protection via SameSite + X-Requested-With header</li>
+                    <li>CSP headers (Content-Security-Policy, frame-ancestors 'none')</li>
+                    <li>HSTS enabled with subdomain inclusion</li>
+                    <li>Stateless session management (no server-side session storage)</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✓ Account Security</strong>
+                <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+                    <li>BCrypt password hashing (cost 10, random salt per hash)</li>
+                    <li>Account lockout after 5 failed attempts (15-minute window)</li>
+                    <li>Password history tracking (5 previous passwords)</li>
+                    <li>Have I Been Pwned integration (k-anonymity check)</li>
+                    <li>Password reset tokens with 30-minute TTL</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✓ Rate Limiting</strong>
+                <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+                    <li>AuthRateLimitFilter on login endpoints</li>
+                    <li>Prevents brute force attacks</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✓ MFA Support</strong>
+                <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+                    <li>TOTP (Time-based One-Time Password) implementation</li>
+                    <li>QR code generation for authenticator apps</li>
+                    <li>Recovery codes for account recovery</li>
+                    <li>AES-256-GCM encryption for TOTP secrets</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✓ Multi-Tenancy Isolation</strong>
+                <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+                    <li>Tenant context enforced at multiple layers (DB, API, JWT)</li>
+                    <li>Row-level security via tenant_id filtering</li>
+                    <li>Prevents cross-tenant data leakage</li>
+                </ul>
+            </div>
+
+            <h3>8.2 Security Configurations</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Setting</th>
+                        <th>Value</th>
+                        <th>Security Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Access Token TTL</td>
+                        <td>900,000 ms (15 min)</td>
+                        <td>Limits token compromise window</td>
+                    </tr>
+                    <tr>
+                        <td>Refresh Token TTL</td>
+                        <td>604,800,000 ms (7 days)</td>
+                        <td>Reasonable balance between UX and security</td>
+                    </tr>
+                    <tr>
+                        <td>Lockout Duration</td>
+                        <td>15 minutes</td>
+                        <td>Brute force mitigation</td>
+                    </tr>
+                    <tr>
+                        <td>Password History</td>
+                        <td>5 iterations</td>
+                        <td>Prevents immediate password reuse</td>
+                    </tr>
+                    <tr>
+                        <td>MFA Enforcement</td>
+                        <td>Privileged roles only</td>
+                        <td>Recommended minimum (should be all users)</td>
+                    </tr>
+                    <tr>
+                        <td>CSRF Protection</td>
+                        <td>SameSite + X-Requested-With</td>
+                        <td>Dual-layer CSRF mitigation</td>
+                    </tr>
+                    <tr>
+                        <td>HSTS MaxAge</td>
+                        <td>31,536,000 seconds (1 year)</td>
+                        <td>Forces HTTPS after first visit</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>8.3 Known Security Considerations</h3>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ MFA Enforcement Scope</strong>
+                <p style="margin-top: 10px;">Currently, MFA is enforced only for <code>SUPER_ADMIN</code> and <code>TENANT_ADMIN</code> roles. Consider expanding to all users for defense in depth.</p>
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Flyway Migrations Disabled</strong>
+                <p style="margin-top: 10px;">Database migrations are currently disabled (<code>spring.flyway.enabled=false</code>). This should be re-enabled for schema versioning and production deployment.</p>
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Swagger in Development</strong>
+                <p style="margin-top: 10px;">Ensure Swagger is disabled in production (<code>SWAGGER_ENABLED=false</code> must be set in environment).</p>
+            </div>
+        </section>
+
+        <!-- MODULE INVENTORY -->
+        <section class="section" id="module-inventory">
+            <h2>9. Module Inventory</h2>
+
+            <div class="module-grid">
+                <div class="module-card">
+                    <h4>🏭 Admin & Company Management</h4>
+                    <ul class="feature-list">
+                        <li>User Management</li>
+                        <li>Role & Permissions</li>
+                        <li>Branches</li>
+                        <li>Departments</li>
+                        <li>Organization Chart</li>
+                        <li>Cost Centers</li>
+                        <li>Holidays</li>
+                        <li>Company Profile</li>
+                        <li>Settings</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>👥 Human Resources</h4>
+                    <ul class="feature-list">
+                        <li>Employee Database</li>
+                        <li>Payroll Management</li>
+                        <li>Attendance Tracking</li>
+                        <li>Leave Management</li>
+                        <li>Performance Tracking</li>
+                        <li>Self-Service Portal</li>
+                        <li>Payslips</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>💰 Finance & Accounting</h4>
+                    <ul class="feature-list">
+                        <li>Chart of Accounts</li>
+                        <li>General Ledger</li>
+                        <li>Journal Entries</li>
+                        <li>Balance Sheet</li>
+                        <li>Profit & Loss</li>
+                        <li>Cash Flow</li>
+                        <li>Expense Tracking</li>
+                        <li>Tax Management</li>
+                        <li>Tally Export</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>📦 Inventory Management</h4>
+                    <ul class="feature-list">
+                        <li>Stock Management</li>
+                        <li>Warehouses</li>
+                        <li>Stock Movements</li>
+                        <li>Stock Transfers</li>
+                        <li>Replenishment</li>
+                        <li>QR/Barcode Management</li>
+                        <li>Batch/Lot Tracking</li>
+                        <li>Stock Take</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>🎯 CRM</h4>
+                    <ul class="feature-list">
+                        <li>Customer Management</li>
+                        <li>Lead Management</li>
+                        <li>Opportunities</li>
+                        <li>Sales Pipeline</li>
+                        <li>Follow-ups</li>
+                        <li>Communication History</li>
+                        <li>Import/Export</li>
+                        <li>CRM Analytics</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>🛒 Sales & Procurement</h4>
+                    <ul class="feature-list">
+                        <li>Sales Orders</li>
+                        <li>Purchase Orders</li>
+                        <li>Vendor Management</li>
+                        <li>Goods Receipt</li>
+                        <li>Payables</li>
+                        <li>Purchase Analytics</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>🏗️ Projects</h4>
+                    <ul class="feature-list">
+                        <li>Project Planning</li>
+                        <li>Task Management</li>
+                        <li>Milestones</li>
+                        <li>Budget Monitoring</li>
+                        <li>Risk Management</li>
+                        <li>Time Tracking</li>
+                        <li>Documentation</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>🏭 Manufacturing</h4>
+                    <ul class="feature-list">
+                        <li>Bill of Materials</li>
+                        <li>Work Orders</li>
+                        <li>Production Scheduling</li>
+                        <li>Quality Control</li>
+                        <li>Machine Tracking</li>
+                        <li>Maintenance</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>📄 Documents & Approvals</h4>
+                    <ul class="feature-list">
+                        <li>Document Upload</li>
+                        <li>Document Search</li>
+                        <li>Version Control</li>
+                        <li>Digital Approvals</li>
+                        <li>OCR Processing</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>📊 Reports & Analytics</h4>
+                    <ul class="feature-list">
+                        <li>Custom Reports</li>
+                        <li>Report Scheduling</li>
+                        <li>Report Export</li>
+                        <li>Dashboard Analytics</li>
+                        <li>Data Visualization</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>🤖 AI Features</h4>
+                    <ul class="feature-list">
+                        <li>Business Assistant</li>
+                        <li>Dashboard Analytics</li>
+                        <li>Forecasting Engine</li>
+                        <li>Fraud Detection</li>
+                        <li>Report Generator</li>
+                        <li>Support Chatbot</li>
+                        <li>Workflow Automation</li>
+                    </ul>
+                </div>
+
+                <div class="module-card">
+                    <h4>⚙️ Settings & Configuration</h4>
+                    <ul class="feature-list">
+                        <li>General Settings</li>
+                        <li>Security Settings</li>
+                        <li>Notification Settings</li>
+                        <li>Integration Settings</li>
+                        <li>Approval Workflows</li>
+                        <li>Billing Settings</li>
+                        <li>Backup Settings</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- API INTEGRATION -->
+        <section class="section" id="api-integration">
+            <h2>10. API Integration Points</h2>
+
+            <h3>10.1 API Base Configuration</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>Base URL:</strong> <code>http://localhost:8082/api/v1</code> (development)</li>
+                <li><strong>Response Format:</strong> JSON with standard envelope: <code>{ success, message, data }</code></li>
+                <li><strong>Error Format:</strong> RFC 7807 ProblemDetail: <code>{ detail, code, ... }</code></li>
+                <li><strong>Authentication:</strong> Bearer token in Authorization header</li>
+                <li><strong>Tenant Context:</strong> X-Tenant-ID or X-Tenant-Code headers</li>
+            </ul>
+
+            <h3>10.2 Frontend-Backend Communication</h3>
+
+            <div class="api-endpoint">
+                <strong>Frontend Axios Interceptor:</strong>
+                <br>• Request: Adds Authorization: Bearer {token}
+                <br>• Response: Unwraps { success, message, data }
+                <br>• Error: Checks for 401 → triggers refresh
+                <br>• Refresh: Uses authAxios (no interceptor loop)
+                <br>• Session expired: Clears auth and redirects to login
+            </div>
+
+            <h3>10.3 Key API Endpoints</h3>
+
+            <h4>🔐 Authentication</h4>
+            <div class="api-endpoint">
+                <span class="method post">POST</span> /auth/signup<br>
+                <span class="method post">POST</span> /auth/login<br>
+                <span class="method post">POST</span> /auth/refresh (uses HttpOnly cookie)<br>
+                <span class="method post">POST</span> /auth/logout<br>
+                <span class="method post">POST</span> /auth/forgot-password<br>
+                <span class="method post">POST</span> /auth/reset-password<br>
+                <span class="method post">POST</span> /auth/change-password<br>
+                <span class="method post">POST</span> /auth/mfa/setup<br>
+                <span class="method post">POST</span> /auth/mfa/enable<br>
+                <span class="method post">POST</span> /auth/mfa/verify<br>
+                <span class="method get">GET</span> /auth/mfa/status<br>
+                <span class="method get">GET</span> /auth/password-policy<br>
+                <span class="method get">GET</span> /auth/me
+            </div>
+
+            <h4>👥 User & Admin Management</h4>
+            <div class="api-endpoint">
+                <span class="method post">POST</span> /admin/users<br>
+                <span class="method get">GET</span> /admin/users<br>
+                <span class="method put">PUT</span> /admin/users/{id}<br>
+                <span class="method delete">DELETE</span> /admin/users/{id}<br>
+                <span class="method post">POST</span> /admin/roles<br>
+                <span class="method get">GET</span> /admin/roles<br>
+                <span class="method put">PUT</span> /admin/roles/{id}<br>
+                <span class="method post">POST</span> /admin/branches<br>
+                <span class="method get">GET</span> /admin/branches<br>
+                <span class="method post">POST</span> /admin/departments<br>
+                <span class="method get">GET</span> /admin/departments
+            </div>
+
+            <h4>📊 Data Endpoints (Examples)</h4>
+            <div class="api-endpoint">
+                <span class="method get">GET</span> /hr/employees<br>
+                <span class="method post">POST</span> /hr/employees<br>
+                <span class="method put">PUT</span> /hr/employees/{id}<br>
+                <span class="method get">GET</span> /finance/accounts<br>
+                <span class="method post">POST</span> /finance/journal-entries<br>
+                <span class="method get">GET</span> /inventory/stock<br>
+                <span class="method post">POST</span> /inventory/stock-movements<br>
+                <span class="method get">GET</span> /crm/customers<br>
+                <span class="method post">POST</span> /projects/projects<br>
+                <span class="method post">POST</span> /projects/tasks
+            </div>
+
+            <h3>10.4 Request-Response Contracts</h3>
+
+            <h4>Login Request/Response</h4>
+            <pre>{
+  // REQUEST
+  POST /auth/login
+  {
+    "email": "user@example.com",
+    "password": "password123",
+    "tenantCode": "optional-if-multi-tenant"
+  }
+
+  // RESPONSE (200 OK)
+  {
+    "success": true,
+    "data": {
+      "status": "AUTHENTICATED" | "MFA_REQUIRED" | "MFA_ENROLLMENT_REQUIRED" | "TENANT_SELECTION_REQUIRED",
+      "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+      "expiresIn": 900,
+      "userId": 123,
+      "tenantId": 456,
+      "tenantCode": "TENANT_ABC",
+      "name": "John Doe",
+      "email": "user@example.com",
+      "role": "admin",
+      "roles": ["admin", "user"],
+      "mfaEnabled": true,
+      "mfaRequired": false
+    }
+  }
+}</pre>
+
+            <h3>10.5 Common Integration Patterns</h3>
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>Pagination:</strong> <code>?page=0&size=20</code> query parameters</li>
+                <li><strong>Filtering:</strong> Query parameters for each field (e.g., <code>?status=ACTIVE</code>)</li>
+                <li><strong>Sorting:</strong> <code>?sort=name,asc</code> format</li>
+                <li><strong>Tenant Routing:</strong> Headers or JWT claims handle multi-tenancy</li>
+                <li><strong>Error Handling:</strong> Check <code>response.data.success</code> and <code>response.data.code</code></li>
+            </ul>
+        </section>
+
+        <!-- FINDINGS & ISSUES -->
+        <section class="section" id="findings">
+            <h2>11. Findings and Issues</h2>
+
+            <h3>11.1 Issues Discovered</h3>
+
+            <h4>Critical Issues</h4>
+
+            <div class="finding critical">
+                <span class="severity-badge severity-critical">CRITICAL</span>
+                <div class="finding-title">🔴 Flyway Database Migrations Disabled</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> Database migrations are disabled in application.properties: <code>spring.flyway.enabled=false</code><br>
+                    <strong>Impact:</strong> Prevents automated database schema versioning, makes deployment risky, no audit trail of schema changes<br>
+                    <strong>Location:</strong> <code>ERP_Backend/src/main/resources/application.properties</code> line 27<br>
+                    <strong>Recommendation:</strong> Enable Flyway migrations and implement versioned migration files in <code>src/main/resources/db/migration/</code>
+                </p>
+            </div>
+
+            <div class="finding critical">
+                <span class="severity-badge severity-critical">CRITICAL</span>
+                <div class="finding-title">🔴 useAuth Hook Incomplete</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> The <code>useAuth</code> hook has a TODO comment and doesn't hydrate auth state from storage<br>
+                    <strong>Impact:</strong> Auth state is not restored from local storage on page load, causing loss of session<br>
+                    <strong>Location:</strong> <code>SmartERP-AI-Frontend/src/core/hooks/useAuth.js</code> line 8<br>
+                    <strong>File:</strong> This hook appears unused; session management is handled by <code>sessionService.bootstrapSession()</code><br>
+                    <strong>Recommendation:</strong> Either complete the hook or remove it if redundant
+                </p>
+            </div>
+
+            <h4>High Priority Issues</h4>
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">HIGH</span>
+                <div class="finding-title">🟠 Mock Data in Production</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> Frontend has mock data files for all modules in <code>src/data/*.mock.js</code><br>
+                    <strong>Impact:</strong> If mock data is used instead of API calls, frontend displays fake data<br>
+                    <strong>Location:</strong> <code>SmartERP-AI-Frontend/src/data/</code><br>
+                    <strong>Recommendation:</strong> Verify all components use API calls, not mock data. Remove mock files in production build.
+                </p>
+            </div>
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">HIGH</span>
+                <div class="finding-title">🟠 Missing API Service Layer</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> Backend has controllers for all modules, but no corresponding API services found in frontend for most modules<br>
+                    <strong>Impact:</strong> Components may not have proper API integration to backend<br>
+                    <strong>Location:</strong> <code>SmartERP-AI-Frontend/src/core/services/</code> - only has auth and session<br>
+                    <strong>Recommendation:</strong> Create service files for each major module (hrService, financeService, inventoryService, etc.)
+                </p>
+            </div>
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">HIGH</span>
+                <div class="finding-title">🟠 Database Schema Not Defined</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> While entities are defined in Java, there are no database migration files visible<br>
+                    <strong>Impact:</strong> Database initialization process unclear, schema versioning missing<br>
+                    <strong>Location:</strong> <code>ERP_Backend/src/main/resources/db/migration/</code> (should exist)<br>
+                    <strong>Recommendation:</strong> Create Flyway migration files for all database schemas and enable Flyway
+                </p>
+            </div>
+
+            <h4>Medium Priority Issues</h4>
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">MEDIUM</span>
+                <div class="finding-title">🟡 Password Policy Endpoint Not Authenticated</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> <code>GET /auth/password-policy</code> is public but only relevant authenticated users<br>
+                    <strong>Impact:</strong> Minor, but could expose password policy before login<br>
+                    <strong>Location:</strong> <code>SecurityConfig.java</code> line 73<br>
+                    <strong>Recommendation:</strong> Consider if this endpoint should be authenticated or if public access is intentional
+                </p>
+            </div>
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">MEDIUM</span>
+                <div class="finding-title">🟡 Swagger UI Conditional but No Warning</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> Swagger is disabled by default but enabled via SWAGGER_ENABLED env var<br>
+                    <strong>Impact:</strong> Easy to accidentally expose API docs in production<br>
+                    <strong>Location:</strong> <code>application.properties</code> line 77-78<br>
+                    <strong>Recommendation:</strong> Add startup warning if Swagger is enabled in production
+                </p>
+            </div>
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">MEDIUM</span>
+                <div class="finding-title">🟡 No Request Logging</div>
+                <p style="motivation: 10px;">
+                    <strong>Issue:</strong> No visible request/response logging configured<br>
+                    <strong>Impact:</strong> Difficult to debug API issues, no audit trail of sensitive operations<br>
+                    <strong>Recommendation:</strong> Implement request logging with sensitive data masking
+                </p>
+            </div>
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">MEDIUM</span>
+                <div class="finding-title">🟡 Missing Error Boundary Components</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> No Error Boundary components visible in frontend<br>
+                    <strong>Impact:</strong> Single component error crashes entire app<br>
+                    <strong>Recommendation:</strong> Implement Error Boundary at application root and major sections
+                </p>
+            </div>
+
+            <h4>Low Priority Issues</h4>
+
+            <div class="finding low">
+                <span class="severity-badge severity-low">LOW</span>
+                <div class="finding-title">🔵 Development Logs in Properties</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> <code>PASSWORD_RESET_LOG_LINKS</code> defaults to false but comment suggests development use<br>
+                    <strong>Impact:</strong> Minor, but should be clearly documented as dev-only<br>
+                    <strong>Recommendation:</strong> Ensure this is never enabled in production configuration
+                </p>
+            </div>
+
+            <div class="finding low">
+                <span class="severity-badge severity-low">LOW</span>
+                <div class="finding-title">🔵 Vite Development Server Configuration</div>
+                <p style="margin-top: 10px;">
+                    <strong>Issue:</strong> No explicit vite.config.js visible in project structure<br>
+                    <strong>Impact:</strong> Build configuration uses defaults<br>
+                    <strong>Recommendation:</strong> Create explicit vite.config.js for environment-specific configurations
+                </p>
+            </div>
+        </section>
+
+        <!-- RECOMMENDATIONS -->
+        <section class="section" id="recommendations">
+            <h2>12. Recommendations & Action Items</h2>
+
+            <h3>12.1 Immediate Actions (This Sprint)</h3>
+
+            <div class="checklist">
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Enable Flyway Migrations</strong> - Set <code>spring.flyway.enabled=true</code> and create initial migration files for all entities
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Complete useAuth Hook</strong> - Either implement storage hydration or remove if unused
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Verify Mock Data Usage</strong> - Audit all frontend components to ensure API calls are made, not mock data
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Create API Service Layer</strong> - Build reusable service files for each major module (HR, Finance, Inventory, etc.)
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Add Error Boundaries</strong> - Implement React Error Boundary at app root and major sections
+                </div>
+            </div>
+
+            <h3>12.2 Short-Term Improvements (Next 2 Weeks)</h3>
+
+            <div class="checklist">
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Implement Request Logging</strong> - Add request/response logging with PII masking
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Add Input Validation</strong> - Implement comprehensive input validation on both frontend and backend
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Create vite.config.js</strong> - Explicit Vite configuration for different environments
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Document API Contracts</strong> - Generate OpenAPI/Swagger docs for all endpoints
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Add Unit Tests</strong> - Start with 50% code coverage for critical paths (auth, finance)
+                </div>
+            </div>
+
+            <h3>12.3 Medium-Term Enhancements (Next Month)</h3>
+
+            <div class="checklist">
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Expand MFA to All Users</strong> - Make MFA mandatory for all accounts (optional for employees, mandatory for admins)
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Implement Audit Logging</strong> - Log all sensitive operations (user creation, data modifications, deletions)
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Performance Optimization</strong> - Add database query optimization, API response caching, pagination
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Security Hardening</strong> - Add rate limiting per user, IP whitelisting, WAF rules
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> <strong>Integration Tests</strong> - Test full workflows (login → project creation → task assignment)
+                </div>
+            </div>
+
+            <h3>12.4 Architecture Improvements</h3>
+
+            <ul style="margin: 20px 0 20px 40px; line-height: 1.8;">
+                <li><strong>Microservices Consideration:</strong> As the system grows, consider splitting into microservices (Auth, Finance, HR, Inventory) with API Gateway</li>
+                <li><strong>Caching Layer:</strong> Add Redis for session management and frequently accessed data</li>
+                <li><strong>Message Queue:</strong> Implement RabbitMQ/Kafka for async operations (email notifications, reports, notifications)</li>
+                <li><strong>Search Engine:</strong> Add Elasticsearch for advanced search and analytics</li>
+                <li><strong>Monitoring:</strong> Implement ELK Stack (Elasticsearch, Logstash, Kibana) for centralized logging</li>
+                <li><strong>CI/CD Pipeline:</strong> GitHub Actions or GitLab CI for automated testing and deployment</li>
+            </ul>
+
+            <h3>12.5 Testing Strategy</h3>
+
+            <div class="alert alert-info">
+                <strong>Recommended Test Coverage:</strong>
+                <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+                    <li><strong>Unit Tests:</strong> Services, utilities, utils (60% minimum)</li>
+                    <li><strong>Integration Tests:</strong> API endpoints, database operations (40% minimum)</li>
+                    <li><strong>E2E Tests:</strong> Critical workflows (login, create project, make payment) (10% minimum)</li>
+                    <li><strong>Security Tests:</strong> Authentication bypass, SQL injection, XSS, CSRF</li>
+                    <li><strong>Performance Tests:</strong> Load testing, stress testing, database query optimization</li>
+                </ul>
+            </div>
+
+            <h3>12.6 Deployment Checklist</h3>
+
+            <div class="checklist">
+                <div class="checklist-item">
+                    <input type="checkbox"> Database migrations have been tested and verified
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> All environment variables are set correctly (JWT_SECRET, MFA_ENCRYPTION_KEY, etc.)
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> CORS origins are restricted to production domains
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> Swagger UI is disabled (SWAGGER_ENABLED=false)
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> HTTPS/TLS is enforced (REFRESH_COOKIE_SECURE=true)
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> Database backups are configured
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> Monitoring and alerting are set up
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> Security patches are applied to all dependencies
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> Load testing has been performed
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox"> Disaster recovery plan is in place
+                </div>
+            </div>
+        </section>
+
+        <!-- CONCLUSION -->
+        <section class="section">
+            <h2>13. Conclusion</h2>
+
+            <div class="alert alert-success">
+                <strong>Assessment Summary:</strong><br><br>
+                SmartERP demonstrates a mature, well-architected enterprise application with:
+                <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+                    <li>✓ Comprehensive module coverage across 15+ business domains</li>
+                    <li>✓ Strong security foundation with JWT, MFA, rate limiting, and multi-tenancy</li>
+                    <li>✓ Modern technology stack (React 19, Spring Boot 3.3.2, PostgreSQL)</li>
+                    <li>✓ Clean separation of concerns between frontend and backend</li>
+                    <li>✓ Well-designed API with standard response envelopes and error handling</li>
+                </ul>
+            </div>
+
+            <p style="margin-top: 30px;">
+                <strong>Key Next Steps:</strong>
+            </p>
+            <ol style="margin: 15px 0 0 20px; line-height: 1.8;">
+                <li>Fix critical issues (Flyway migrations, useAuth hook, API services)</li>
+                <li>Implement comprehensive testing (unit, integration, E2E)</li>
+                <li>Add request logging and monitoring</li>
+                <li>Expand MFA to all users</li>
+                <li>Performance optimization and caching</li>
+                <li>Production deployment preparation</li>
+            </ol>
+
+            <p style="margin-top: 30px;">
+                The application is well-positioned for further development and production deployment, with the main focus being on completing the backend-frontend integration and addressing the identified issues before go-live.
+            </p>
+        </section>
+
+        <div class="footer">
+            <p><strong>SmartERP Comprehensive Technical Audit Report</strong></p>
+            <p>Generated: 2026-11-20</p>
+            <p>Audit Scope: Complete ERP System - Frontend, Backend, Database, Security</p>
+            <p style="margin-top: 15px; font-size: 0.9em; color: #999;">
+                This report contains confidential technical information and assessment findings.
+                It is intended for authorized team members only.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
