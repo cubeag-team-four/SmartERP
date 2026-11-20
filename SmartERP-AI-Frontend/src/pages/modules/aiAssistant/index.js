@@ -1,0 +1,8 @@
+export { default as BusinessAssistant } from './BusinessAssistant'
+export { default as Insights } from './components/Insights'
+export { default as Chatbot } from './components/Chatbot'
+export { default as Reports } from './components/Reports'
+export { default as FraudDetection } from './components/FraudDetection'
+export { default as Forecasting } from './components/Forecasting'
+export { default as ProjectRisk } from './components/ProjectRisk'
+export { default as aiAssistantService } from './services/aiAssistant.service'
